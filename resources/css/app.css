@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+@source '../js';
+@source '../views';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --color-ctu-dark: #0f172a;
+    --color-ctu-lightblue: #3b82f6;
+}
