@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
+use App\Models\AdminUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -8,6 +10,14 @@ use Inertia\Inertia;
 Route::inertia('/', 'welcome')->name('home');
 Route::inertia('/auth/login', 'auth/login')->name('login');
 Route::inertia('/auth/register', 'auth/register')->name('register');
+Route::get('/admin', function (Request $request) {
+    abort_unless($request->user() instanceof AdminUser, 403);
+
+    return Inertia::render('admin/admin');
+})->middleware('auth:admin')->name('admin');
+Route::post('/auth/login', [LoginController::class, 'store'])
+    ->middleware('throttle:login')
+    ->name('login.authenticate');
 Route::post('/register', [RegistrationController::class, 'store'])->name('register.store');
 Route::get('/email/verify-registration', function (Request $request) {
     return Inertia::render('auth/verify-email', [
