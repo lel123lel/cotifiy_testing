@@ -1,11 +1,36 @@
 <?php
 
+use App\Http\Controllers\Auth\RegistrationController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::inertia('/', 'welcome')->name('home');
 Route::inertia('/auth/login', 'auth/login')->name('login');
 Route::inertia('/auth/register', 'auth/register')->name('register');
+Route::post('/register', [RegistrationController::class, 'store'])->name('register.store');
+Route::get('/email/verify-registration', function (Request $request) {
+    return Inertia::render('auth/verify-email', [
+        'email' => $request->query('email'),
+        'verified' => false,
+    ]);
+})->name('registration.notice');
+Route::get('/email/verify-registration/confirm', [RegistrationController::class, 'verify'])
+    ->middleware('signed')
+    ->name('registration.verify');
 
-Route::inertia('/email/verify', 'auth/verify-email')
+Route::get('/email/verify', function (Request $request) {
+    $user = $request->user();
+
+    if ($user->hasVerifiedEmail()) {
+        return redirect(config('fortify.home'));
+    }
+
+    return Inertia::render('auth/verify-email', [
+        'email' => $user->email,
+        'status' => $request->session()->get('status'),
+        'verified' => false,
+    ]);
+})
     ->middleware('auth')
     ->name('verification.notice');

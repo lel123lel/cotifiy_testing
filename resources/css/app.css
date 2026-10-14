@@ -8,3 +8,15 @@
     --color-ctu-dark: #0f172a;
     --color-ctu-lightblue: #3b82f6;
 }
+
+.otp-input {
+            width: 3rem;
+            height: 3.5rem;
+        }
+
+@media (min-width: 640px) {
+    .otp-input {
+        width: 3.5rem;
+        height: 4rem;
+    }
+}

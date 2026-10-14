@@ -30,6 +30,7 @@ export default function Welcome() {
 
                         <div className="flex items-center gap-4">
                             <button id="themeToggle" className="text-slate-300 hover:text-white transition-colors"><i className="fa-solid fa-sun"></i></button>
+                            <a href="/auth/register" className="hidden sm:block border border-ctu-lightblue text-ctu-lightblue hover:bg-ctu-lightblue hover:text-white px-5 py-2 rounded-md text-sm font-medium transition-colors">Register</a>
                             <a href="/auth/login" className="hidden sm:block bg-ctu-lightblue hover:bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors">Login</a>
                             
                             
@@ -43,7 +44,10 @@ export default function Welcome() {
                     <div id="mobileMenu" className="hidden relative z-20 bg-ctu-dark/95 backdrop-blur-md lg:hidden border-b border-slate-700">
                         <div className="px-6 py-4 flex flex-col gap-4 text-slate-300 text-sm font-medium">
                             <a href="#" className="text-white">Home</a>
-                            <a href="login.php" className="bg-ctu-lightblue text-white text-center py-2 rounded-md mt-2">Login</a>
+                            <div className="flex gap-3">
+                                <a href="/auth/register" className="flex-1 border border-ctu-lightblue text-ctu-lightblue text-center py-2 rounded-md">Register</a>
+                                <a href="/auth/login" className="flex-1 bg-ctu-lightblue text-white text-center py-2 rounded-md">Login</a>
+                            </div>
                         </div>
                     </div>
 

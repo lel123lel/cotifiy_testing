@@ -109,6 +109,7 @@ export default function Register() {
                                         name="email" 
                                         placeholder="you@example.com" 
                                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                                        required
                                         ></input>
                                         {errors.email && <p>{errors.email}</p>}
                                     </div>
@@ -156,7 +157,7 @@ export default function Register() {
                                         className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                                         ></input>
                                         {errors.password_confirmation && (
-                                            <p className="text-sm text-red-600">{errors.password_comfirmation}</p>
+                                            <p className="text-sm text-red-600">{errors.password_confirmation}</p>
                                         )}
                                         <div 
                                         id="toggleConfirmPassword" 
