@@ -245,62 +245,15 @@ export default function admin() {
                                                 <th className="px-4 py-3">Category</th>
                                                 <th className="px-4 py-3">Posted By</th>
                                                 <th className="px-4 py-3">Date</th>
-                                                <th className="px-4 py-3">Status</th>
                                                 <th className="px-4 py-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="text-sm" id="announcementTableBody">
-                                            <tr className="announcement-row border-b border-slate-100 hover:bg-slate-50 transition-colors" data-category="Academic">
-                                                <td className="px-4 py-3 font-medium text-slate-800 announcement-title">Enrollment Schedule for 1st Semester, SY 2025-2026</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">Academic</span></td>
-                                                <td className="px-4 py-3 text-slate-600">Office of the Registrar</td>
-                                                <td className="px-4 py-3 text-slate-500">Sep 5, 2025</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Published</span></td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button className="text-slate-400 hover:text-ctu-lightblue mx-1 edit-btn"><i className="fa-solid fa-pen"></i></button>
-                                                    <button className="text-slate-400 hover:text-red-500 mx-1 delete-btn"><i className="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr className="announcement-row border-b border-slate-100 hover:bg-slate-50 transition-colors" data-category="General">
-                                                <td className="px-4 py-3 font-medium text-slate-800 announcement-title">Suspension of classNamees (September 8, 2025)</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">General</span></td>
-                                                <td className="px-4 py-3 text-slate-600">COTIFY Administration</td>
-                                                <td className="px-4 py-3 text-slate-500">Sep 5, 2025</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Published</span></td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button className="text-slate-400 hover:text-ctu-lightblue mx-1 edit-btn"><i className="fa-solid fa-pen"></i></button>
-                                                    <button className="text-slate-400 hover:text-red-500 mx-1 delete-btn"><i className="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr className="announcement-row border-b border-slate-100 hover:bg-slate-50 transition-colors" data-category="Event">
-                                                <td className="px-4 py-3 font-medium text-slate-800 announcement-title">HIV/AIDS Awareness Seminar</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Event</span></td>
-                                                <td className="px-4 py-3 text-slate-600">Student Affairs and Services</td>
-                                                <td className="px-4 py-3 text-slate-500">Dec 3, 2023</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Published</span></td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button className="text-slate-400 hover:text-ctu-lightblue mx-1 edit-btn"><i className="fa-solid fa-pen"></i></button>
-                                                    <button className="text-slate-400 hover:text-red-500 mx-1 delete-btn"><i className="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                            <tr className="announcement-row hover:bg-slate-50 transition-colors" data-category="Service">
-                                                <td className="px-4 py-3 font-medium text-slate-800 announcement-title">Online Registration is Now Open</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-100 text-rose-700">Service</span></td>
-                                                <td className="px-4 py-3 text-slate-600">Registrar's Office</td>
-                                                <td className="px-4 py-3 text-slate-500">Aug 27, 2025</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Published</span></td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button className="text-slate-400 hover:text-ctu-lightblue mx-1 edit-btn"><i className="fa-solid fa-pen"></i></button>
-                                                    <button className="text-slate-400 hover:text-red-500 mx-1 delete-btn"><i className="fa-solid fa-trash"></i></button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
                                     </table>
                                 </div>
                                 
                                 
                                 <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                                    <span id="tableInfo">Showing 1-4 of 4 announcements</span>
+                                    <span id="tableInfo">Showing 0-0 of 0 announcements</span>
                                     <div className="flex items-center gap-1">
                                         <button className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"><i className="fa-solid fa-chevron-left"></i></button>
                                         <button className="w-6 h-6 flex items-center justify-center rounded bg-ctu-lightblue text-white font-medium">1</button>
