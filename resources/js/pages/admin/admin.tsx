@@ -49,6 +49,10 @@ export default function admin({
     const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
     const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('General');
+    const [activeFilter, setActiveFilter] = useState('all');
+    const filteredAnnouncements = activeFilter === 'all'
+        ? announcements
+        : announcements.filter((announcement) => announcement.category === activeFilter);
 
     return (
         <>
@@ -268,11 +272,27 @@ export default function admin({
 
                             
                             <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar" id="filterTabs">
-                                <button data-filter="all" className="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-ctu-lightblue text-white whitespace-nowrap transition-colors">All</button>
-                                <button data-filter="General" className="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">General</button>
-                                <button data-filter="Academic" className="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">Academic</button>
-                                <button data-filter="Event" className="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">Events</button>
-                                <button data-filter="Service" className="filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">Service</button>
+                                {[
+                                    { value: 'all', label: 'All' },
+                                    { value: 'General', label: 'General' },
+                                    { value: 'Academic', label: 'Academic' },
+                                    { value: 'Event', label: 'Events' },
+                                    { value: 'Service', label: 'Service' },
+                                ].map((filter) => (
+                                    <button
+                                        key={filter.value}
+                                        type="button"
+                                        aria-pressed={activeFilter === filter.value}
+                                        onClick={() => setActiveFilter(filter.value)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                                            activeFilter === filter.value
+                                                ? 'bg-ctu-lightblue text-white'
+                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
                             </div>
 
                             
@@ -290,9 +310,11 @@ export default function admin({
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {announcements.length === 0 ? (
-                                                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">No announcements yet.</td></tr>
-                                            ) : announcements.map((announcement) => (
+                                            {filteredAnnouncements.length === 0 ? (
+                                                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                                    {activeFilter === 'all' ? 'No announcements yet.' : `No ${activeFilter.toLowerCase()} announcements.`}
+                                                </td></tr>
+                                            ) : filteredAnnouncements.map((announcement) => (
                                                 <tr key={announcement.id} className="border-b border-slate-100 text-sm text-slate-700">
                                                     <td className="px-4 py-3 font-medium text-slate-800">
                                                         <p title={announcement.title}>
@@ -321,7 +343,7 @@ export default function admin({
                                 
                                 
                                 <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                                    <span id="tableInfo">Showing {announcements.length === 0 ? 0 : 1}-{announcements.length} of {announcements.length} announcements</span>
+                                    <span id="tableInfo">Showing {filteredAnnouncements.length === 0 ? 0 : 1}-{filteredAnnouncements.length} of {filteredAnnouncements.length} announcements</span>
                                     <div className="flex items-center gap-1">
                                         <button className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"><i className="fa-solid fa-chevron-left"></i></button>
                                         <button className="w-6 h-6 flex items-center justify-center rounded bg-ctu-lightblue text-white font-medium">1</button>
