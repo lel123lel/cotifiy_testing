@@ -1,20 +1,6 @@
-import { Form, Head, router } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-
-
-type Announcement = {
-    id: number;
-    title: string;
-    category: string;
-    posted_by: string;
-    date: string;
-    body: string;
-    image_url: string | null;
-    event_date: string | null;
-    start_time: string | null;
-    end_time: string | null;
-    location: string | null;
-};
+import AnnouncementPage, { type Announcement } from '../announcementpage';
 
 type UpcomingEvent = {
     id: number;
@@ -31,22 +17,45 @@ const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateSt
     year: 'numeric',
 });
 
+const formatTime = (time: string | null) => {
+    if (!time) {
+        return undefined;
+    }
+
+    const [hourText, minuteText] = time.split(':');
+    const hour = Number(hourText);
+
+    if (
+        !/^\d{2}$/.test(hourText) ||
+        !/^\d{2}$/.test(minuteText ?? '') ||
+        hour > 23 ||
+        Number(minuteText) > 59
+    ) {
+        return time.slice(0, 5);
+    }
+
+    return `${hour % 12 || 12}:${minuteText} ${hour < 12 ? 'AM' : 'PM'}`;
+};
+
 export default function admin({
     announcements,
     recentAnnouncements,
     upcomingEvents,
     announcementCount,
     eventCount,
+    userCount,
 }: {
     announcements: Announcement[];
     recentAnnouncements: Announcement[];
     upcomingEvents: UpcomingEvent[];
     announcementCount: number;
     eventCount: number;
+    userCount: number;
 }) {
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
     const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('General');
     const [activeFilter, setActiveFilter] = useState('all');
@@ -88,29 +97,24 @@ export default function admin({
                             <a href="#dashboard" data-target="dashboard" className="nav-link flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-house w-5 text-center"></i> Dashboard
                             </a>
-                            <a href="#announcements" data-target="announcements" className="nav-link flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
-                                <i className="fa-solid fa-bullhorn w-5 text-center"></i> Announcements
-                            </a>
-                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
-                                <i className="fa-regular fa-calendar w-5 text-center"></i> Events
-                            </a>
-                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                            <Link href="/admin/users" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-users w-5 text-center"></i> Users
-                            </a>
-                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
-                                <i className="fa-regular fa-building w-5 text-center"></i> Departments
-                            </a>
-                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                            </Link>
+                            <Link href="/admin/settings" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-gear w-5 text-center"></i> Settings
-                            </a>
+                            </Link>
                         </nav>
                     </div>
 
                     
                     <div className="p-4 border-t border-slate-800">
-                        <a href="login.php" className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white text-sm font-medium transition-colors">
-                            <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Log Out
-                        </a>
+                        <Form method="post" action="/admin/logout">
+                            {({ processing }) => (
+                                <button type="submit" disabled={processing} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-slate-400 transition-colors hover:text-white disabled:opacity-60">
+                                    <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> {processing ? 'Logging Out...' : 'Log Out'}
+                                </button>
+                            )}
+                        </Form>
                     </div>
                 </aside>
 
@@ -164,7 +168,7 @@ export default function admin({
                             </div>
 
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
                                     <div className="bg-blue-100 p-3 rounded-lg text-blue-600">
                                         <i className="fa-solid fa-bullhorn text-xl"></i>
@@ -191,18 +195,8 @@ export default function admin({
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 font-medium mb-1">Total Users</p>
-                                        <h3 className="text-2xl font-bold text-slate-800 mb-1">156</h3>
-                                        <p className="text-[10px] text-emerald-600 font-medium"><i className="fa-solid fa-arrow-up"></i> 5% this month</p>
-                                    </div>
-                                </div>
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
-                                    <div className="bg-orange-100 p-3 rounded-lg text-orange-600">
-                                        <i className="fa-solid fa-building text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 font-medium mb-1">Departments</p>
-                                        <h3 className="text-2xl font-bold text-slate-800 mb-1">12</h3>
-                                        <p className="text-[10px] text-slate-400 font-medium">No change</p>
+                                        <h3 className="text-2xl font-bold text-slate-800 mb-1">{userCount}</h3>
+                                        <p className="text-[10px] text-slate-400 font-medium">Registered accounts</p>
                                     </div>
                                 </div>
                             </div>
@@ -222,7 +216,13 @@ export default function admin({
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">{announcement.category}</span>
                                                 </div>
-                                                <p className="text-sm font-medium text-slate-800 mb-1">{announcement.title}</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedAnnouncement(announcement)}
+                                                    className="mb-1 block text-left text-sm font-medium text-slate-800 hover:text-ctu-lightblue"
+                                                >
+                                                    {announcement.title}
+                                                </button>
                                                 <p className="text-xs text-slate-500">{formatDate(announcement.date)} • {announcement.posted_by}</p>
                                             </div>
                                         ))}
@@ -246,7 +246,7 @@ export default function admin({
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-800">{event.title}</p>
                                                     <p className="text-xs text-slate-500">
-                                                        {[event.start_time && event.end_time ? `${event.start_time.slice(0, 5)} - ${event.end_time.slice(0, 5)}` : event.start_time?.slice(0, 5), event.location].filter(Boolean).join(' • ')}
+                                                        {[event.start_time && event.end_time ? `${formatTime(event.start_time)} - ${formatTime(event.end_time)}` : formatTime(event.start_time), event.location].filter(Boolean).join(' • ')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -317,9 +317,14 @@ export default function admin({
                                             ) : filteredAnnouncements.map((announcement) => (
                                                 <tr key={announcement.id} className="border-b border-slate-100 text-sm text-slate-700">
                                                     <td className="px-4 py-3 font-medium text-slate-800">
-                                                        <p title={announcement.title}>
+                                                        <button
+                                                            type="button"
+                                                            title={announcement.title}
+                                                            onClick={() => setSelectedAnnouncement(announcement)}
+                                                            className="text-left hover:text-ctu-lightblue"
+                                                        >
                                                             {announcement.title.length > 15 ? `${announcement.title.slice(0, 10)}...` : announcement.title}
-                                                        </p>
+                                                        </button>
                                                     </td>
                                                     <td className="max-w-xs px-4 py-3 text-slate-800">
                                                         <p title={announcement.body}>
@@ -356,7 +361,13 @@ export default function admin({
                     </main>
                 </div>
 
-                
+                {selectedAnnouncement && (
+                    <AnnouncementPage
+                        announcement={selectedAnnouncement}
+                        onClose={() => setSelectedAnnouncement(null)}
+                    />
+                )}
+
                 {announcementToDelete && <div id="deleteModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="deleteAnnouncementTitle">
                     <div className="bg-white rounded-xl shadow-lg max-w-sm w-full mx-4 p-6">
                         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">

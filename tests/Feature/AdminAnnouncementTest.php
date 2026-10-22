@@ -2,6 +2,7 @@
 
 use App\Models\AdminUser;
 use App\Models\Announcement;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -41,6 +42,7 @@ test('an admin can publish an announcement', function () {
         ->assertInertia(fn ($page) => $page
             ->component('admin/admin')
             ->where('announcements.0.title', 'Campus closure')
+            ->where('announcements.0.image_url', '/storage/'.$announcement->image)
             ->where('announcements.0.date', now()->toDateString()));
 });
 
@@ -172,6 +174,18 @@ test('the admin dashboard shows recent announcements and upcoming events from th
         'email' => 'admin@example.com',
         'password' => 'secret-password',
     ]);
+    User::create([
+        'name' => 'Avery Student',
+        'email' => 'avery@example.com',
+        'studentId' => 'STU-123',
+        'password' => 'secret-password',
+    ]);
+    User::create([
+        'name' => 'Jordan Student',
+        'email' => 'jordan@example.com',
+        'studentId' => 'STU-456',
+        'password' => 'secret-password',
+    ]);
 
     $announcement = Announcement::create([
         'title' => 'Latest update',
@@ -212,6 +226,7 @@ test('the admin dashboard shows recent announcements and upcoming events from th
             ->where('upcomingEvents.0.event_date', now()->addDays(3)->toDateString())
             ->where('announcementCount', 3)
             ->where('eventCount', 2)
+            ->where('userCount', 2)
             ->missing('upcomingEvents.1'));
 });
 

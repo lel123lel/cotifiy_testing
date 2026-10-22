@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -42,6 +43,7 @@ class AnnouncementController extends Controller
                 ]),
             'announcementCount' => $announcements->count(),
             'eventCount' => Announcement::query()->where('category', 'Event')->count(),
+            'userCount' => User::query()->count(),
         ]);
     }
 
