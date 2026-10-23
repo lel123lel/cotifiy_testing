@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 
 export default function Welcome() {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     return (
         <>
             <Head title="Welcome" />
@@ -34,19 +37,19 @@ export default function Welcome() {
                             <a href="/auth/login" className="hidden sm:block bg-ctu-lightblue hover:bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors">Login</a>
                             
                             
-                            <button id="mobileMenuBtn" className="lg:hidden text-white text-xl">
-                                <i className="fa-solid fa-bars"></i>
+                            <button id="mobileMenuBtn" type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={isMobileMenuOpen} className="lg:hidden text-white text-xl">
+                                <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
                             </button>
                         </div>
                     </header>
 
                     
-                    <div id="mobileMenu" className="hidden relative z-20 bg-ctu-dark/95 backdrop-blur-md lg:hidden border-b border-slate-700">
+                    <div id="mobileMenu" className={`${isMobileMenuOpen ? 'block' : 'hidden'} relative z-20 bg-ctu-dark/95 backdrop-blur-md lg:hidden border-b border-slate-700`}>
                         <div className="px-6 py-4 flex flex-col gap-4 text-slate-300 text-sm font-medium">
-                            <a href="#" className="text-white">Home</a>
+                            <a href="#" onClick={() => setIsMobileMenuOpen(false)} className="text-white">Home</a>
                             <div className="flex gap-3">
-                                <a href="/auth/register" className="flex-1 border border-ctu-lightblue text-ctu-lightblue text-center py-2 rounded-md">Register</a>
-                                <a href="/auth/login" className="flex-1 bg-ctu-lightblue text-white text-center py-2 rounded-md">Login</a>
+                                <a href="/auth/register" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 border border-ctu-lightblue text-ctu-lightblue text-center py-2 rounded-md">Register</a>
+                                <a href="/auth/login" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 bg-ctu-lightblue text-white text-center py-2 rounded-md">Login</a>
                             </div>
                         </div>
                     </div>

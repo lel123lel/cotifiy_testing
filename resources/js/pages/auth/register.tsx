@@ -40,7 +40,7 @@ export default function Register() {
                     <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative">
                         
                         
-                        <a href="login.php" className="absolute top-6 left-6 sm:top-8 sm:left-8 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:border-ctu-lightblue hover:bg-blue-50 transition-all shadow-sm" title="Back to Login">
+                        <a href="/" className="absolute top-6 left-6 sm:top-8 sm:left-8 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:border-ctu-lightblue hover:bg-blue-50 transition-all shadow-sm" title="Back to Login">
                             <i className="fa-solid fa-arrow-left"></i>
                         </a>
 
@@ -176,7 +176,7 @@ export default function Register() {
                                 disabled={processing}
                                 className="w-full block text-center bg-ctu-lightblue hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition-colors mt-2"
                                 >
-                                    {processing ? 'registering...' : 'Create Account'};
+                                    {processing ? 'Registering...' : 'Create Account'};
                                 </button>
                                 </> 
                             )}

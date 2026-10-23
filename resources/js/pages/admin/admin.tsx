@@ -59,6 +59,7 @@ export default function admin({
     const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('General');
     const [activeFilter, setActiveFilter] = useState('all');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const filteredAnnouncements = activeFilter === 'all'
         ? announcements
         : announcements.filter((announcement) => announcement.category === activeFilter);
@@ -66,9 +67,9 @@ export default function admin({
     return (
         <>
             <Head title="Admin" />
-            <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden">
+            <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen min-h-screen flex overflow-hidden">
                 
-                <aside id="sidebar" className="w-64 bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-30 h-full transition-all duration-300">
+                <aside id="sidebar" className={`fixed inset-y-0 left-0 z-30 w-64 bg-ctu-dark flex flex-col justify-between shrink-0 md:relative md:inset-auto md:translate-x-0 h-full transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                     <div>
                         
                         <div className="p-6 flex items-center gap-3">
@@ -94,13 +95,19 @@ export default function admin({
 
                         
                         <nav className="mt-4 space-y-1 px-3" id="sidebarNav">
-                            <a href="#dashboard" data-target="dashboard" className="nav-link flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-lg text-sm font-medium transition-colors">
+                            <a href="#dashboard" data-target="dashboard" onClick={() => setIsSidebarOpen(false)} className="nav-link flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-house w-5 text-center"></i> Dashboard
                             </a>
-                            <Link href="/admin/users" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                            <a href="#announcements" data-target="announcements" className="nav-link flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                                <i className="fa-solid fa-bullhorn w-5 text-center"></i> Announcements
+                            </a>
+                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                                <i className="fa-regular fa-calendar w-5 text-center"></i> Events
+                            </a>
+                            <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-users w-5 text-center"></i> Users
-                            </Link>
-                            <Link href="/admin/settings" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                            </a>
+                            <Link href="/admin/settings" prefetch="mount" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
                                 <i className="fa-solid fa-gear w-5 text-center"></i> Settings
                             </Link>
                         </nav>
@@ -119,21 +126,16 @@ export default function admin({
                 </aside>
 
                 
-                <div id="sidebarOverlay" className="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
+                {isSidebarOpen && <button type="button" aria-label="Close navigation menu" onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 z-20 bg-black/50 md:hidden"></button>}
 
                 
                 <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
                     
                     
-                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
-                        <div className="flex items-center gap-4">
+                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
+                        <div className="flex items-center gap-3 sm:gap-4">
                             
-                            <button id="toggleSidebarBtn" className="text-slate-500 hover:text-ctu-lightblue text-lg transition-colors" title="Toggle Navigation Bar">
-                                <i className="fa-solid fa-bars"></i>
-                            </button>
-
-                            
-                            <button id="mobileSidebarBtn" className="md:hidden text-slate-500 hover:text-slate-800 text-lg hidden">
+                            <button id="toggleSidebarBtn" type="button" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={isSidebarOpen} className="md:hidden text-slate-500 hover:text-ctu-lightblue text-lg transition-colors">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
 
@@ -158,7 +160,7 @@ export default function admin({
                     </header>
 
                     
-                    <main className="flex-1 p-6 overflow-y-auto">
+                    <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
                         
                         
                         <section id="dashboard" className="mb-10 section-content">
@@ -298,7 +300,7 @@ export default function admin({
                             
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
+                                    <table className="w-full min-w-[700px] text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
                                                 <th className="px-4 py-3">Title</th>
@@ -399,7 +401,7 @@ export default function admin({
 
                 
                 {isNewModalOpen && <div id="newModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="newAnnouncementTitle">
-                    <div className="bg-white rounded-xl shadow-lg max-w-5xl w-full p-8 max-h-[95vh] overflow-y-auto">
+                    <div className="bg-white rounded-xl shadow-lg max-w-5xl w-full p-4 sm:p-8 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-4">
                             <h3 id="newAnnouncementTitle" className="text-lg font-bold text-slate-800">{editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}</h3>
                             <button id="closeNewModal" type="button" onClick={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} aria-label="Close announcement form" className="text-slate-400 hover:text-slate-600"><i className="fa-solid fa-times"></i></button>
