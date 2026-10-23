@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
+use App\Http\Controllers\Client\ClientPageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -13,6 +14,9 @@ Route::inertia('/', 'welcome')->name('home');
 Route::inertia('/announcementpage', 'announcementpage')->name('announcementpage');
 Route::inertia('/auth/login', 'auth/login')->name('login');
 Route::inertia('/auth/register', 'auth/register')->name('register');
+Route::get('/client/clientpage', ClientPageController::class)
+    ->middleware('auth:web')
+    ->name('client.clientpage');
 Route::get('/admin', [AnnouncementController::class, 'index'])
     ->middleware('auth:admin')
     ->name('admin');

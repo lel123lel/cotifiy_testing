@@ -30,9 +30,30 @@ test('a regular user can log in using the users table', function () {
     $this->post('/auth/login', [
         'email' => $user->email,
         'password' => 'secret-password',
-    ])->assertRedirect('/');
+    ])->assertRedirect(route('client.clientpage'));
 
     $this->get(route('admin'))->assertRedirect(route('login'));
+});
+
+test('a regular user can access the client page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.clientpage'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('client/clientpage'));
+});
+
+test('an admin cannot access the client page', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('client.clientpage'))
+        ->assertRedirect(route('login'));
 });
 
 test('login rejects an incorrect password for an existing email', function () {

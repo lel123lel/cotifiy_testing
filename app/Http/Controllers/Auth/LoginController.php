@@ -51,7 +51,7 @@ class LoginController extends Controller
         Auth::guard('web')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(config('fortify.home'));
+        return redirect()->intended(route('client.clientpage'));
     }
 
     public function destroy(Request $request): RedirectResponse
