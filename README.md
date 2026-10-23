@@ -2,6 +2,14 @@
 
 Laravel projects do not include the `vendor/` or `node_modules/` directories in GitHub. You must install the required dependencies manually.
 
+### Node.js
+
+The frontend toolchain requires Node.js `22.18.0` or later in the `22.x` line, or `24.11.0` or later. Check the installed version with:
+
+```bash
+node --version
+```
+
 ### PHP Dependencies
 
 Run the following command to install the Laravel backend dependencies and create the `vendor/` directory:
