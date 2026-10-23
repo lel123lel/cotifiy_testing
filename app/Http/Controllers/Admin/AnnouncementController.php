@@ -1,0 +1,170 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Announcement;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
+use RuntimeException;
+
+class AnnouncementController extends Controller
+{
+    public function index(): Response
+    {
+        $announcements = Announcement::query()
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->get();
+
+        return Inertia::render('admin/admin', [
+            'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
+            'recentAnnouncements' => $announcements->take(5)->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
+            'upcomingEvents' => Announcement::query()
+                ->where('category', 'Event')
+                ->whereDate('event_date', '>=', now()->toDateString())
+                ->orderBy('event_date')
+                ->orderBy('start_time')
+                ->orderBy('id')
+                ->limit(5)
+                ->get()
+                ->map(fn (Announcement $announcement) => [
+                    'id' => $announcement->id,
+                    'title' => $announcement->title,
+                    'event_date' => $announcement->event_date->toDateString(),
+                    'start_time' => $announcement->start_time,
+                    'end_time' => $announcement->end_time,
+                    'location' => $announcement->location,
+                ]),
+            'announcementCount' => $announcements->count(),
+            'eventCount' => Announcement::query()->where('category', 'Event')->count(),
+            'userCount' => User::query()->count(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category' => ['required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
+            'posted_by' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'event_date' => ['nullable', 'required_if:category,Event', 'date'],
+            'start_time' => ['nullable', 'required_with:end_time', 'date_format:H:i'],
+            'end_time' => ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
+            'location' => ['nullable', 'required_if:category,Event', 'string', 'max:255'],
+        ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('announcements', 'public');
+
+            if ($imagePath === false) {
+                throw new RuntimeException('Failed to store the announcement image.');
+            }
+        }
+
+        Announcement::create([
+            ...$validated,
+            'date' => now()->toDateString(),
+            'image' => $imagePath,
+            ...$this->eventFields($validated),
+        ]);
+
+        return back();
+    }
+
+    public function update(Request $request, Announcement $announcement): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category' => ['required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
+            'posted_by' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'event_date' => ['nullable', 'required_if:category,Event', 'date'],
+            'start_time' => ['nullable', 'required_with:end_time', 'date_format:H:i'],
+            'end_time' => ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
+            'location' => ['nullable', 'required_if:category,Event', 'string', 'max:255'],
+        ]);
+
+        $oldImage = $announcement->image;
+        $imagePath = $oldImage;
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('announcements', 'public');
+
+            if ($imagePath === false) {
+                throw new RuntimeException('Failed to store the announcement image.');
+            }
+        }
+
+        $announcement->update([
+            ...$validated,
+            'image' => $imagePath,
+            ...$this->eventFields($validated),
+        ]);
+
+        if ($imagePath !== $oldImage && $oldImage !== null && ! Storage::disk('public')->delete($oldImage)) {
+            throw new RuntimeException('Failed to remove the replaced announcement image.');
+        }
+
+        return back();
+    }
+
+    public function destroy(Announcement $announcement): RedirectResponse
+    {
+        $image = $announcement->image;
+        $announcement->delete();
+
+        if ($image !== null && ! Storage::disk('public')->delete($image)) {
+            throw new RuntimeException('Failed to remove the deleted announcement image.');
+        }
+
+        return back();
+    }
+
+    private function announcementData(Announcement $announcement): array
+    {
+        return [
+            'id' => $announcement->id,
+            'title' => $announcement->title,
+            'category' => $announcement->category,
+            'posted_by' => $announcement->posted_by,
+            'date' => $announcement->date->toDateString(),
+            'body' => $announcement->body,
+            'image_url' => $announcement->image
+                ? Storage::disk('public')->url($announcement->image)
+                : null,
+            'event_date' => $announcement->event_date?->toDateString(),
+            'start_time' => $announcement->start_time,
+            'end_time' => $announcement->end_time,
+            'location' => $announcement->location,
+        ];
+    }
+
+    private function eventFields(array $validated): array
+    {
+        if ($validated['category'] === 'Event') {
+            return [
+                'event_date' => $validated['event_date'],
+                'start_time' => $validated['start_time'] ?? null,
+                'end_time' => $validated['end_time'] ?? null,
+                'location' => $validated['location'],
+            ];
+        }
+
+        return [
+            'event_date' => null,
+            'start_time' => null,
+            'end_time' => null,
+            'location' => null,
+        ];
+    }
+}

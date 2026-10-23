@@ -53,4 +53,13 @@ class LoginController extends Controller
 
         return redirect()->intended(config('fortify.home'));
     }
+
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return to_route('login');
+    }
 }

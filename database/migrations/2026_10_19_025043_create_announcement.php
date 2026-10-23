@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('announcement', function (Blueprint $table) {
             $table->id();
             $table->string('image')->nullable();
+            $table->string('files')->nullable();
             $table->string('title');
             $table->string('category');
             $table->string('posted_by');
