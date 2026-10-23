@@ -66,13 +66,33 @@ export default function admin({
     return (
         <>
             <Head title="Admin" />
+            
+            {/* CSS Animations for the Page */}
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .animate-fade-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; opacity: 0; }
+                .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+            `}</style>
+
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden">
                 
-                <aside id="sidebar" className="w-64 bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-30 h-full transition-all duration-300">
+                <aside id="sidebar" className="w-64 bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-30 h-full transition-all duration-300 shadow-2xl md:shadow-none">
                     <div>
                         
                         <div className="p-6 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1">
+                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1 shadow-md">
                                 <i className="fa-solid fa-gear text-ctu-dark text-sm"></i>
                             </div>
                             <div className="text-white">
@@ -83,7 +103,7 @@ export default function admin({
                         
                         
                         <div className="px-6 py-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white text-sm">
+                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white text-sm ring-2 ring-slate-600">
                                 <i className="fa-solid fa-user"></i>
                             </div>
                             <div>
@@ -93,24 +113,24 @@ export default function admin({
                         </div>
 
                         
-                        <nav className="mt-4 space-y-1 px-3" id="sidebarNav">
-                            <a href="#dashboard" data-target="dashboard" className="nav-link flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-lg text-sm font-medium transition-colors">
+                        <nav className="mt-4 space-y-1.5 px-3" id="sidebarNav">
+                            <a href="#dashboard" data-target="dashboard" className="nav-link flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-xl text-sm font-medium transition-all shadow-md shadow-blue-900/20">
                                 <i className="fa-solid fa-house w-5 text-center"></i> Dashboard
                             </a>
-                            <Link href="/admin/users" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
-                                <i className="fa-solid fa-users w-5 text-center"></i> Users
+                            <Link href="/admin/users" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-medium transition-all group">
+                                <i className="fa-solid fa-users w-5 text-center group-hover:scale-110 transition-transform"></i> Users
                             </Link>
-                            <Link href="/admin/settings" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
-                                <i className="fa-solid fa-gear w-5 text-center"></i> Settings
+                            <Link href="/admin/settings" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-medium transition-all group">
+                                <i className="fa-solid fa-gear w-5 text-center group-hover:rotate-90 transition-transform duration-300"></i> Settings
                             </Link>
                         </nav>
                     </div>
 
                     
-                    <div className="p-4 border-t border-slate-800">
+                    <div className="p-4 border-t border-slate-800/50">
                         <Form method="post" action="/admin/logout">
                             {({ processing }) => (
-                                <button type="submit" disabled={processing} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-slate-400 transition-colors hover:text-white disabled:opacity-60">
+                                <button type="submit" disabled={processing} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm font-medium text-slate-400 transition-colors hover:text-red-400 hover:bg-slate-800/50 rounded-xl disabled:opacity-60">
                                     <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> {processing ? 'Logging Out...' : 'Log Out'}
                                 </button>
                             )}
@@ -119,16 +139,16 @@ export default function admin({
                 </aside>
 
                 
-                <div id="sidebarOverlay" className="fixed inset-0 bg-black/50 z-20 hidden md:hidden"></div>
+                <div id="sidebarOverlay" className="fixed inset-0 bg-black/50 z-20 hidden md:hidden animate-fade-in"></div>
 
                 
                 <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
                     
                     
-                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
+                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
                         <div className="flex items-center gap-4">
                             
-                            <button id="toggleSidebarBtn" className="text-slate-500 hover:text-ctu-lightblue text-lg transition-colors" title="Toggle Navigation Bar">
+                            <button id="toggleSidebarBtn" className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:text-ctu-lightblue hover:bg-blue-50 transition-colors" title="Toggle Navigation Bar">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
 
@@ -137,89 +157,89 @@ export default function admin({
                                 <i className="fa-solid fa-bars"></i>
                             </button>
 
-                            <div className="relative w-64 hidden sm:block">
-                                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                                <input type="text" id="globalSearch" placeholder="Search announcements..." className="w-full pl-9 pr-4 py-1.5 bg-slate-100 border-transparent rounded-md text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all"></input>
+                            <div className="relative w-64 hidden sm:block group">
+                                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-ctu-lightblue transition-colors"></i>
+                                <input type="text" id="globalSearch" placeholder="Search announcements..." className="w-full pl-9 pr-4 py-2 bg-slate-100 border border-transparent rounded-lg text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"></input>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
-                            <button className="text-slate-400 hover:text-slate-600 relative">
+                            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-ctu-lightblue hover:bg-blue-50 relative transition-colors">
                                 <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                             </button>
-                            <div className="flex items-center gap-2 cursor-pointer border-l pl-4 border-slate-200">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                            <div className="flex items-center gap-2 cursor-pointer pl-4 border-l border-slate-200 group">
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-ctu-lightblue transition-colors">
                                     <i className="fa-solid fa-user text-xs"></i>
                                 </div>
-                                <span className="text-sm font-medium text-slate-700 hidden sm:block">Admin</span>
-                                <i className="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                <span className="text-sm font-medium text-slate-700 hidden sm:block group-hover:text-ctu-lightblue transition-colors">Admin</span>
+                                <i className="fa-solid fa-chevron-down text-xs text-slate-400 group-hover:text-ctu-lightblue transition-colors"></i>
                             </div>
                         </div>
                     </header>
 
                     
-                    <main className="flex-1 p-6 overflow-y-auto">
+                    <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
                         
                         
-                        <section id="dashboard" className="mb-10 section-content">
+                        <section id="dashboard" className="mb-12 section-content animate-fade-up">
                             <div className="mb-6">
-                                <h2 className="text-xl font-bold text-slate-800">Dashboard</h2>
-                                <p className="text-sm text-slate-500">Overview of system activity</p>
+                                <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+                                <p className="text-sm text-slate-500 mt-1">Overview of system activity</p>
                             </div>
 
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
-                                    <div className="bg-blue-100 p-3 rounded-lg text-blue-600">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group flex items-start gap-4">
+                                    <div className="bg-blue-50 p-3 rounded-xl text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                                         <i className="fa-solid fa-bullhorn text-xl"></i>
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 font-medium mb-1">Total Announcements</p>
                                         <h3 className="text-2xl font-bold text-slate-800 mb-1" id="statTotalAnnouncements">{announcementCount}</h3>
-                                        <p className="text-[10px] text-slate-400 font-medium">Published announcements</p>
+                                        <p className="text-[10px] text-slate-400 font-bold">Published announcements</p>
                                     </div>
                                 </div>
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
-                                    <div className="bg-emerald-100 p-3 rounded-lg text-emerald-600">
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group flex items-start gap-4">
+                                    <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
                                         <i className="fa-regular fa-calendar text-xl"></i>
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 font-medium mb-1">Total Events</p>
                                         <h3 className="text-2xl font-bold text-slate-800 mb-1">{eventCount}</h3>
-                                        <p className="text-[10px] text-slate-400 font-medium">Published events</p>
+                                        <p className="text-[10px] text-slate-400 font-bold">Published events</p>
                                     </div>
                                 </div>
-                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
-                                    <div className="bg-purple-100 p-3 rounded-lg text-purple-600">
+                                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group flex items-start gap-4">
+                                    <div className="bg-purple-50 p-3 rounded-xl text-purple-600 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
                                         <i className="fa-solid fa-users text-xl"></i>
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 font-medium mb-1">Total Users</p>
                                         <h3 className="text-2xl font-bold text-slate-800 mb-1">{userCount}</h3>
-                                        <p className="text-[10px] text-slate-400 font-medium">Registered accounts</p>
+                                        <p className="text-[10px] text-slate-400 font-bold">Registered accounts</p>
                                     </div>
                                 </div>
                             </div>
 
                             
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                                        <h4 className="font-semibold text-sm text-slate-700">Recent Announcements</h4>
-                                        <a href="#announcements" className="text-xs text-ctu-lightblue hover:underline font-medium">View All</a>
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                        <h4 className="font-bold text-sm text-slate-800">Recent Announcements</h4>
+                                        <a href="#announcements" className="text-xs text-ctu-lightblue hover:underline font-semibold">View All</a>
                                     </div>
-                                    <div className="p-2 space-y-1">
+                                    <div className="p-3 space-y-2">
                                         {recentAnnouncements.length === 0 ? (
-                                            <p className="p-2 text-sm text-slate-500">No announcements yet.</p>
+                                            <p className="p-3 text-sm text-slate-500">No announcements yet.</p>
                                         ) : recentAnnouncements.map((announcement) => (
-                                            <div key={announcement.id} className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">{announcement.category}</span>
+                                            <div key={announcement.id} className="p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">{announcement.category}</span>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedAnnouncement(announcement)}
-                                                    className="mb-1 block text-left text-sm font-medium text-slate-800 hover:text-ctu-lightblue"
+                                                    className="mb-1 block text-left text-sm font-bold text-slate-800 hover:text-ctu-lightblue transition-colors"
                                                 >
                                                     {announcement.title}
                                                 </button>
@@ -229,22 +249,22 @@ export default function admin({
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                                        <h4 className="font-semibold text-sm text-slate-700">Upcoming Events</h4>
-                                        <a href="#announcements" className="text-xs text-ctu-lightblue hover:underline font-medium">View All</a>
+                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                        <h4 className="font-bold text-sm text-slate-800">Upcoming Events</h4>
+                                        <a href="#announcements" className="text-xs text-ctu-lightblue hover:underline font-semibold">View All</a>
                                     </div>
                                     <div className="p-4 space-y-4 flex-1">
                                         {upcomingEvents.length === 0 ? (
                                             <p className="text-sm text-slate-500">No upcoming events scheduled.</p>
                                         ) : upcomingEvents.map((event) => (
-                                            <div key={event.id} className="flex items-start gap-3">
-                                                <div className="bg-slate-100 rounded-lg p-2 text-center min-w-[50px]">
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</p>
-                                                    <p className="text-lg font-bold text-slate-800 leading-none">{new Date(`${event.event_date}T00:00:00`).getDate().toString().padStart(2, '0')}</p>
+                                            <div key={event.id} className="flex items-start gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
+                                                <div className="bg-blue-50 text-blue-700 rounded-xl p-2 text-center min-w-[55px] group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</p>
+                                                    <p className="text-lg font-bold leading-none mt-0.5">{new Date(`${event.event_date}T00:00:00`).getDate().toString().padStart(2, '0')}</p>
                                                 </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-slate-800">{event.title}</p>
+                                                <div className="pt-1">
+                                                    <p className="text-sm font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">{event.title}</p>
                                                     <p className="text-xs text-slate-500">
                                                         {[event.start_time && event.end_time ? `${formatTime(event.start_time)} - ${formatTime(event.end_time)}` : formatTime(event.start_time), event.location].filter(Boolean).join(' • ')}
                                                     </p>
@@ -259,19 +279,19 @@ export default function admin({
                         <hr className="border-slate-200 mb-10"></hr>
 
                         
-                        <section id="announcements" className="section-content">
+                        <section id="announcements" className="section-content animate-fade-up" style={{ animationDelay: '0.15s' }}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-800">Manage Announcements</h2>
-                                    <p className="text-sm text-slate-500">Create, edit, and manage all announcements.</p>
+                                    <h2 className="text-2xl font-bold text-slate-900">Manage Announcements</h2>
+                                    <p className="text-sm text-slate-500 mt-1">Create, edit, and manage all announcements.</p>
                                 </div>
-                                <button id="btnNewAnnouncement" type="button" onClick={() => { setEditingAnnouncement(null); setSelectedCategory('General'); setIsNewModalOpen(true); }} className="bg-ctu-lightblue hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shrink-0">
+                                <button id="btnNewAnnouncement" type="button" onClick={() => { setEditingAnnouncement(null); setSelectedCategory('General'); setIsNewModalOpen(true); }} className="bg-ctu-lightblue hover:bg-blue-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 shrink-0">
                                     <i className="fa-solid fa-plus"></i> New Announcement
                                 </button>
                             </div>
 
                             
-                            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar" id="filterTabs">
+                            <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 no-scrollbar" id="filterTabs">
                                 {[
                                     { value: 'all', label: 'All' },
                                     { value: 'General', label: 'General' },
@@ -284,10 +304,10 @@ export default function admin({
                                         type="button"
                                         aria-pressed={activeFilter === filter.value}
                                         onClick={() => setActiveFilter(filter.value)}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                                        className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                                             activeFilter === filter.value
-                                                ? 'bg-ctu-lightblue text-white'
-                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                ? 'bg-slate-900 text-white shadow-md'
+                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                                         }`}
                                     >
                                         {filter.label}
@@ -296,48 +316,57 @@ export default function admin({
                             </div>
 
                             
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
-                                                <th className="px-4 py-3">Title</th>
-                                                <th className="px-4 py-3">Body</th>
-                                                <th className="px-4 py-3">Category</th>
-                                                <th className="px-4 py-3">Posted By</th>
-                                                <th className="px-4 py-3">Date</th>
-                                                <th className="px-4 py-3 text-right">Actions</th>
+                                            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                                                <th className="px-6 py-4">Title</th>
+                                                <th className="px-6 py-4">Body</th>
+                                                <th className="px-6 py-4">Category</th>
+                                                <th className="px-6 py-4">Posted By</th>
+                                                <th className="px-6 py-4">Date</th>
+                                                <th className="px-6 py-4 text-right">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-slate-100">
                                             {filteredAnnouncements.length === 0 ? (
-                                                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                                <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500 font-medium">
                                                     {activeFilter === 'all' ? 'No announcements yet.' : `No ${activeFilter.toLowerCase()} announcements.`}
                                                 </td></tr>
                                             ) : filteredAnnouncements.map((announcement) => (
-                                                <tr key={announcement.id} className="border-b border-slate-100 text-sm text-slate-700">
-                                                    <td className="px-4 py-3 font-medium text-slate-800">
+                                                <tr key={announcement.id} className="text-sm text-slate-700 hover:bg-slate-50 transition-colors group">
+                                                    <td className="px-6 py-4 font-semibold text-slate-800">
                                                         <button
                                                             type="button"
                                                             title={announcement.title}
                                                             onClick={() => setSelectedAnnouncement(announcement)}
-                                                            className="text-left hover:text-ctu-lightblue"
+                                                            className="text-left hover:text-ctu-lightblue transition-colors"
                                                         >
                                                             {announcement.title.length > 15 ? `${announcement.title.slice(0, 10)}...` : announcement.title}
                                                         </button>
                                                     </td>
-                                                    <td className="max-w-xs px-4 py-3 text-slate-800">
+                                                    <td className="max-w-xs px-6 py-4 text-slate-600">
                                                         <p title={announcement.body}>
                                                             {announcement.body.length > 10 ? `${announcement.body.slice(0, 10)}...` : announcement.body}
                                                         </p>
                                                     </td>
-                                                    <td className="px-4 py-3">{announcement.category}</td>
-                                                    <td className="px-4 py-3">{announcement.posted_by}</td>
-                                                    <td className="px-4 py-3">{formatDate(announcement.date)}</td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <button type="button" onClick={() => { setEditingAnnouncement(announcement); setSelectedCategory(announcement.category); setIsNewModalOpen(true); }} className="rounded px-2 py-1 text-xs font-medium text-ctu-lightblue hover:bg-blue-50">Edit</button>
-                                                            <button type="button" onClick={() => setAnnouncementToDelete(announcement)} className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">Delete</button>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold ${
+                                                            announcement.category === 'Academic' ? 'bg-blue-100 text-blue-700' :
+                                                            announcement.category === 'Event' ? 'bg-emerald-100 text-emerald-700' :
+                                                            announcement.category === 'Service' ? 'bg-rose-100 text-rose-700' :
+                                                            'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                            {announcement.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-600">{announcement.posted_by}</td>
+                                                    <td className="px-6 py-4 text-slate-500">{formatDate(announcement.date)}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button type="button" onClick={() => { setEditingAnnouncement(announcement); setSelectedCategory(announcement.category); setIsNewModalOpen(true); }} className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors" title="Edit"><i className="fa-solid fa-pen text-xs"></i></button>
+                                                            <button type="button" onClick={() => setAnnouncementToDelete(announcement)} className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors" title="Delete"><i className="fa-solid fa-trash text-xs"></i></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -347,12 +376,12 @@ export default function admin({
                                 </div>
                                 
                                 
-                                <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+                                <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500 font-medium">
                                     <span id="tableInfo">Showing {filteredAnnouncements.length === 0 ? 0 : 1}-{filteredAnnouncements.length} of {filteredAnnouncements.length} announcements</span>
                                     <div className="flex items-center gap-1">
-                                        <button className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"><i className="fa-solid fa-chevron-left"></i></button>
-                                        <button className="w-6 h-6 flex items-center justify-center rounded bg-ctu-lightblue text-white font-medium">1</button>
-                                        <button className="w-6 h-6 flex items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"><i className="fa-solid fa-chevron-right"></i></button>
+                                        <button className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"><i className="fa-solid fa-chevron-left"></i></button>
+                                        <button className="px-3 py-1.5 rounded-lg bg-ctu-lightblue text-white shadow-sm">1</button>
+                                        <button className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"><i className="fa-solid fa-chevron-right"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -368,15 +397,15 @@ export default function admin({
                     />
                 )}
 
-                {announcementToDelete && <div id="deleteModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="deleteAnnouncementTitle">
-                    <div className="bg-white rounded-xl shadow-lg max-w-sm w-full mx-4 p-6">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
-                            <i className="fa-solid fa-trash text-red-600 text-xl"></i>
+                {announcementToDelete && <div id="deleteModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="deleteAnnouncementTitle">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 p-6 animate-scale-in text-center">
+                        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
+                            <i className="fa-solid fa-triangle-exclamation text-red-600 text-2xl"></i>
                         </div>
-                        <h3 id="deleteAnnouncementTitle" className="text-lg font-bold text-slate-800 text-center mb-2">Delete Announcement</h3>
-                        <p className="text-sm text-slate-500 text-center mb-6">Are you sure you want to delete “{announcementToDelete.title}”? This action cannot be undone.</p>
+                        <h3 id="deleteAnnouncementTitle" className="text-xl font-bold text-slate-900 mb-2">Delete Announcement</h3>
+                        <p className="text-sm text-slate-500 mb-6">Are you sure you want to delete “{announcementToDelete.title}”? This action cannot be undone.</p>
                         <div className="flex gap-3">
-                                <button type="button" onClick={() => setAnnouncementToDelete(null)} className="flex-1 border border-slate-200 text-slate-700 font-medium py-2 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
+                                <button type="button" onClick={() => setAnnouncementToDelete(null)} className="flex-1 border border-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
                                 <button
                                     type="button"
                                     disabled={isDeletingAnnouncement}
@@ -389,7 +418,7 @@ export default function admin({
                                             onFinish: () => setIsDeletingAnnouncement(false),
                                         });
                                     }}
-                                    className="flex-1 bg-red-600 text-white font-medium py-2 rounded-lg hover:bg-red-700 disabled:opacity-60 transition-colors"
+                                    className="flex-1 bg-red-600 text-white font-semibold py-2.5 rounded-xl hover:bg-red-700 disabled:opacity-60 transition-colors shadow-lg shadow-red-500/30"
                                 >
                                     {isDeletingAnnouncement ? 'Deleting...' : 'Delete'}
                                 </button>
@@ -398,24 +427,24 @@ export default function admin({
                 </div>}
 
                 
-                {isNewModalOpen && <div id="newModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="newAnnouncementTitle">
-                    <div className="bg-white rounded-xl shadow-lg max-w-5xl w-full p-8 max-h-[95vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 id="newAnnouncementTitle" className="text-lg font-bold text-slate-800">{editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}</h3>
-                            <button id="closeNewModal" type="button" onClick={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} aria-label="Close announcement form" className="text-slate-400 hover:text-slate-600"><i className="fa-solid fa-times"></i></button>
+                {isNewModalOpen && <div id="newModal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="newAnnouncementTitle">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-8 max-h-[95vh] overflow-y-auto animate-scale-in">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 id="newAnnouncementTitle" className="text-xl font-bold text-slate-900">{editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}</h3>
+                            <button id="closeNewModal" type="button" onClick={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} aria-label="Close announcement form" className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"><i className="fa-solid fa-times"></i></button>
                         </div>
-                        <Form key={editingAnnouncement?.id ?? 'new'} method="post" action={editingAnnouncement ? `/admin/announcements/${editingAnnouncement.id}` : '/admin/announcements'} onSuccess={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} className="space-y-4">
+                        <Form key={editingAnnouncement?.id ?? 'new'} method="post" action={editingAnnouncement ? `/admin/announcements/${editingAnnouncement.id}` : '/admin/announcements'} onSuccess={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} className="space-y-5">
                             {({ errors, processing }) => (
                                 <>
                             {editingAnnouncement && <input type="hidden" name="_method" value="put" />}
                             <div>
-                                <label htmlFor="newTitle" className="block text-xs font-medium text-slate-600 mb-1">Title</label>
-                                <input type="text" id="newTitle" name="title" defaultValue={editingAnnouncement?.title ?? ''} required maxLength={255} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Enter announcement title"></input>
+                                <label htmlFor="newTitle" className="block text-xs font-bold text-slate-600 mb-1.5">Title</label>
+                                <input type="text" id="newTitle" name="title" defaultValue={editingAnnouncement?.title ?? ''} required maxLength={255} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Enter announcement title"></input>
                                 {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                             </div>
                             <div>
-                                <label htmlFor="newCategory" className="block text-xs font-medium text-slate-600 mb-1">Category</label>
-                                <select id="newCategory" name="category" value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all">
+                                <label htmlFor="newCategory" className="block text-xs font-bold text-slate-600 mb-1.5">Category</label>
+                                <select id="newCategory" name="category" value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
                                     <option value="General">General</option>
                                     <option value="Academic">Academic</option>
                                     <option value="Event">Event</option>
@@ -426,49 +455,49 @@ export default function admin({
                             {selectedCategory === 'Event' && (
                                 <>
                                     <div>
-                                        <label htmlFor="eventDate" className="block text-xs font-medium text-slate-600 mb-1">Event Date</label>
-                                        <input type="date" id="eventDate" name="event_date" defaultValue={editingAnnouncement?.event_date ?? ''} required className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                        <label htmlFor="eventDate" className="block text-xs font-bold text-slate-600 mb-1.5">Event Date</label>
+                                        <input type="date" id="eventDate" name="event_date" defaultValue={editingAnnouncement?.event_date ?? ''} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
                                         {errors.event_date && <p className="mt-1 text-sm text-red-600">{errors.event_date}</p>}
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div>
-                                            <label htmlFor="eventStartTime" className="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
-                                            <input type="time" id="eventStartTime" name="start_time" defaultValue={editingAnnouncement?.start_time?.slice(0, 5) ?? ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                            <label htmlFor="eventStartTime" className="block text-xs font-bold text-slate-600 mb-1.5">Start Time</label>
+                                            <input type="time" id="eventStartTime" name="start_time" defaultValue={editingAnnouncement?.start_time?.slice(0, 5) ?? ''} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
                                             {errors.start_time && <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>}
                                         </div>
                                         <div>
-                                            <label htmlFor="eventEndTime" className="block text-xs font-medium text-slate-600 mb-1">End Time</label>
-                                            <input type="time" id="eventEndTime" name="end_time" defaultValue={editingAnnouncement?.end_time?.slice(0, 5) ?? ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                                            <label htmlFor="eventEndTime" className="block text-xs font-bold text-slate-600 mb-1.5">End Time</label>
+                                            <input type="time" id="eventEndTime" name="end_time" defaultValue={editingAnnouncement?.end_time?.slice(0, 5) ?? ''} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
                                             {errors.end_time && <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>}
                                         </div>
                                     </div>
                                     <div>
-                                        <label htmlFor="eventLocation" className="block text-xs font-medium text-slate-600 mb-1">Location</label>
-                                        <input type="text" id="eventLocation" name="location" defaultValue={editingAnnouncement?.location ?? ''} required maxLength={255} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Event venue" />
+                                        <label htmlFor="eventLocation" className="block text-xs font-bold text-slate-600 mb-1.5">Location</label>
+                                        <input type="text" id="eventLocation" name="location" defaultValue={editingAnnouncement?.location ?? ''} required maxLength={255} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Event venue" />
                                         {errors.location && <p className="mt-1 text-sm text-red-600">{errors.location}</p>}
                                     </div>
                                 </>
                             )}
                             <div>
-                                <label htmlFor="newPostedBy" className="block text-xs font-medium text-slate-600 mb-1">Posted By</label>
-                                <input type="text" id="newPostedBy" name="posted_by" defaultValue={editingAnnouncement?.posted_by ?? ''} required maxLength={255} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="e.g. Office of the Registrar"></input>
+                                <label htmlFor="newPostedBy" className="block text-xs font-bold text-slate-600 mb-1.5">Posted By</label>
+                                <input type="text" id="newPostedBy" name="posted_by" defaultValue={editingAnnouncement?.posted_by ?? ''} required maxLength={255} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="e.g. Office of the Registrar"></input>
                                 {errors.posted_by && <p className="mt-1 text-sm text-red-600">{errors.posted_by}</p>}
                             </div>
                             <div>
-                                <label htmlFor="newBody" className="block text-xs font-medium text-slate-600 mb-1">Announcement</label>
-                                <textarea id="newBody" name="body" defaultValue={editingAnnouncement?.body ?? ''} required rows={5} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all" placeholder="Write the announcement details"></textarea>
+                                <label htmlFor="newBody" className="block text-xs font-bold text-slate-600 mb-1.5">Announcement</label>
+                                <textarea id="newBody" name="body" defaultValue={editingAnnouncement?.body ?? ''} required rows={5} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none" placeholder="Write the announcement details"></textarea>
                                 {errors.body && <p className="mt-1 text-sm text-red-600">{errors.body}</p>}
                             </div>
                             <div>
-                                <label htmlFor="newImage" className="block text-xs font-medium text-slate-600 mb-1">Image (optional)</label>
-                                {editingAnnouncement?.image_url && <img src={editingAnnouncement.image_url} alt="Current announcement" className="mb-2 max-h-40 rounded-lg object-contain" />}
-                                <input type="file" id="newImage" name="image" accept="image/jpeg,image/png,image/gif,image/webp" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:rounded-md" />
-                                <p className="mt-1 text-xs text-slate-500">{editingAnnouncement ? 'Upload a replacement image, or leave blank to keep the current image.' : 'JPEG, PNG, GIF, or WebP; up to 5 MB.'}</p>
+                                <label htmlFor="newImage" className="block text-xs font-bold text-slate-600 mb-1.5">Image (optional)</label>
+                                {editingAnnouncement?.image_url && <img src={editingAnnouncement.image_url} alt="Current announcement" className="mb-3 max-h-40 rounded-xl object-contain border border-slate-200 p-1" />}
+                                <input type="file" id="newImage" name="image" accept="image/jpeg,image/png,image/gif,image/webp" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm file:mr-4 file:border-0 file:bg-blue-50 file:text-blue-700 file:px-4 file:py-2 file:rounded-lg file:font-semibold hover:file:bg-blue-100 transition-all cursor-pointer" />
+                                <p className="mt-2 text-xs text-slate-500">{editingAnnouncement ? 'Upload a replacement image, or leave blank to keep the current image.' : 'JPEG, PNG, GIF, or WebP; up to 5 MB.'}</p>
                                 {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
                             </div>
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} className="flex-1 border border-slate-200 text-slate-700 font-medium py-2.5 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
-                                <button type="submit" disabled={processing} className="flex-1 bg-ctu-lightblue hover:bg-blue-600 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg transition-colors">{processing ? 'Saving...' : editingAnnouncement ? 'Save Changes' : 'Publish Announcement'}</button>
+                            <div className="flex gap-4 pt-4 border-t border-slate-100">
+                                <button type="button" onClick={() => { setIsNewModalOpen(false); setEditingAnnouncement(null); }} className="flex-1 border border-slate-200 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
+                                <button type="submit" disabled={processing} className="flex-1 bg-ctu-lightblue hover:bg-blue-600 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/30">{processing ? 'Saving...' : editingAnnouncement ? 'Save Changes' : 'Publish Announcement'}</button>
                             </div>
                                 </>
                             )}
