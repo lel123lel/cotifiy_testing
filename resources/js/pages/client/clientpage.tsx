@@ -35,6 +35,8 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+    const [isAnnouncementListOpen, setIsAnnouncementListOpen] = useState(false);
+    const [announcementListSearch, setAnnouncementListSearch] = useState('');
     
     // ==========================================
     // CAROUSEL STATE
@@ -139,6 +141,16 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
             return matchesCategory && matchesSearch;
         });
     }, [activeFilter, searchTerm]);
+
+    const searchedAnnouncements = useMemo(() => {
+        const query = announcementListSearch.trim().toLowerCase();
+        if (!query) return announcements;
+
+        return announcements.filter((announcement) =>
+            [announcement.title, announcement.content, announcement.category, announcement.posted_by]
+                .some((value) => value.toLowerCase().includes(query))
+        );
+    }, [announcements, announcementListSearch]);
 
     const upcomingEvents = useMemo(() => {
         const now = new Date();
@@ -436,9 +448,13 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                         <h2 className="text-2xl font-bold text-slate-800">Latest Announcements</h2>
                                         <p className="text-sm text-slate-500">Stay informed with what's happening on campus</p>
                                     </div>
-                                    <a href="#" className="text-sm text-ctu-lightblue hover:underline font-medium flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAnnouncementListOpen(true)}
+                                        className="text-sm text-ctu-lightblue hover:underline font-medium flex items-center gap-1"
+                                    >
                                         View All <i className="fa-solid fa-arrow-right text-xs"></i>
-                                    </a>
+                                    </button>
                                 </div>
 
                                 <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 no-scrollbar">
@@ -641,6 +657,79 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                 {/* ========================================== */}
                 {/* INTERACTIVE MODAL WITH DISCUSSION          */}
                 {/* ========================================== */}
+                {isAnnouncementListOpen && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="all-announcements-title"
+                        onClick={() => setIsAnnouncementListOpen(false)}
+                    >
+                        <section
+                            className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col animate-scale-in"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <header className="p-5 sm:p-6 border-b border-slate-100">
+                                <div className="flex items-start justify-between gap-4 mb-5">
+                                    <div>
+                                        <h2 id="all-announcements-title" className="text-xl font-bold text-slate-800">All Announcements</h2>
+                                        <p className="text-sm text-slate-500 mt-1">Browse and search campus updates.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAnnouncementListOpen(false)}
+                                        className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors shrink-0"
+                                        aria-label="Close all announcements"
+                                    >
+                                        <i className="fa-solid fa-times" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <label className="relative block">
+                                    <span className="sr-only">Search all announcements</span>
+                                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                                    <input
+                                        type="search"
+                                        value={announcementListSearch}
+                                        onChange={(e) => setAnnouncementListSearch(e.target.value)}
+                                        placeholder="Search by title, content, category, or author..."
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                    />
+                                </label>
+                            </header>
+                            <div className="min-h-0 overflow-y-auto p-4 sm:p-6 space-y-3">
+                                {searchedAnnouncements.map((announcement) => (
+                                    <button
+                                        key={announcement.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAnnouncementListOpen(false);
+                                            setSelectedAnnouncement(announcement);
+                                        }}
+                                        className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-ctu-lightblue hover:shadow-sm transition-all"
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getBadgeClass(announcement.category)}`}>
+                                                {announcement.category}
+                                            </span>
+                                            <span className="text-xs text-slate-400">{formatDate(announcement.date)}</span>
+                                        </div>
+                                        <h3 className="text-sm font-bold text-slate-800 mb-1">{announcement.title}</h3>
+                                        <p className="text-sm text-slate-500 line-clamp-2">{announcement.content}</p>
+                                        <p className="text-xs text-slate-400 mt-2">Posted by {announcement.posted_by}</p>
+                                    </button>
+                                ))}
+                                {searchedAnnouncements.length === 0 && (
+                                    <div className="py-12 text-center">
+                                        <i className="fa-solid fa-magnifying-glass text-slate-300 text-2xl mb-3" aria-hidden="true"></i>
+                                        <p className="text-sm font-medium text-slate-700">No announcements found</p>
+                                        <p className="text-xs text-slate-500 mt-1">Try a different search term.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    </div>
+                )}
+
                 {selectedAnnouncement && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSelectedAnnouncement(null)}>
                         <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative animate-scale-in" onClick={(e) => e.stopPropagation()}>
