@@ -144,35 +144,41 @@ export default function admin({
                 
                 <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
                     
-                    
-                    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
+                    {/* CHANGED: Header background to match sidebar (bg-ctu-dark) */}
+                    <header className="h-16 bg-ctu-dark border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-colors">
                         <div className="flex items-center gap-4">
                             
-                            <button id="toggleSidebarBtn" className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:text-ctu-lightblue hover:bg-blue-50 transition-colors" title="Toggle Navigation Bar">
+                            {/* CHANGED: Button colors to fit dark header */}
+                            <button id="toggleSidebarBtn" className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors" title="Toggle Navigation Bar">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
 
                             
-                            <button id="mobileSidebarBtn" className="md:hidden text-slate-500 hover:text-slate-800 text-lg hidden">
+                            <button id="mobileSidebarBtn" className="md:hidden text-slate-300 hover:text-white text-lg hidden">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
 
+                            {/* CHANGED: Search input dark theme */}
                             <div className="relative w-64 hidden sm:block group">
                                 <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-ctu-lightblue transition-colors"></i>
-                                <input type="text" id="globalSearch" placeholder="Search announcements..." className="w-full pl-9 pr-4 py-2 bg-slate-100 border border-transparent rounded-lg text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"></input>
+                                <input type="text" id="globalSearch" placeholder="Search announcements..." className="w-full pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:bg-slate-900 focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/20 outline-none transition-all placeholder-slate-400"></input>
                             </div>
                         </div>
+                        
                         <div className="flex items-center gap-4">
-                            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-ctu-lightblue hover:bg-blue-50 relative transition-colors">
+                            {/* CHANGED: Bell icon to white/slate */}
+                            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 relative transition-colors">
                                 <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-ctu-dark animate-pulse"></span>
                             </button>
-                            <div className="flex items-center gap-2 cursor-pointer pl-4 border-l border-slate-200 group">
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-ctu-lightblue transition-colors">
+                            
+                            {/* CHANGED: Profile section text/border colors */}
+                            <div className="flex items-center gap-2 cursor-pointer pl-4 border-l border-slate-700 group">
+                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 group-hover:bg-ctu-lightblue group-hover:text-white transition-colors">
                                     <i className="fa-solid fa-user text-xs"></i>
                                 </div>
-                                <span className="text-sm font-medium text-slate-700 hidden sm:block group-hover:text-ctu-lightblue transition-colors">Admin</span>
-                                <i className="fa-solid fa-chevron-down text-xs text-slate-400 group-hover:text-ctu-lightblue transition-colors"></i>
+                                <span className="text-sm font-medium text-slate-200 hidden sm:block group-hover:text-white transition-colors">Admin</span>
+                                <i className="fa-solid fa-chevron-down text-xs text-slate-400 group-hover:text-white transition-colors"></i>
                             </div>
                         </div>
                     </header>

@@ -200,37 +200,41 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased min-h-screen">
 
-                <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+                {/* CHANGED: Header background to match sidebar (bg-ctu-dark) */}
+                <header className="fixed top-0 left-0 right-0 z-40 bg-ctu-dark border-b border-slate-800 shadow-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <Link href="/client" className="flex items-center gap-2">
-                                <div className="w-9 h-9 rounded-full bg-ctu-dark flex items-center justify-center shadow-md">
-                                    <i className="fa-solid fa-gear text-white text-lg"></i>
+                                <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md">
+                                    <i className="fa-solid fa-gear text-ctu-dark text-lg"></i>
                                 </div>
                                 <div>
-                                    <h1 className="font-bold text-ctu-dark text-sm leading-tight">COTIFY</h1>
-                                    <p className="text-[10px] text-slate-500">College of Technology</p>
+                                    {/* CHANGED: Text colors to white/slate for dark header */}
+                                    <h1 className="font-bold text-white text-sm leading-tight">COTIFY</h1>
+                                    <p className="text-[10px] text-slate-400">College of Technology</p>
                                 </div>
                             </Link>
 
                             <div className="flex items-center gap-3">
+                                {/* CHANGED: Search input dark theme */}
                                 <div className="relative hidden md:block group">
-                                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs group-focus-within:text-blue-500 transition-colors"></i>
+                                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs group-focus-within:text-white transition-colors"></i>
                                     <input
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Search announcements..."
-                                        className="w-48 lg:w-64 pl-8 pr-3 py-1.5 bg-slate-100 border-transparent rounded-lg text-xs focus:bg-white focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                        className="w-48 lg:w-64 pl-8 pr-3 py-1.5 bg-slate-800 border border-slate-700 text-white rounded-lg text-xs focus:bg-slate-900 focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder-slate-400"
                                     />
                                 </div>
 
+                                {/* CHANGED: Profile section text colors */}
                                 <div className="relative group">
-                                    <button className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 transition-colors">
+                                    <button className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-800 transition-colors">
                                         <div className="w-8 h-8 rounded-full bg-ctu-lightblue flex items-center justify-center text-white text-xs font-semibold">
                                             {userName.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="text-sm font-medium text-slate-700 hidden sm:block">{userName}</span>
+                                        <span className="text-sm font-medium text-slate-200 hidden sm:block">{userName}</span>
                                         <i className="fa-solid fa-chevron-down text-xs text-slate-400 hidden sm:block"></i>
                                     </button>
 
@@ -255,7 +259,7 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
 
                                 <button
                                     onClick={() => setMobileNavOpen(!mobileNavOpen)}
-                                    className="lg:hidden text-slate-600 hover:text-ctu-lightblue text-xl"
+                                    className="lg:hidden text-slate-300 hover:text-white text-xl transition-colors"
                                 >
                                     <i className={`fa-solid ${mobileNavOpen ? 'fa-times' : 'fa-bars'}`}></i>
                                 </button>
@@ -264,7 +268,7 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                     </div>
 
                     {mobileNavOpen && (
-                        <div className="lg:hidden bg-white border-t border-slate-200 px-4 py-3 space-y-2 animate-fade-in">
+                        <div className="lg:hidden bg-slate-900 border-t border-slate-800 px-4 py-3 space-y-2 animate-fade-in">
                             <div className="relative mt-2">
                                 <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                                 <input
@@ -272,7 +276,7 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Search announcements..."
-                                    className="w-full pl-8 pr-3 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                    className="w-full pl-8 pr-3 py-2 bg-slate-800 border border-slate-700 text-white rounded-lg text-sm focus:bg-slate-900 focus:border-ctu-lightblue focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder-slate-400"
                                 />
                             </div>
                         </div>
