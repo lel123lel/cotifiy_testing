@@ -32,3 +32,30 @@ test('the client page displays announcements from the database', function () {
             ->where('announcements.0.image', '/storage/announcements/latest.jpg')
             ->where('announcements.1.id', $olderAnnouncement->id));
 });
+
+test('the client can open an announcement in the read more page', function () {
+    $user = User::factory()->create(['name' => 'Taylor Student']);
+    $announcement = Announcement::create([
+        'title' => 'Campus event',
+        'category' => 'Event',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'body' => 'Full announcement details.',
+        'image' => 'announcements/event.jpg',
+        'event_date' => now()->addWeek()->toDateString(),
+        'start_time' => '09:00',
+        'end_time' => '10:00',
+        'location' => 'Main Hall',
+    ]);
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/clientReadmore')
+            ->where('announcement.id', $announcement->id)
+            ->where('announcement.title', 'Campus event')
+            ->where('announcement.content', 'Full announcement details.')
+            ->where('announcement.image', '/storage/announcements/event.jpg')
+            ->where('announcement.location', 'Main Hall'));
+});

@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property \Illuminate\Support\Carbon $date
+ * @property \Illuminate\Support\Carbon|null $event_date
+ */
 #[Fillable(['image', 'title', 'category', 'posted_by', 'date', 'body', 'event_date', 'start_time', 'end_time', 'location'])]
 class Announcement extends Model
 {

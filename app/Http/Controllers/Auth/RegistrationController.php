@@ -41,16 +41,44 @@ class RegistrationController extends Controller
             'password' => Hash::make($validated['password']),
         ];
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'registration.verify',
-            now()->addHour(),
-            ['data' => Crypt::encryptString(json_encode($pendingRegistration, JSON_THROW_ON_ERROR))],
-        );
+        $registration = Crypt::encryptString(json_encode($pendingRegistration, JSON_THROW_ON_ERROR));
+        $verificationUrl = $this->verificationUrl($registration);
 
         Notification::route('mail', $pendingRegistration['email'])
             ->notify(new VerifyPendingRegistration($verificationUrl));
 
-        return to_route('registration.notice', ['email' => $pendingRegistration['email']]);
+        return to_route('registration.notice', [
+            'email' => $pendingRegistration['email'],
+            'registration' => $registration,
+        ]);
+    }
+
+    public function resend(Request $request): RedirectResponse
+    {
+        $validatedRequest = $request->validate([
+            'registration' => ['required', 'string'],
+        ]);
+
+        $pendingRegistration = json_decode(
+            Crypt::decryptString($validatedRequest['registration']),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $validated = Validator::make($pendingRegistration, [
+            'name' => ['required', 'string', 'max:255'],
+            'studentId' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
+            'password' => ['required', 'string'],
+        ])->validate();
+
+        Notification::route('mail', $validated['email'])
+            ->notify(new VerifyPendingRegistration($this->verificationUrl($validatedRequest['registration'])));
+
+        return to_route('registration.notice', [
+            'email' => $validated['email'],
+            'registration' => $validatedRequest['registration'],
+        ])->with('status', 'verification-link-sent');
     }
 
     /**
@@ -77,5 +105,14 @@ class RegistrationController extends Controller
         return Inertia::render('auth/verify-email', [
             'verified' => true,
         ]);
+    }
+
+    private function verificationUrl(string $registration): string
+    {
+        return URL::temporarySignedRoute(
+            'registration.verify',
+            now()->addHour(),
+            ['data' => $registration],
+        );
     }
 }

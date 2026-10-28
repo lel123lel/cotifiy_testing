@@ -3,26 +3,30 @@ import { useState, useEffect } from 'react';
 
 type VerifyEmailProps = {
     email?: string;
+    registration?: string;
     status?: string;
     verified?: boolean;
 };
 
 export default function VerifyEmail({
     email = 'your@email.com',
+    registration,
     status,
     verified = false,
 }: VerifyEmailProps) {
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Inertia form handler for resending the link
-    const { post, processing } = useForm();
+    const { post, processing } = useForm({ registration: registration ?? '' });
 
     useEffect(() => {
         setIsLoaded(true);
     }, []);
 
     const handleResend = () => {
-        post('/email/verification-notification');
+        post(registration
+            ? '/email/verify-registration/resend'
+            : '/email/verification-notification');
     };
 
     return (

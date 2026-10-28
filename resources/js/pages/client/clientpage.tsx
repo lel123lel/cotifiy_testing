@@ -538,8 +538,8 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                                             </div>
                                                             <span className="text-xs font-bold text-slate-700">{ann.posted_by}</span>
                                                         </div>
-                                                        <Link 
-                                                            href={`/announcement/${ann.id}`} 
+                                                        <Link
+                                                            href={`/client/announcements/${ann.id}`}
                                                             className="text-ctu-lightblue bg-blue-50 hover:bg-ctu-lightblue hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
                                                         >
                                                             Read More <i className="fa-solid fa-arrow-right"></i>

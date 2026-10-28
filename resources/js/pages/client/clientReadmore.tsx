@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 interface Announcement {
     id: number;
@@ -15,57 +15,62 @@ interface Announcement {
     location: string | null;
 }
 
-interface Comment {
+interface DiscussionMessage {
     id: number;
+    parent_message_id: number | null;
     author: string;
-    role: string;
-    avatarColor: string;
-    text: string;
-    time: string;
+    role: 'Client' | 'Admin';
+    content: string;
+    sent_at: string | null;
+    is_mine: boolean;
 }
 
 interface AnnouncementDetailsProps {
     announcement: Announcement;
-    userName?: string;
+    messages: DiscussionMessage[];
 }
 
-export default function AnnouncementDetails({ announcement, userName = 'Guest' }: AnnouncementDetailsProps) {
-    // DISCUSSION STATE
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: 1,
-            author: 'Maria Santos',
-            role: 'Student',
-            avatarColor: 'bg-purple-500',
-            text: 'Is there a specific dress code for this event?',
-            time: '2 hours ago'
-        },
-        {
-            id: 2,
-            author: 'Admin Office',
-            role: 'Organizer',
-            avatarColor: 'bg-blue-600',
-            text: 'Hi Maria! Smart casual attire is recommended. Please avoid wearing slippers.',
-            time: '1 hour ago'
-        }
-    ]);
-    const [newComment, setNewComment] = useState('');
+export default function AnnouncementDetails({ announcement, messages }: AnnouncementDetailsProps) {
+    const { data, setData, post, processing, errors, reset } = useForm({ content: '' });
+    const comments = messages.filter(
+        (message) => message.role === 'Client' && message.parent_message_id === null,
+    );
+    const unthreadedReplies = messages.filter(
+        (message) => message.role === 'Admin' && message.parent_message_id === null,
+    );
 
-    const handleSubmitComment = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newComment.trim()) return;
+    useEffect(() => {
+        let timeout: number;
+        let isMounted = true;
 
-        const commentToAdd: Comment = {
-            id: Date.now(),
-            author: userName,
-            role: 'Student',
-            avatarColor: 'bg-emerald-500',
-            text: newComment.trim(),
-            time: 'Just now'
+        const reloadMessages = () => {
+            router.reload({
+                only: ['messages'],
+                showProgress: false,
+                onFinish: () => {
+                    if (isMounted) {
+                        timeout = window.setTimeout(reloadMessages, 5000);
+                    }
+                },
+            });
         };
 
-        setComments([...comments, commentToAdd]);
-        setNewComment('');
+        timeout = window.setTimeout(reloadMessages, 5000);
+
+        return () => {
+            isMounted = false;
+            window.clearTimeout(timeout);
+        };
+    }, []);
+
+    const handleSubmitComment = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!data.content.trim() || processing) return;
+
+        post(`/client/announcements/${announcement.id}/messages`, {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
     };
 
     const getBadgeClass = (category: string): string => {
@@ -97,7 +102,7 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
                 <header className="fixed top-0 left-0 right-0 z-40 bg-ctu-dark/90 backdrop-blur-xl border-b border-white/10 shadow-lg transition-all duration-300">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-20">
-                            <Link href="/client" className="flex items-center gap-3 group">
+                            <Link href="/client/clientpage" className="flex items-center gap-3 group">
                                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-black/20 group-hover:scale-105 transition-transform">
                                     <i className="fa-solid fa-gear text-ctu-dark text-lg"></i>
                                 </div>
@@ -109,7 +114,7 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
 
                             <div className="flex items-center gap-4">
                                 <Link
-                                    href="/client"
+                                    href="/client/clientpage"
                                     className="text-sm font-bold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700 px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-slate-700"
                                 >
                                     <i className="fa-solid fa-arrow-left text-xs"></i> Back to Home
@@ -170,6 +175,22 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
                                     </div>
                                 </div>
 
+                                {announcement.event_date && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
+                                            <i className="fa-regular fa-clock text-lg"></i>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Event schedule</p>
+                                            <p className="text-sm font-extrabold text-slate-800">
+                                                {formatDate(announcement.event_date)} · {announcement.start_time && announcement.end_time
+                                                    ? `${formatTime(announcement.start_time)} - ${formatTime(announcement.end_time)}`
+                                                    : formatTime(announcement.start_time)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {announcement.location && (
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-100">
@@ -200,7 +221,7 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
                         </div>
                     </article>
 
-                    {/* Discussion Section */}
+                    {/* Comments and replies */}
                     <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mt-10">
                         <div className="bg-slate-50 border-b border-slate-200 px-8 py-6 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -208,52 +229,58 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
                                     <i className="fa-solid fa-comments text-xl"></i>
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-extrabold text-slate-900">Discussion & Q&A</h3>
-                                    <p className="text-sm font-semibold text-slate-500 mt-1">Ask a question or leave a comment about this announcement.</p>
+                                    <h3 className="text-xl font-extrabold text-slate-900">Comments & Replies</h3>
+                                    <p className="text-sm font-semibold text-slate-500 mt-1">Leave a comment or concern about this announcement. The admin team can reply here.</p>
                                 </div>
                             </div>
                             <span className="bg-blue-100 text-ctu-lightblue text-sm font-extrabold px-4 py-2 rounded-xl border border-blue-200">{comments.length} Comments</span>
                         </div>
 
-                        <div className="p-8 space-y-8 bg-white">
+                        <div className="p-8 space-y-6 bg-white max-h-[32rem] overflow-y-auto">
+                            {comments.length === 0 && (
+                                <p className="text-center text-sm font-medium text-slate-500 py-8">
+                                    No comments yet. Be the first to share a comment or concern.
+                                </p>
+                            )}
                             {comments.map((comment) => (
-                                <div key={comment.id} className="flex gap-4">
-                                    <div className={`w-10 h-10 rounded-full ${comment.avatarColor} text-white flex items-center justify-center font-bold text-base shrink-0 shadow-md`}>
-                                        {comment.author.charAt(0)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-baseline gap-3 mb-2">
-                                            <span className="font-bold text-base text-slate-900">{comment.author}</span>
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 bg-slate-100 rounded-md">{comment.role}</span>
-                                            <span className="text-xs font-semibold text-slate-400 ml-auto">{comment.time}</span>
+                                <article key={comment.id} className="rounded-2xl border border-slate-100 p-5">
+                                    <ClientMessageCard message={comment} />
+                                    {messages.some((message) => message.parent_message_id === comment.id) && (
+                                        <div className="ml-4 mt-5 space-y-4 border-l-2 border-blue-100 pl-4 sm:ml-8">
+                                            {messages
+                                                .filter((message) => message.parent_message_id === comment.id)
+                                                .map((reply) => (
+                                                    <ClientMessageCard key={reply.id} message={reply} />
+                                                ))}
                                         </div>
-                                        <div className={`p-5 rounded-2xl rounded-tl-sm text-base font-medium leading-relaxed shadow-sm ${
-                                            comment.author === userName 
-                                                ? 'bg-emerald-50 text-emerald-900 border border-emerald-100' 
-                                                : comment.role === 'Organizer'
-                                                    ? 'bg-blue-50 text-blue-900 border border-blue-100'
-                                                    : 'bg-slate-50 text-slate-700 border border-slate-100'
-                                        }`}>
-                                            {comment.text}
-                                        </div>
-                                    </div>
-                                </div>
+                                    )}
+                                </article>
                             ))}
+                            {unthreadedReplies.length > 0 && (
+                                <section className="space-y-4 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+                                    <h4 className="text-sm font-bold text-slate-700">Earlier admin replies</h4>
+                                    {unthreadedReplies.map((reply) => (
+                                        <ClientMessageCard key={reply.id} message={reply} />
+                                    ))}
+                                </section>
+                            )}
                         </div>
 
                         <div className="p-8 bg-slate-50 border-t border-slate-200">
                             <form onSubmit={handleSubmitComment} className="relative flex items-end gap-4">
                                 <div className="relative flex-1">
                                     <textarea
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        placeholder="Write a comment or question..."
+                                        value={data.content}
+                                        onChange={(e) => setData('content', e.target.value)}
+                                        placeholder="Share a comment or concern about this announcement..."
                                         rows={3}
+                                        maxLength={5000}
                                         className="w-full p-5 bg-white border border-slate-300 rounded-2xl text-base font-medium focus:border-ctu-lightblue focus:ring-4 focus:ring-ctu-lightblue/10 outline-none transition-all resize-none shadow-sm"
                                     />
+                                    {errors.content && <p className="mt-2 text-sm font-semibold text-red-600">{errors.content}</p>}
                                 </div>
-                                <button type="submit" disabled={!newComment.trim()} className="h-14 px-8 rounded-2xl bg-ctu-lightblue text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 transition-all shadow-lg shadow-ctu-lightblue/30 shrink-0 hover:-translate-y-0.5 font-bold gap-2">
-                                    Post <i className="fa-solid fa-paper-plane"></i>
+                                <button type="submit" disabled={!data.content.trim() || processing} className="h-14 px-8 rounded-2xl bg-ctu-lightblue text-white flex items-center justify-center hover:bg-blue-600 disabled:opacity-50 transition-all shadow-lg shadow-ctu-lightblue/30 shrink-0 hover:-translate-y-0.5 font-bold gap-2">
+                                    {processing ? 'Posting...' : 'Post Comment'} <i className="fa-solid fa-paper-plane"></i>
                                 </button>
                             </form>
                         </div>
@@ -274,5 +301,35 @@ export default function AnnouncementDetails({ announcement, userName = 'Guest' }
                 </footer>
             </div>
         </>
+    );
+}
+
+function ClientMessageCard({ message }: { message: DiscussionMessage }) {
+    return (
+        <div className="flex gap-4">
+            <div className={`w-10 h-10 rounded-full ${message.role === 'Admin' ? 'bg-blue-600' : 'bg-emerald-500'} text-white flex items-center justify-center font-bold text-base shrink-0 shadow-md`}>
+                {message.author.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-baseline gap-3 mb-2">
+                    <span className="font-bold text-base text-slate-900">{message.author}</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 bg-slate-100 rounded-md">
+                        {message.role === 'Admin' ? 'Admin reply' : 'Your comment'}
+                    </span>
+                    {message.sent_at && (
+                        <time className="text-xs font-semibold text-slate-400" dateTime={message.sent_at}>
+                            {new Date(message.sent_at).toLocaleString()}
+                        </time>
+                    )}
+                </div>
+                <div className={`w-full p-5 rounded-2xl text-left text-base font-medium leading-relaxed whitespace-pre-wrap break-words ${
+                    message.role === 'Admin'
+                        ? 'bg-blue-50 text-blue-900 border border-blue-100'
+                        : 'bg-emerald-50 text-emerald-900 border border-emerald-100'
+                }`}>
+                    {message.content}
+                </div>
+            </div>
+        </div>
     );
 }

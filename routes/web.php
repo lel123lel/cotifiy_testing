@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\AnnouncementDiscussionController as AdminAnnouncementDiscussionController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
+use App\Http\Controllers\Client\AnnouncementDiscussionController;
 use App\Http\Controllers\Client\ClientPageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,9 +20,18 @@ Route::inertia('/auth/verify-email', 'auth/verify-email')->name('verification.no
 Route::get('/client/clientpage', ClientPageController::class)
     ->middleware('auth:web')
     ->name('client.clientpage');
+Route::get('/client/announcements/{announcement}', [ClientPageController::class, 'show'])
+    ->middleware('auth:web')
+    ->name('client.announcements.show');
+Route::post('/client/announcements/{announcement}/messages', [AnnouncementDiscussionController::class, 'store'])
+    ->middleware(['auth:web', 'throttle:10,1'])
+    ->name('client.announcements.messages.store');
 Route::get('/admin', [AnnouncementController::class, 'index'])
     ->middleware('auth:admin')
     ->name('admin');
+Route::post('/admin/discussions/{conversation}/messages', [AdminAnnouncementDiscussionController::class, 'store'])
+    ->middleware(['auth:admin', 'throttle:20,1'])
+    ->name('admin.discussions.messages.store');
 Route::get('/admin/users', [UserController::class, 'index'])
     ->middleware('auth:admin')
     ->name('admin.users');
@@ -58,9 +69,14 @@ Route::post('/register', [RegistrationController::class, 'store'])->name('regist
 Route::get('/email/verify-registration', function (Request $request) {
     return Inertia::render('auth/verify-email', [
         'email' => $request->query('email'),
+        'registration' => $request->query('registration'),
+        'status' => $request->session()->get('status'),
         'verified' => false,
     ]);
 })->name('registration.notice');
+Route::post('/email/verify-registration/resend', [RegistrationController::class, 'resend'])
+    ->middleware('throttle:6,1')
+    ->name('registration.resend');
 Route::get('/email/verify-registration/confirm', [RegistrationController::class, 'verify'])
     ->middleware('signed')
     ->name('registration.verify');

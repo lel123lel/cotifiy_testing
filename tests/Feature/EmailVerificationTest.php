@@ -17,9 +17,60 @@ test('registration sends a verification email without creating a user', function
         'password_confirmation' => 'Password123!',
     ]);
 
-    $response->assertRedirect(route('registration.notice', ['email' => 'taylor@example.com']));
+    $response->assertStatus(302);
+
+    parse_str((string) parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+    expect($query['email'])->toBe('taylor@example.com')
+        ->and($query['registration'])->toBeString();
+
     $this->assertDatabaseMissing('users', ['email' => 'taylor@example.com']);
     Notification::assertSentOnDemand(VerifyPendingRegistration::class);
+});
+
+test('a guest can resend a pending registration verification email', function () {
+    Notification::fake();
+
+    $response = $this->post(route('register.store'), [
+        'name' => 'Taylor Student',
+        'studentId' => 'STU-1001',
+        'email' => 'taylor@example.com',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+    ]);
+
+    parse_str((string) parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $response = $this->post(route('registration.resend'), [
+        'registration' => $query['registration'],
+    ]);
+
+    $response->assertRedirect(route('registration.notice', [
+        'email' => 'taylor@example.com',
+        'registration' => $query['registration'],
+    ]));
+    $response->assertSessionHas('status', 'verification-link-sent');
+
+    $this->get(route('registration.notice', [
+        'email' => 'taylor@example.com',
+        'registration' => $query['registration'],
+    ]))->assertInertia(fn ($page) => $page
+        ->component('auth/verify-email')
+        ->where('email', 'taylor@example.com')
+        ->where('registration', $query['registration'])
+        ->where('status', 'verification-link-sent'));
+
+    $verificationUrls = [];
+    Notification::assertSentOnDemand(
+        VerifyPendingRegistration::class,
+        function (VerifyPendingRegistration $notification) use (&$verificationUrls): bool {
+            $verificationUrls[] = $notification->verificationUrl;
+
+            return true;
+        },
+    );
+
+    expect($verificationUrls)->toHaveCount(2);
+    $this->assertDatabaseMissing('users', ['email' => 'taylor@example.com']);
 });
 
 test('an authenticated user can request another verification email', function () {

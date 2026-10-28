@@ -1,5 +1,5 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnnouncementPage, { type Announcement } from '../announcementpage';
 
 type UpcomingEvent = {
@@ -9,6 +9,23 @@ type UpcomingEvent = {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
+};
+
+type DiscussionMessage = {
+    id: number;
+    parent_message_id: number | null;
+    author: string;
+    role: 'Client' | 'Admin';
+    content: string;
+    sent_at: string | null;
+};
+
+type Discussion = {
+    id: number;
+    announcement_id: number;
+    announcement_title: string;
+    client_name: string;
+    messages: DiscussionMessage[];
 };
 
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
@@ -31,6 +48,7 @@ export default function admin({
     announcements,
     recentAnnouncements,
     upcomingEvents,
+    discussions,
     announcementCount,
     eventCount,
     userCount,
@@ -38,6 +56,7 @@ export default function admin({
     announcements: Announcement[];
     recentAnnouncements: Announcement[];
     upcomingEvents: UpcomingEvent[];
+    discussions: Discussion[];
     announcementCount: number;
     eventCount: number;
     userCount: number;
@@ -59,6 +78,14 @@ export default function admin({
     const filteredAnnouncements = activeFilter === 'all'
         ? announcements
         : announcements.filter((announcement) => announcement.category === activeFilter);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            router.reload({ only: ['discussions'] });
+        }, 5000);
+
+        return () => window.clearInterval(interval);
+    }, []);
 
     return (
         <>
@@ -345,8 +372,6 @@ export default function admin({
                             </div>
                         </section>
 
-                        <hr className="border-slate-200 mb-10"></hr>
-
                         <section id="announcements" className="section-content animate-fade-up" style={{ animationDelay: '0.1s' }}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                                 <div>
@@ -457,6 +482,7 @@ export default function admin({
                 {selectedAnnouncement && (
                     <AnnouncementPage
                         announcement={selectedAnnouncement}
+                        discussions={discussions.filter((discussion) => discussion.announcement_id === selectedAnnouncement.id)}
                         onClose={() => setSelectedAnnouncement(null)}
                     />
                 )}
