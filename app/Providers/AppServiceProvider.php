@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //DevCommands::artisan('serve --host=0.0.0.0 --port=8000 --tries=1', 'server');
+        DevCommands::artisan('serve --host=0.0.0.0 --port=8000 --tries=1', 'server');
         
         // if (config('app.env') === 'production') {
         // URL::forceScheme('https');
