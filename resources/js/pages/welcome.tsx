@@ -61,14 +61,8 @@ export default function Welcome() {
                     </div>
 
                     {/* Desktop Nav */}
-                    <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-300">
-                        <a href="#" className="text-white border-b-2 border-blue-500 pb-1 transition-all hover:text-blue-400">Home</a>
-                    </nav>
 
                     <div className="flex items-center gap-4">
-                        <button className="text-slate-400 hover:text-white hover:rotate-90 transition-all duration-300">
-                            <i className="fa-solid fa-sun text-lg"></i>
-                        </button>
                         <Link 
                             href="/auth/register" 
                             className="hidden sm:block border border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white px-5 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30"

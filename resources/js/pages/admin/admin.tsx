@@ -81,7 +81,7 @@ export default function admin({
                     from { opacity: 0; transform: scale(0.95); }
                     to { opacity: 1; transform: scale(1); }
                 }
-                .animate-fade-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-fade-up { animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
                 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; opacity: 0; }
                 .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
             `}</style>
@@ -285,7 +285,7 @@ export default function admin({
                         <hr className="border-slate-200 mb-10"></hr>
 
                         
-                        <section id="announcements" className="section-content animate-fade-up" style={{ animationDelay: '0.15s' }}>
+                        <section id="announcements" className="section-content animate-fade-up" style={{ animationDelay: '0.05s' }}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900">Manage Announcements</h2>

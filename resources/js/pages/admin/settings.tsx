@@ -4,6 +4,13 @@ export default function Settings() {
     return (
         <>
             <Head title="Settings" />
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-up { animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+            `}</style>
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden">
                 <aside className="w-64 bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-30 h-full transition-all duration-300">
                     <div>
@@ -57,12 +64,12 @@ export default function Settings() {
                     </header>
                     <main className="flex-1 overflow-y-auto p-6">
                         <div className="mx-auto max-w-6xl space-y-8">
-                            <div>
+                            <div className="animate-fade-up">
                                 <h2 className="text-xl font-bold text-slate-800">Account Settings</h2>
                                 <p className="text-sm text-slate-500">Update the password for your admin account.</p>
                             </div>
 
-                            <section className="max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <section className="max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fade-up" style={{ animationDelay: '0.05s' }}>
                                 <div className="border-b border-slate-100 px-4 py-3">
                                     <h3 className="font-semibold text-sm text-slate-700">Change Password</h3>
                                 </div>

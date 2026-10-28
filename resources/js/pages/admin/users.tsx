@@ -97,6 +97,23 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
     return (
         <>
             <Head title="Users" />
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .animate-fade-up { animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; opacity: 0; }
+                .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+            `}</style>
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden">
                 <aside className="w-64 bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-30 h-full transition-all duration-300">
                     <div>
@@ -147,12 +164,12 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
                 <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
                     <main className="flex-1 overflow-y-auto p-6">
                         <div className="mx-auto max-w-6xl space-y-8">
-                            <div>
+                            <div className="animate-fade-up">
                                 <h2 className="text-xl font-bold text-slate-800">Manage Users</h2>
                                 <p className="text-sm text-slate-500">Accounts currently registered in the database.</p>
                             </div>
 
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fade-up" style={{ animationDelay: '0.05s' }}>
                                 <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <h3 className="font-semibold text-sm text-slate-700">Users <span className="text-slate-400">({filteredUsers.length}{normalizedUserSearch ? ` of ${users.length}` : ''})</span></h3>
                                     <label className="relative block sm:w-72">
@@ -169,7 +186,7 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
                                 />
                             </section>
 
-                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fade-up" style={{ animationDelay: '0.1s' }}>
                                 <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-1">
                                         <h3 className="font-semibold text-sm text-slate-700">Admin Users <span className="text-slate-400">({filteredAdminUsers.length}{normalizedAdminSearch ? ` of ${adminUsers.length}` : ''})</span></h3>
@@ -191,8 +208,8 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
             </div>
 
             {isAddAdminOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="addAdminTitle">
-                    <div className="max-h-[95vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="addAdminTitle">
+                    <div className="max-h-[95vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg animate-scale-in">
                         <div className="mb-5 flex items-center justify-between">
                             <h3 id="addAdminTitle" className="text-lg font-bold text-slate-800">Add New Admin</h3>
                             <button type="button" onClick={() => setIsAddAdminOpen(false)} aria-label="Close form" className="text-slate-400 hover:text-slate-600">
@@ -234,8 +251,8 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
             )}
 
             {editingUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
-                    <div className="max-h-[95vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+                    <div className="max-h-[95vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-lg animate-scale-in">
                         <div className="mb-5 flex items-center justify-between">
                             <h3 id="editUserTitle" className="text-lg font-bold text-slate-800">Edit User</h3>
                             <button type="button" onClick={() => setEditingUser(null)} aria-label="Close form" className="text-slate-400 hover:text-slate-600">
@@ -272,8 +289,8 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
             )}
 
             {deletingUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
-                    <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
+                    <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-lg animate-scale-in">
                         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                             <i className="fa-solid fa-trash text-xl text-red-600"></i>
                         </div>
