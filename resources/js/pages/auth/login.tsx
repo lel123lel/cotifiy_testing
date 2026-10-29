@@ -149,12 +149,12 @@ export default function Login() {
                             isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'
                         }`}
                     >
-                        {/* CHANGED: Replaced icon with larger logo image */}
+                        {/* CHANGED: Adjusted the margins to make them close but not overlapping */}
                         <div className="flex items-center mb-12">
                             <img 
-                                src="/images/Cotify_Logo.png" 
+                                src="/images/3rdLogo.png" 
                                 alt="Cotify Logo" 
-                                className="w-32 h-32 object-contain -ml-4" 
+                                className="w-32 h-32 object-contain -ml-6 -mr-4" 
                             />
                             <div className="-ml-2">
                                 <h1 className="font-extrabold text-4xl leading-tight tracking-tight">Cotify</h1>
@@ -226,12 +226,12 @@ export default function Login() {
                             {/* Mobile Logo */}
                             <div className="flex lg:hidden items-center mb-10">
                                 <img 
-                                    src="/images/Cotify_Logo.png" 
+                                    src="/images/3rdLogo.png" 
                                     alt="Cotify Logo" 
-                                    className="w-24 h-24 object-contain -ml-2" 
+                                    className="w-24 h-24 object-contain -ml-4 -mr-3" 
                                 />
                                 <div className="-ml-1">
-                                    <h1 className="font-extrabold text-2xl text-white leading-tight">Cotify</h1>
+                                    <h1 className="font-extrabold text-3xl text-white leading-tight">Cotify</h1>
                                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Your Campus Portal</p>
                                 </div>
                             </div>

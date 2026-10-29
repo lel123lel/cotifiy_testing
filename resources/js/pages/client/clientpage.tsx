@@ -253,10 +253,12 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                     <header className="fixed top-0 left-0 right-0 z-40 bg-ctu-dark/90 backdrop-blur-xl border-b border-white/10 shadow-lg transition-all duration-300">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex items-center justify-between h-20">
-                                <Link href="/client" className="flex items-center gap-3 group">
-                                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-black/20 group-hover:scale-105 transition-transform">
-                                        <i className="fa-solid fa-gear text-ctu-dark text-lg"></i>
-                                    </div>
+                                <Link href="/client" className="flex items-center group">
+                                    <img
+                                        src="/images/3rdLogo.png"
+                                        alt="Cotify Logo"
+                                        className="w-30 h-30 object-contain -ml-3 -mr-6 group-hover:scale-105 transition-transform"
+                                    />
                                     <div>
                                         <h1 className="font-extrabold text-white text-lg leading-tight tracking-tight">COTIFY</h1>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">College of Technology</p>
@@ -662,10 +664,12 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                                 <div className="md:col-span-2">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                                            <i className="fa-solid fa-gear text-ctu-dark text-lg"></i>
-                                        </div>
+                                    <div className="flex items-center mb-6">
+                                        <img
+                                            src="/images/3rdLogo.png"
+                                            alt="Cotify Logo"
+                                            className="w-30 h-30 object-contain -ml-3 -mr-6 group-hover:scale-105 transition-transform"
+                                        />
                                         <div>
                                             <h1 className="font-extrabold text-white text-lg leading-tight tracking-tight">COTIFY</h1>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">College of Technology</p>

@@ -190,10 +190,13 @@ export default function Users({ users, adminUsers }: { users: RegisteredUser[]; 
                     ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'}`}
                 >
                     <div className="w-64">
-                        <div className="p-6 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                <i className="fa-solid fa-bullhorn text-white text-lg"></i>
-                            </div>
+                        {/* CHANGED: Replaced icon with larger logo and adjusted margins */}
+                        <div className="p-6 flex items-center">
+                            <img 
+                                src="/images/3rdLogo.png" 
+                                alt="Cotify Logo" 
+                                className="w-16 h-16 object-contain -ml-3 -mr-2" 
+                            />
                             <div className="text-white">
                                 <h1 className="font-extrabold text-lg leading-tight tracking-tight">Cotify</h1>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>

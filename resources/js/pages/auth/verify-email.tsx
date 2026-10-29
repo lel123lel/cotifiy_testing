@@ -141,13 +141,15 @@ export default function VerifyEmail({
                             isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'
                         }`}
                     >
-                        {/* Brand Logo */}
-                        <div className="flex items-center gap-4 mb-12">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                <i className="fa-solid fa-bullhorn text-white text-2xl"></i>
-                            </div>
-                            <div>
-                                <h1 className="font-extrabold text-3xl leading-tight tracking-tight">Cotify</h1>
+                        {/* CHANGED: Replaced icon with larger logo image and adjusted spacing */}
+                        <div className="flex items-center mb-12">
+                            <img 
+                                src="/images/3rdLogo.png" 
+                                alt="Cotify Logo" 
+                                className="w-32 h-32 object-contain -ml-6 -mr-4" 
+                            />
+                            <div className="-ml-2">
+                                <h1 className="font-extrabold text-4xl leading-tight tracking-tight">Cotify</h1>
                                 <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mt-1">Your Campus Portal</p>
                             </div>
                         </div>
@@ -213,13 +215,15 @@ export default function VerifyEmail({
                         {/* Form Content */}
                         <div className="relative z-10 p-8 sm:p-10 border border-white/10 rounded-3xl text-center">
                             
-                            {/* Mobile Logo */}
-                            <div className="flex lg:hidden items-center gap-3 mb-10 text-left">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md flex items-center justify-center">
-                                    <i className="fa-solid fa-bullhorn text-white text-xl"></i>
-                                </div>
-                                <div>
-                                    <h1 className="font-extrabold text-white leading-tight">Cotify</h1>
+                            {/* CHANGED: Mobile Logo pulled close together */}
+                            <div className="flex lg:hidden items-center mb-10 text-left">
+                                <img 
+                                    src="/images/3rdLogo.png" 
+                                    alt="Cotify Logo" 
+                                    className="w-24 h-24 object-contain -ml-4 -mr-3" 
+                                />
+                                <div className="-ml-1">
+                                    <h1 className="font-extrabold text-3xl text-white leading-tight">Cotify</h1>
                                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Your Campus Portal</p>
                                 </div>
                             </div>

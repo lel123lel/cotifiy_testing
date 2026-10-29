@@ -50,15 +50,14 @@ export default function Welcome() {
                         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
                     }`}
                 >
+                    {/* CHANGED: Removed gap and pushed them together with a negative right margin on the image */}
                     <div className="flex items-center text-white">
-                        {/* CHANGED: Made the logo much bigger (w-32/h-32 and sm:w-40/h-40) */}
                         <img 
-                            src="/images/Cotify_Logo.png" 
+                            src="/images/3rdLogo.png" 
                             alt="Cotify Logo" 
-                            className="w-32 h-32 sm:w-40 sm:h-40 object-contain -ml-4" 
+                            className="w-32 h-32 sm:w-40 sm:h-40 object-contain -ml-8 -mr-10" 
                         />
-                        <div className="-ml-2">
-                            {/* CHANGED: Increased text size to match the bigger logo */}
+                        <div>
                             <h1 className="font-bold text-4xl leading-tight tracking-wide">Cotify</h1>
                             <p className="text-lg text-slate-400">Your Campus Portal</p>
                         </div>

@@ -114,7 +114,7 @@ export default function admin({
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
                 
-                {/* MOVING SHAPES BACKGROUND (Added) */}
+                {/* MOVING SHAPES BACKGROUND */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute top-[10%] left-[10%] w-[30rem] h-[30rem] bg-blue-500/5 rounded-full blur-3xl shape-move-1"></div>
                     <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] bg-indigo-500/5 rounded-full blur-3xl shape-move-2"></div>
@@ -137,16 +137,19 @@ export default function admin({
                     <div className="absolute top-[30%] right-[5%] w-3 h-48 bg-gradient-to-b from-blue-500/10 to-transparent rounded-full shape-move-1"></div>
                 </div>
 
-                {/* SIDEBAR (Z-40) */}
+                {/* SIDEBAR */}
                 <aside 
                     className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 shadow-2xl md:shadow-none 
                     ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'}`}
                 >
                     <div className="w-64">
-                        <div className="p-6 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                <i className="fa-solid fa-bullhorn text-white text-lg"></i>
-                            </div>
+                        {/* CHANGED: Replaced icon with larger logo and adjusted margins */}
+                        <div className="p-6 flex items-center">
+                            <img 
+                                src="/images/3rdLogo.png" 
+                                alt="Cotify Logo" 
+                                className="w-16 h-16 object-contain -ml-3 -mr-2" 
+                            />
                             <div className="text-white">
                                 <h1 className="font-extrabold text-lg leading-tight tracking-tight">Cotify</h1>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
@@ -204,7 +207,7 @@ export default function admin({
                     ></div>
                 )}
 
-                {/* MAIN CONTENT (Z-10 so it sits above shapes) */}
+                {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
                     
                     <header className="h-20 bg-ctu-dark border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-20 shadow-md transition-colors">
