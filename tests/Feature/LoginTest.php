@@ -21,16 +21,17 @@ test('an admin can log in and is redirected to the admin page across requests', 
         ->assertInertia(fn ($page) => $page->component('admin/admin'));
 });
 
-test('a regular user can log in using the users table', function () {
+test('a regular user is redirected to the client page after login', function () {
     $user = User::factory()->create([
         'email' => 'student@example.com',
         'password' => Hash::make('secret-password'),
     ]);
 
-    $this->post('/auth/login', [
-        'email' => $user->email,
-        'password' => 'secret-password',
-    ])->assertRedirect(route('client.clientpage'));
+    $this->withSession(['url.intended' => route('home')])
+        ->post('/auth/login', [
+            'email' => $user->email,
+            'password' => 'secret-password',
+        ])->assertRedirect(route('client.clientpage'));
 
     $this->get(route('admin'))->assertRedirect(route('login'));
 });
