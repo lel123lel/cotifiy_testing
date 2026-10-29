@@ -83,7 +83,7 @@ export default function Settings() {
                             <img 
                                 src="/images/3rdLogo.png" 
                                 alt="Cotify Logo" 
-                                className="w-16 h-16 object-contain -ml-3 -mr-2" 
+                                className="w-30 h-30 object-contain -ml-3 -mr-6"
                             />
                             <div className="text-white">
                                 <h1 className="font-extrabold text-lg leading-tight tracking-tight">Cotify</h1>
