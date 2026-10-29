@@ -12,22 +12,102 @@ export default function Register() {
 
     return (
         <>
-            <Head title="Register | AnnounceHub" />
+            <Head title="Register | Cotify" />
             
-
             <style>{`
                 @keyframes slowZoom {
                     0% { transform: scale(1); }
                     100% { transform: scale(1.1); }
                 }
-                .animate-slow-zoom {
-                    animation: slowZoom 20s ease-in-out infinite alternate;
+                @keyframes move-around-1 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    25% { transform: translate(-15vw, 10vh) rotate(15deg); }
+                    50% { transform: translate(-5vw, 25vh) rotate(-10deg); }
+                    75% { transform: translate(10vw, 15vh) rotate(5deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
                 }
+                @keyframes move-around-2 {
+                    0% { transform: translate(0, 0) rotate(0deg); }
+                    25% { transform: translate(10vw, -15vh) rotate(-20deg); }
+                    50% { transform: translate(-20vw, -10vh) rotate(10deg); }
+                    75% { transform: translate(-10vw, 15vh) rotate(-5deg); }
+                    100% { transform: translate(0, 0) rotate(0deg); }
+                }
+                @keyframes move-around-3 {
+                    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+                    33% { transform: translate(15vw, -20vh) rotate(45deg) scale(1.2); }
+                    66% { transform: translate(-15vw, 10vh) rotate(90deg) scale(0.8); }
+                    100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+                }
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes pulse-soft {
+                    0%, 100% { opacity: 0.1; transform: scale(1); }
+                    50% { opacity: 0.3; transform: scale(1.1); }
+                }
+                
+                .animate-slow-zoom { animation: slowZoom 20s ease-in-out infinite alternate; }
+                .shape-move-1 { animation: move-around-1 25s ease-in-out infinite; }
+                .shape-move-2 { animation: move-around-2 30s ease-in-out infinite; }
+                .shape-move-3 { animation: move-around-3 35s ease-in-out infinite; }
+                .shape-spin { animation: spin-slow 40s linear infinite; }
+                .animate-pulse-soft { animation: pulse-soft 8s ease-in-out infinite; }
+
+                .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+                .clip-octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
             `}</style>
 
-            <div className="font-sans text-slate-800 bg-slate-50 antialiased min-h-screen flex">
+            <div className="font-sans text-slate-800 bg-[#F1F1F1] antialiased min-h-screen flex relative overflow-hidden">
                 
-                <div className="hidden lg:flex w-1/2 bg-slate-900 text-white flex-col justify-center px-16 relative overflow-hidden">
+                {/* BACKGROUND SHAPES - Changed to vibrant blue */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                    
+                    {/* Glowing soft orbs */}
+                    <div className="absolute top-[10%] left-[10%] w-[30rem] h-[30rem] bg-blue-500/10 rounded-full blur-3xl shape-move-1"></div>
+                    <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] bg-blue-600/10 rounded-full blur-3xl shape-move-2"></div>
+
+                    {/* Circles & Rings */}
+                    <div className="absolute top-[15%] right-[15%] w-[25rem] h-[25rem] border-[3px] border-blue-500/20 rounded-full shape-move-1"></div>
+                    <div className="absolute bottom-[20%] left-[10%] w-32 h-32 border-[4px] border-blue-600/20 rounded-full shape-move-2"></div>
+                    <div className="absolute top-[60%] right-[30%] w-20 h-20 border-[2px] border-blue-400/30 rounded-full shape-move-3"></div>
+
+                    {/* Hexagons */}
+                    <div className="absolute top-[20%] left-[30%] w-40 h-40 bg-blue-500/10 clip-hexagon shape-move-2"></div>
+                    <div className="absolute bottom-[15%] right-[20%] w-56 h-56 border-[4px] border-blue-600/15 clip-hexagon shape-move-1 bg-transparent">
+                        <div className="w-full h-full bg-blue-500/5 clip-hexagon scale-[0.95]"></div>
+                    </div>
+
+                    {/* Octagons */}
+                    <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-blue-600/10 clip-octagon shape-move-3"></div>
+                    <div className="absolute bottom-[35%] right-[35%] w-48 h-48 border-[4px] border-blue-500/15 clip-octagon shape-move-1 bg-transparent">
+                         <div className="w-full h-full bg-blue-500/5 clip-octagon scale-[0.95]"></div>
+                    </div>
+
+                    {/* Squares / Diamonds */}
+                    <div className="absolute top-[70%] right-[10%] w-28 h-28 border-[3px] border-blue-500/20 rotate-45 shape-move-2"></div>
+                    <div className="absolute bottom-[10%] left-[40%] w-16 h-16 bg-blue-600/15 rotate-12 shape-move-3"></div>
+
+                    {/* Triangles */}
+                    <div className="absolute top-[10%] right-[40%] w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-blue-500/15 shape-move-2"></div>
+                    <div className="absolute bottom-[40%] left-[5%] w-0 h-0 border-l-[30px] border-l-transparent border-r-[30px] border-r-transparent border-t-[50px] border-t-blue-600/15 shape-move-1"></div>
+
+                    {/* Abstract Lines */}
+                    <div className="absolute top-[30%] right-[5%] w-3 h-48 bg-gradient-to-b from-blue-500/20 to-transparent rounded-full shape-move-1"></div>
+                    <div className="absolute bottom-[20%] left-[25%] w-48 h-3 bg-gradient-to-r from-blue-600/20 to-transparent rounded-full shape-move-3"></div>
+                    
+                    {/* Large Torus & Extra Shapes */}
+                    <div className="absolute top-[5%] right-[5%] w-64 h-64 border-[15px] border-blue-600/10 rounded-full shape-move-3"></div>
+                    <div className="absolute bottom-[5%] right-[30%] w-24 h-24 bg-blue-500/15 clip-octagon shape-move-1"></div>
+                    <div className="absolute top-[55%] left-[30%] w-20 h-20 border-[3px] border-blue-500/20 rotate-45 shape-move-2"></div>
+                    <div className="absolute bottom-[25%] left-[15%] w-0 h-0 border-l-[35px] border-l-transparent border-r-[35px] border-r-transparent border-b-[60px] border-b-blue-500/15 shape-move-3"></div>
+                    <div className="absolute top-[85%] right-[10%] w-56 h-2 bg-gradient-to-r from-transparent via-blue-600/25 to-transparent rounded-full shape-move-1"></div>
+
+                </div>
+
+                {/* LEFT SIDE: Info Panel with Animation */}
+                <div className="hidden lg:flex w-1/2 bg-slate-900 text-white flex-col justify-center px-16 relative overflow-hidden z-10 border-r border-slate-200 shadow-2xl">
                     
                     {/* Animated Background Image */}
                     <div className="absolute inset-0 z-0 overflow-hidden">
@@ -45,37 +125,37 @@ export default function Register() {
                         }`}
                     >
                         {/* Brand Logo */}
-                        <div className="flex items-center gap-3 mb-12">
-                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center p-1 shadow-lg shadow-blue-500/20">
-                                <i className="fa-solid fa-bullhorn text-slate-900 text-2xl"></i>
+                        <div className="flex items-center gap-4 mb-12">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                <i className="fa-solid fa-bullhorn text-white text-2xl"></i>
                             </div>
                             <div>
-                                <h1 className="font-bold text-2xl leading-tight tracking-wide">Cotify</h1>
-                                <p className="text-sm text-slate-400">Your Campus Portal</p>
+                                <h1 className="font-extrabold text-3xl leading-tight tracking-tight">Cotify</h1>
+                                <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest mt-1">Your Campus Portal</p>
                             </div>
                         </div>
 
-                        <h2 className="text-3xl font-bold mb-4">Join the Community!</h2>
-                        <p className="text-slate-400 mb-8 leading-relaxed">
+                        <h2 className="text-4xl font-extrabold mb-4 leading-tight">Join the Community!</h2>
+                        <p className="text-slate-400 mb-10 leading-relaxed text-lg">
                             Create an account to stay updated with announcements, events, and important campus information.
                         </p>
 
-                        <ul className="space-y-5 text-sm text-slate-300">
-                            <li className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                                    <i className="fa-solid fa-check text-blue-400 text-xs"></i>
+                        <ul className="space-y-6 text-base text-slate-300 font-medium">
+                            <li className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                    <i className="fa-solid fa-check text-blue-400 text-lg"></i>
                                 </div>
                                 Access all announcements
                             </li>
-                            <li className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                                    <i className="fa-solid fa-check text-blue-400 text-xs"></i>
+                            <li className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                    <i className="fa-solid fa-check text-blue-400 text-lg"></i>
                                 </div>
                                 Register for events
                             </li>
-                            <li className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                                    <i className="fa-solid fa-check text-blue-400 text-xs"></i>
+                            <li className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                    <i className="fa-solid fa-check text-blue-400 text-lg"></i>
                                 </div>
                                 Connect with the campus
                             </li>
@@ -83,152 +163,171 @@ export default function Register() {
                     </div>
                 </div>
 
-                <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative">
+                {/* RIGHT SIDE: Register Form */}
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-12 relative z-10">
                     
+                    {/* Back Button */}
                     <Link 
                         href="/" 
-                        className="absolute top-6 left-6 sm:top-8 sm:left-8 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-600 hover:bg-blue-50 transition-all shadow-sm z-20" 
+                        className="absolute top-6 left-6 sm:top-8 sm:left-8 w-11 h-11 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm z-20 group" 
                         title="Back to Home"
                     >
-                        <i className="fa-solid fa-arrow-left"></i>
+                        <i className="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
                     </Link>
 
+                    {/* Form Container (Unchanged) */}
                     <div 
-                        className={`max-w-md w-full transition-all duration-1000 ease-out delay-150 ${
-                            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                        className={`w-full max-w-md rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-1000 ease-out delay-150 ${
+                            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
                         }`}
                     >
-                        <div className="flex lg:hidden items-center gap-3 mb-10">
-                            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center">
-                                <i className="fa-solid fa-bullhorn text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h1 className="font-bold text-slate-900 leading-tight">AnnounceHub</h1>
-                                <p className="text-xs text-slate-500">Your Campus Portal</p>
-                            </div>
+                        
+                        {/* Background Image & Dark Overlay */}
+                        <div className="absolute inset-0 z-0">
+                            <img 
+                                src="/images/download.jpg" 
+                                alt="Card Background" 
+                                className="w-full h-full object-cover opacity-30"
+                            />
+                            <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-sm"></div>
                         </div>
 
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Create an Account</h2>
-                        <p className="text-sm text-slate-500 mb-8">Fill in the details below to get started</p>
+                        {/* Form Content */}
+                        <div className="relative z-10 p-8 sm:p-10 border border-white/10 rounded-3xl">
+                            
+                            {/* Mobile Logo */}
+                            <div className="flex lg:hidden items-center gap-3 mb-10">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md flex items-center justify-center">
+                                    <i className="fa-solid fa-bullhorn text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h1 className="font-extrabold text-white leading-tight">Cotify</h1>
+                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Your Campus Portal</p>
+                                </div>
+                            </div>
 
-                        <Form method="POST" action="/register" className="space-y-4">
-                            {({ errors, processing }) => (
-                                <>
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-600 mb-1">Full Name</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i className="fa-regular fa-user text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <h2 className="text-3xl font-extrabold text-white mb-2">Create an Account</h2>
+                            <p className="text-sm font-medium text-slate-300 mb-8">Fill in the details below to get started.</p>
+
+                            <Form method="POST" action="/register" className="space-y-5">
+                                {({ errors, processing }) => (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Full Name</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <i className="fa-regular fa-user text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    name="name" 
+                                                    placeholder="Enter your full name" 
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                    required
+                                                />
                                             </div>
-                                            <input 
-                                                type="text" 
-                                                name="name" 
-                                                placeholder="Enter your full name" 
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-                                                required
-                                            />
-                                            {errors.name && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.name}</p>}
+                                            {errors.name && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.name}</p>}
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-600 mb-1">Student ID</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i className="fa-regular fa-id-card text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Student ID</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <i className="fa-regular fa-id-card text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    name="studentId"
+                                                    placeholder="Enter your student ID" 
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                    required
+                                                />
                                             </div>
-                                            <input 
-                                                type="text" 
-                                                name="studentId"
-                                                placeholder="Enter your student ID" 
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-                                                required
-                                            />
-                                            {errors.studentId && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.studentId}</p>}
+                                            {errors.studentId && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.studentId}</p>}
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-600 mb-1">Email Address</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i className="fa-regular fa-envelope text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Email Address</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <i className="fa-regular fa-envelope text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                </div>
+                                                <input 
+                                                    type="email" 
+                                                    name="email" 
+                                                    placeholder="you@example.com" 
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                    required
+                                                />
                                             </div>
-                                            <input 
-                                                type="email" 
-                                                name="email" 
-                                                placeholder="you@example.com" 
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-                                                required
-                                            />
-                                            {errors.email && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.email}</p>}
+                                            {errors.email && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.email}</p>}
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Password</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                </div>
+                                                <input 
+                                                    type={showPassword ? "text" : 'password'} 
+                                                    name="password" 
+                                                    placeholder="At least 6 characters" 
+                                                    className="w-full pl-11 pr-11 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                    required
+                                                />
+                                                <div 
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer"
+                                                >
+                                                    <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-blue-400 transition-colors`}></i>
+                                                </div>
                                             </div>
-                                            <input 
-                                                type={showPassword ? "text" : 'password'} 
-                                                name="password" 
-                                                placeholder="At least 6 characters" 
-                                                className="w-full pl-10 pr-10 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-                                                required
-                                            />
-                                            <div 
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-                                            >
-                                                <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-slate-600 transition-colors`}></i>
-                                            </div>
+                                            {errors.password && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.password}</p>}
                                         </div>
-                                        {errors.password && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.password}</p>}
-                                    </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-600 mb-1">Confirm Password</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Confirm Password</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                </div>
+                                                <input 
+                                                    type={showConfirmPassword ? "text" : "password"} 
+                                                    name="password_confirmation" 
+                                                    placeholder="Re-enter your password" 
+                                                    className="w-full pl-11 pr-11 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                    required
+                                                />
+                                                <div 
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer"
+                                                >
+                                                    <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-blue-400 transition-colors`}></i>
+                                                </div>
                                             </div>
-                                            <input 
-                                                type={showConfirmPassword ? "text" : "password"} 
-                                                name="password_confirmation" 
-                                                placeholder="Re-enter your password" 
-                                                className="w-full pl-10 pr-10 py-3 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-sm"
-                                                required
-                                            />
-                                            <div 
-                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-                                            >
-                                                <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-slate-600 transition-colors`}></i>
-                                            </div>
+                                            {errors.password_confirmation && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.password_confirmation}</p>}
                                         </div>
-                                        {errors.password_confirmation && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.password_confirmation}</p>}
-                                    </div>
 
-                                    <button 
-                                        type="submit" 
-                                        disabled={processing}
-                                        className="w-full block text-center bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition-all duration-300 shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 hover:shadow-blue-500/40 mt-4"
-                                    >
-                                        {processing ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <i className="fa-solid fa-spinner fa-spin"></i> Registering...
-                                            </span>
-                                        ) : 'Create Account'}
-                                    </button>
-                                </> 
-                            )}
-                        </Form>
+                                        <button 
+                                            type="submit" 
+                                            disabled={processing}
+                                            className="w-full block text-center bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold py-4 rounded-xl transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(37,99,235,0.5)] hover:-translate-y-0.5 hover:shadow-[0_12px_25px_-6px_rgba(37,99,235,0.6)] mt-6"
+                                        >
+                                            {processing ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <i className="fa-solid fa-spinner fa-spin"></i> Registering...
+                                                </span>
+                                            ) : 'Create Account'}
+                                        </button>
+                                    </> 
+                                )}
+                            </Form>
 
-                        <p className="text-center text-sm text-slate-500 mt-8">
-                            Already have an account? <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors">Log in</Link>
-                        </p>
+                            <p className="text-center text-sm text-slate-300 mt-8 font-semibold">
+                                Already have an account? <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 hover:underline font-extrabold transition-colors">Log in</Link>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

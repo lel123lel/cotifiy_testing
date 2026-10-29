@@ -14,6 +14,7 @@ Route::inertia('/', 'welcome')->name('home');
 Route::inertia('/announcementpage', 'announcementpage')->name('announcementpage');
 Route::inertia('/auth/login', 'auth/login')->name('login');
 Route::inertia('/auth/register', 'auth/register')->name('register');
+Route::inertia('/auth/verify-email', 'auth/verify-email')->name('verification.notice');
 Route::get('/client/clientpage', ClientPageController::class)
     ->middleware('auth:web')
     ->name('client.clientpage');
