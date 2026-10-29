@@ -18,19 +18,17 @@ class AnnouncementDiscussionController extends Controller
         $validated = $request->validate([
             'content' => ['required', 'string', 'max:5000'],
             'parent_message_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('messages', 'id')->where(
                     fn (Builder $query) => $query
-                        ->where('conversation_id', $conversation->id)
-                        ->whereNotNull('sender_id')
-                        ->whereNull('sender_admin_id'),
+                        ->where('conversation_id', $conversation->id),
                 ),
             ],
         ]);
 
         $conversation->messages()->create([
-            'parent_message_id' => $validated['parent_message_id'],
+            'parent_message_id' => $validated['parent_message_id'] ?? null,
             'sender_admin_id' => $request->user('admin')->id,
             'content' => trim($validated['content']),
         ]);

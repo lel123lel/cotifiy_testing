@@ -75,7 +75,9 @@ export default function AnnouncementPage({
     );
     const commentCount = discussions.reduce(
         (count, discussion) =>
-            count + discussion.messages.filter((message) => message.role === 'Client').length,
+            count +
+            discussion.messages.filter((message) => message.role === 'Client')
+                .length,
         0,
     );
 
@@ -185,9 +187,7 @@ export default function AnnouncementPage({
                                 <dt className="inline font-semibold text-slate-900">
                                     Time:{' '}
                                 </dt>
-                                <dd className="inline">
-                                    {eventTime.join('')}
-                                </dd>
+                                <dd className="inline">{eventTime.join('')}</dd>
                             </div>
                         )}
                         {announcement.location && (
@@ -290,7 +290,9 @@ export default function AnnouncementPage({
                     <div
                         id={isModal ? 'announcement-tab-panel' : undefined}
                         role={isModal ? 'tabpanel' : undefined}
-                        aria-labelledby={isModal ? 'announcement-tab' : undefined}
+                        aria-labelledby={
+                            isModal ? 'announcement-tab' : undefined
+                        }
                     >
                         {hasModalImage && (
                             <div className="mb-6 grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[minmax(16rem,0.85fr)_minmax(0,1.4fr)]">
@@ -312,7 +314,9 @@ export default function AnnouncementPage({
                             }
                         >
                             {!hasModalImage && (
-                                <div className="mb-7">{announcementHeading}</div>
+                                <div className="mb-7">
+                                    {announcementHeading}
+                                </div>
                             )}
 
                             <section aria-label="Announcement details">
@@ -342,7 +346,7 @@ export default function AnnouncementPage({
                     >
                         <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-ctu-lightblue">
+                                <div className="text-ctu-lightblue flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
                                     <i
                                         className="fa-solid fa-comments"
                                         aria-hidden="true"
@@ -393,74 +397,103 @@ export default function AnnouncementPage({
 }
 
 function DiscussionThread({ discussion }: { discussion: Discussion }) {
-    const comments = discussion.messages.filter(
-        (message) => message.role === 'Client' && message.parent_message_id === null,
-    );
-    const unthreadedReplies = discussion.messages.filter(
-        (message) => message.role === 'Admin' && message.parent_message_id === null,
+    const rootMessages = discussion.messages.filter(
+        (message) => message.parent_message_id === null,
     );
 
     return (
         <article className="overflow-hidden rounded-xl border border-slate-200">
-                <header className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-                    <h3 className="font-semibold text-slate-900">{discussion.client_name}</h3>
-                </header>
-                {comments.length === 0 && (
-                    <p className="p-4 text-sm text-slate-500">No student comments yet.</p>
-                )}
-                <div className="divide-y divide-slate-100">
-                    {comments.map((comment) => (
-                        <section key={comment.id} className="p-4">
-                            <MessageBubble message={comment} />
-                            <div className="ml-4 mt-4 space-y-3 border-l-2 border-blue-100 pl-4 sm:ml-8">
-                                {discussion.messages
-                                    .filter((message) => message.parent_message_id === comment.id)
-                                    .map((reply) => (
-                                        <MessageBubble key={reply.id} message={reply} />
-                                    ))}
-                                <DiscussionReplyForm
-                                    discussionId={discussion.id}
-                                    comment={comment}
-                                />
-                            </div>
-                        </section>
-                    ))}
-                    {unthreadedReplies.map((reply) => (
-                        <div key={reply.id} className="p-4">
-                            <p className="mb-2 text-xs font-semibold text-slate-500">
-                                Earlier reply (not linked to a specific comment)
-                            </p>
-                            <MessageBubble message={reply} />
-                        </div>
-                    ))}
-                </div>
+            <header className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <h3 className="font-semibold text-slate-900">
+                    {discussion.client_name}
+                </h3>
+            </header>
+            {rootMessages.length === 0 && (
+                <p className="p-4 text-sm text-slate-500">No comments yet.</p>
+            )}
+            <div className="divide-y divide-slate-100">
+                {rootMessages.map((message) => (
+                    <div key={message.id} className="p-4">
+                        <AdminMessageThread
+                            discussion={discussion}
+                            message={message}
+                        />
+                    </div>
+                ))}
+            </div>
+            <div className="border-t border-slate-100 bg-slate-50 p-4">
+                <DiscussionReplyForm discussionId={discussion.id} />
+            </div>
         </article>
+    );
+}
+
+function AdminMessageThread({
+    discussion,
+    message,
+}: {
+    discussion: Discussion;
+    message: DiscussionMessage;
+}) {
+    const [isReplyOpen, setIsReplyOpen] = useState(false);
+    const replies = discussion.messages.filter(
+        (reply) => reply.parent_message_id === message.id,
+    );
+
+    return (
+        <>
+            <MessageBubble message={message} />
+            <div className="mt-2 ml-4 space-y-3 border-l-2 border-blue-100 pl-4 sm:ml-8">
+                <button
+                    type="button"
+                    onClick={() => setIsReplyOpen((open) => !open)}
+                    className="text-ctu-lightblue text-sm font-bold hover:text-blue-700"
+                >
+                    {isReplyOpen ? 'Cancel reply' : 'Reply'}
+                </button>
+                {isReplyOpen && (
+                    <DiscussionReplyForm
+                        discussionId={discussion.id}
+                        comment={message}
+                    />
+                )}
+                {replies.map((reply) => (
+                    <AdminMessageThread
+                        key={reply.id}
+                        discussion={discussion}
+                        message={reply}
+                    />
+                ))}
+            </div>
+        </>
     );
 }
 
 function MessageBubble({ message }: { message: DiscussionMessage }) {
     return (
         <div
-                className={`rounded-xl px-4 py-3 ${
-                    message.role === 'Admin'
-                        ? 'bg-blue-50 text-blue-900'
-                        : 'bg-slate-100 text-slate-800'
-                }`}
+            className={`rounded-xl px-4 py-3 ${
+                message.role === 'Admin'
+                    ? 'bg-blue-50 text-blue-900'
+                    : 'bg-slate-100 text-slate-800'
+            }`}
         >
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-wide opacity-75">
-                    {message.role === 'Admin'
-                        ? 'Admin reply'
-                        : `${message.author} · Student comment`}
-                </p>
-                <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-                {message.sent_at && (
-                    <time
-                        className="mt-2 block text-[10px] opacity-70"
-                        dateTime={message.sent_at}
-                    >
-                        {new Date(message.sent_at).toLocaleString()}
-                    </time>
-                )}
+            <p className="mb-1 text-[11px] font-bold tracking-wide uppercase opacity-75">
+                {message.role === 'Admin'
+                    ? 'Admin'
+                    : `${message.author} · Student comment`}
+            </p>
+            <p className="text-sm break-words whitespace-pre-wrap">
+                {message.content}
+            </p>
+            {message.sent_at && (
+                <time
+                    className="mt-2 block text-[10px] opacity-70"
+                    dateTime={message.sent_at}
+                >
+                    {new Date(message.sent_at).toLocaleString()}
+                </time>
+            )}
         </div>
     );
 }
@@ -470,56 +503,62 @@ function DiscussionReplyForm({
     comment,
 }: {
     discussionId: number;
-    comment: DiscussionMessage;
+    comment?: DiscussionMessage;
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         content: '',
-        parent_message_id: comment.id,
+        parent_message_id: comment?.id ?? null,
     });
 
     const handleReply = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!data.content.trim() || processing) {
-                return;
+            return;
         }
 
         post(`/admin/discussions/${discussionId}/messages`, {
-                preserveScroll: true,
-                onSuccess: () => reset(),
+            preserveScroll: true,
+            onSuccess: () => reset(),
         });
     };
 
     return (
         <form onSubmit={handleReply} className="flex items-end gap-3">
-                <div className="flex-1">
-                    <label
-                        htmlFor={`reply-${discussionId}-${comment.id}`}
-                        className="mb-1 block text-xs font-semibold text-slate-600"
-                    >
-                        Reply directly to {comment.author}&apos;s comment
-                    </label>
-                    <textarea
-                        id={`reply-${discussionId}-${comment.id}`}
-                        value={data.content}
-                        onChange={(event) => setData('content', event.target.value)}
-                        rows={2}
-                        maxLength={5000}
-                        placeholder={`Reply to ${comment.author}...`}
-                        className="w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    />
-                    {errors.content && (
-                        <p className="mt-1 text-xs font-semibold text-red-600">
-                            {errors.content}
-                        </p>
-                    )}
-                </div>
-                <button
-                    type="submit"
-                    disabled={!data.content.trim() || processing}
-                    className="rounded-xl bg-ctu-dark px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            <div className="flex-1">
+                <label
+                    htmlFor={`reply-${discussionId}-${comment?.id ?? 'new'}`}
+                    className="mb-1 block text-xs font-semibold text-slate-600"
                 >
-                    {processing ? 'Posting...' : 'Reply'}
-                </button>
+                    {comment
+                        ? `Reply directly to ${comment.author}'s comment`
+                        : 'Add a comment to this discussion'}
+                </label>
+                <textarea
+                    id={`reply-${discussionId}-${comment?.id ?? 'new'}`}
+                    value={data.content}
+                    onChange={(event) => setData('content', event.target.value)}
+                    rows={2}
+                    maxLength={5000}
+                    placeholder={
+                        comment
+                            ? `Reply to ${comment.author}...`
+                            : 'Write a comment...'
+                    }
+                    className="w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                />
+                {errors.content && (
+                    <p className="mt-1 text-xs font-semibold text-red-600">
+                        {errors.content}
+                    </p>
+                )}
+            </div>
+            <button
+                type="submit"
+                disabled={!data.content.trim() || processing}
+                className="bg-ctu-dark rounded-xl px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            >
+                {processing ? 'Posting...' : comment ? 'Reply' : 'Post Comment'}
+            </button>
         </form>
     );
 }

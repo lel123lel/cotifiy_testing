@@ -164,6 +164,88 @@ test('admin replies are attached to a specific student comment', function () {
             ->where('messages.2.parent_message_id', $secondComment->id));
 });
 
+test('clients and admins can reply to each other at any depth', function () {
+    $announcement = createDiscussionAnnouncement();
+    $client = User::factory()->create(['name' => 'Taylor Student']);
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), ['content' => 'I have a concern'])
+        ->assertRedirect();
+    $conversation = Conversation::query()->sole();
+    $studentConcern = $conversation->messages()->sole();
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.discussions.messages.store', $conversation), [
+            'content' => 'How can we help?',
+            'parent_message_id' => $studentConcern->id,
+        ])
+        ->assertRedirect();
+    $adminReply = $conversation->messages()->whereNotNull('sender_admin_id')->sole();
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), [
+            'content' => 'Here is more detail',
+            'parent_message_id' => $adminReply->id,
+        ])
+        ->assertRedirect();
+    $studentReply = $conversation->messages()->where('parent_message_id', $adminReply->id)->sole();
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.discussions.messages.store', $conversation), [
+            'content' => 'Thank you for clarifying',
+            'parent_message_id' => $studentReply->id,
+        ])
+        ->assertRedirect();
+    $adminFollowup = $conversation->messages()->where('content', 'Thank you for clarifying')->sole();
+
+    expect($conversation->messages()->count())->toBe(4)
+        ->and($adminReply->parent_message_id)->toBe($studentConcern->id)
+        ->and($studentReply->parent_message_id)->toBe($adminReply->id)
+        ->and($adminFollowup->parent_message_id)->toBe($studentReply->id);
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertInertia(fn ($page) => $page
+            ->has('messages', 4)
+            ->where('messages.2.parent_message_id', $adminReply->id)
+            ->where('messages.3.parent_message_id', $studentReply->id));
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin'))
+        ->assertInertia(fn ($page) => $page
+            ->has('discussions.0.messages', 4)
+            ->where('discussions.0.messages.2.parent_message_id', $adminReply->id)
+            ->where('discussions.0.messages.3.parent_message_id', $studentReply->id));
+});
+
+test('admins can add top-level comments to a client discussion', function () {
+    $announcement = createDiscussionAnnouncement();
+    $client = User::factory()->create();
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), ['content' => 'Student comment']);
+    $conversation = Conversation::query()->sole();
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.discussions.messages.store', $conversation), [
+            'content' => 'Admin comment',
+        ])
+        ->assertRedirect();
+
+    $adminComment = $conversation->messages()->whereNotNull('sender_admin_id')->sole();
+    expect($adminComment->parent_message_id)->toBeNull();
+});
+
 test('admins cannot reply to a comment outside the discussion', function () {
     $announcement = createDiscussionAnnouncement();
     $anotherAnnouncement = Announcement::create([
@@ -195,6 +277,35 @@ test('admins cannot reply to a comment outside the discussion', function () {
         ->assertSessionHasErrors('parent_message_id');
 
     expect($firstConversation->messages()->count())->toBe(1);
+});
+
+test('clients cannot reply to a message outside their announcement discussion', function () {
+    $announcement = createDiscussionAnnouncement();
+    $anotherAnnouncement = Announcement::create([
+        'title' => 'Library hours',
+        'category' => 'General',
+        'posted_by' => 'Library',
+        'date' => now()->toDateString(),
+        'body' => 'Updated opening hours.',
+    ]);
+    $client = User::factory()->create();
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $anotherAnnouncement), ['content' => 'Other conversation']);
+    $otherMessage = Conversation::query()
+        ->where('announcement_id', $anotherAnnouncement->id)
+        ->firstOrFail()
+        ->messages()
+        ->sole();
+
+    $this->from(route('client.announcements.show', $announcement))
+        ->post(route('client.announcements.messages.store', $announcement), [
+            'content' => 'Invalid cross-discussion reply',
+            'parent_message_id' => $otherMessage->id,
+        ])
+        ->assertSessionHasErrors('parent_message_id');
+
+    expect(Conversation::query()->where('announcement_id', $announcement->id)->exists())->toBeFalse();
 });
 
 test('discussion messages must contain non-empty text', function () {
