@@ -322,15 +322,15 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                                 className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 z-[999] overflow-hidden animate-scale-in origin-top-right"
                                             >
                                                 <div className="p-2">
-                                                    <a href="/client/profile" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
+                                                    <Link href="/client/profile" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
                                                         <i className="fa-regular fa-user w-4 text-center"></i> My Profile
-                                                    </a>
-                                                    <a href="/client/notifications" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
+                                                    </Link>
+                                                    <Link href="/client/notifications" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
                                                         <i className="fa-regular fa-bell w-4 text-center"></i> Notifications
-                                                    </a>
-                                                    <a href="/client/settings" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
+                                                    </Link>
+                                                    <Link href="/client/settings" role="menuitem" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
                                                         <i className="fa-solid fa-gear w-4 text-center"></i> Settings
-                                                    </a>
+                                                    </Link>
                                                     <hr className="my-2 border-slate-100" />
                                                     <Link href="/logout" method="post" as="button" role="menuitem" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors">
                                                         <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i> Log Out

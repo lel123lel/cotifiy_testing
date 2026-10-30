@@ -37,6 +37,41 @@ test('a regular user is redirected to the client page after login', function () 
     $this->get(route('admin'))->assertRedirect(route('login'));
 });
 
+test('successful client logins do not count toward the failed login limit', function () {
+    $user = User::factory()->create([
+        'email' => 'student@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    foreach (range(1, 6) as $_) {
+        $this->post('/auth/login', [
+            'email' => $user->email,
+            'password' => 'secret-password',
+        ])->assertRedirect(route('client.clientpage'));
+    }
+});
+
+test('repeated failed logins are rate limited', function () {
+    $user = User::factory()->create([
+        'email' => 'student@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    foreach (range(1, 5) as $_) {
+        $this->from('/auth/login')->post('/auth/login', [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ])->assertRedirect('/auth/login')
+            ->assertSessionHasErrors('email');
+    }
+
+    $this->post('/auth/login', [
+        'email' => $user->email,
+        'password' => 'secret-password',
+    ])->assertTooManyRequests()
+        ->assertHeader('Retry-After');
+});
+
 test('a regular user can access the client page', function () {
     $user = User::factory()->create();
 

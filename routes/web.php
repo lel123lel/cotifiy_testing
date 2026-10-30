@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Client\AnnouncementDiscussionController;
+use App\Http\Controllers\Client\ClientAccountController;
 use App\Http\Controllers\Client\ClientPageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,23 @@ Route::inertia('/auth/verify-email', 'auth/verify-email')->name('verification.no
 Route::get('/client/clientpage', ClientPageController::class)
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.clientpage');
+Route::redirect('/client', '/client/clientpage')
+    ->middleware(['auth:web', 'private-cache']);
+Route::get('/client/profile', [ClientAccountController::class, 'profile'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.profile');
+Route::put('/client/profile', [ClientAccountController::class, 'updateProfile'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.profile.update');
+Route::put('/client/profile/password', [ClientAccountController::class, 'updatePassword'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.profile.password');
+Route::get('/client/settings', [ClientAccountController::class, 'settings'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.settings');
+Route::get('/client/notifications', [ClientAccountController::class, 'notifications'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.notifications');
 Route::get('/client/announcements/{announcement}', [ClientPageController::class, 'show'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.announcements.show');
@@ -66,7 +84,6 @@ Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('logout');
 Route::post('/auth/login', [LoginController::class, 'store'])
-    ->middleware('throttle:login')
     ->name('login.authenticate');
 Route::post('/register', [RegistrationController::class, 'store'])->name('register.store');
 Route::get('/email/verify-registration', function (Request $request) {

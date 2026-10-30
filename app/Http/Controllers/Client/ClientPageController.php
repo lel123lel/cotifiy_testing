@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class ClientPageController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
         $announcements = Announcement::query()
             ->orderByDesc('date')
@@ -23,6 +23,7 @@ class ClientPageController extends Controller
 
         return Inertia::render('client/clientpage', [
             'announcements' => $announcements,
+            'userName' => $request->user()->name,
         ]);
     }
 
