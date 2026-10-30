@@ -18,50 +18,53 @@ Route::inertia('/auth/login', 'auth/login')->name('login');
 Route::inertia('/auth/register', 'auth/register')->name('register');
 Route::inertia('/auth/verify-email', 'auth/verify-email')->name('verification.notice');
 Route::get('/client/clientpage', ClientPageController::class)
-    ->middleware('auth:web')
+    ->middleware(['auth:web', 'private-cache'])
     ->name('client.clientpage');
 Route::get('/client/announcements/{announcement}', [ClientPageController::class, 'show'])
-    ->middleware('auth:web')
+    ->middleware(['auth:web', 'private-cache'])
     ->name('client.announcements.show');
 Route::post('/client/announcements/{announcement}/messages', [AnnouncementDiscussionController::class, 'store'])
-    ->middleware(['auth:web', 'throttle:10,1'])
+    ->middleware(['auth:web', 'private-cache', 'throttle:10,1'])
     ->name('client.announcements.messages.store');
 Route::get('/admin', [AnnouncementController::class, 'index'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin');
 Route::post('/admin/discussions/{conversation}/messages', [AdminAnnouncementDiscussionController::class, 'store'])
-    ->middleware(['auth:admin', 'throttle:20,1'])
+    ->middleware(['auth:admin', 'private-cache', 'throttle:20,1'])
     ->name('admin.discussions.messages.store');
 Route::get('/admin/users', [UserController::class, 'index'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users');
 Route::get('/admin/settings', [SettingsController::class, 'index'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.settings');
 Route::put('/admin/settings/password', [SettingsController::class, 'updatePassword'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.settings.password');
 Route::post('/admin/users/admins', [UserController::class, 'storeAdmin'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.admins.store');
 Route::put('/admin/users/{user}', [UserController::class, 'update'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.update');
 Route::delete('/admin/users/{user}', [UserController::class, 'destroy'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.destroy');
 Route::post('/admin/announcements', [AnnouncementController::class, 'store'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.store');
 Route::put('/admin/announcements/{announcement}', [AnnouncementController::class, 'update'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.update');
 Route::delete('/admin/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.destroy');
 Route::post('/admin/logout', [LoginController::class, 'destroy'])
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.logout');
+Route::post('/logout', [LoginController::class, 'destroy'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('logout');
 Route::post('/auth/login', [LoginController::class, 'store'])
     ->middleware('throttle:login')
     ->name('login.authenticate');

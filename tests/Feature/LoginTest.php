@@ -18,6 +18,7 @@ test('an admin can log in and is redirected to the admin page across requests', 
 
     $this->get(route('admin'))
         ->assertOk()
+        ->assertHeaderContains('Cache-Control', 'no-store')
         ->assertInertia(fn ($page) => $page->component('admin/admin'));
 });
 
@@ -42,7 +43,36 @@ test('a regular user can access the client page', function () {
     $this->actingAs($user, 'web')
         ->get(route('client.clientpage'))
         ->assertOk()
+        ->assertHeaderContains('Cache-Control', 'no-store')
         ->assertInertia(fn ($page) => $page->component('client/clientpage'));
+});
+
+test('a regular user can log out from the client page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user, 'web')
+        ->post('/logout')
+        ->assertRedirect(route('login'))
+        ->assertHeaderContains('Cache-Control', 'no-store');
+
+    $this->get(route('client.clientpage'))
+        ->assertRedirect(route('login'));
+});
+
+test('an admin can still log out from the admin page', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => Hash::make('secret-password'),
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->post('/admin/logout')
+        ->assertRedirect(route('login'))
+        ->assertHeaderContains('Cache-Control', 'no-store');
+
+    $this->get(route('admin'))
+        ->assertRedirect(route('login'));
 });
 
 test('an admin cannot access the client page', function () {
