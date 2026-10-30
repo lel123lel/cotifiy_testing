@@ -7,8 +7,10 @@ use App\Models\Announcement;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\AnnouncementPublished;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -106,12 +108,16 @@ class AnnouncementController extends Controller
             }
         }
 
-        Announcement::create([
+        $announcement = Announcement::create([
             ...$validated,
             'date' => now()->toDateString(),
             'image' => $imagePath,
             ...$this->eventFields($validated),
         ]);
+
+        User::query()->chunkById(100, function ($users) use ($announcement): void {
+            Notification::send($users, new AnnouncementPublished($announcement));
+        });
 
         return back();
     }

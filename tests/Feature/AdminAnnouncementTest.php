@@ -3,17 +3,21 @@
 use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\User;
+use App\Notifications\AnnouncementPublished;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 test('an admin can publish an announcement', function () {
     Storage::fake('public');
+    Notification::fake();
 
     $admin = AdminUser::create([
         'name' => 'Site Admin',
         'email' => 'admin@example.com',
         'password' => 'secret-password',
     ]);
+    $users = User::factory()->count(2)->create();
 
     $this->actingAs($admin, 'admin')
         ->post(route('admin.announcements.store'), [
@@ -37,6 +41,15 @@ test('an admin can publish an announcement', function () {
     Storage::disk('public')->assertExists($announcement->image);
 
     expect($announcement->date->toDateString())->toBe(now()->toDateString());
+    foreach ($users as $user) {
+        Notification::assertSentTo($user, AnnouncementPublished::class, function (AnnouncementPublished $notification) use ($announcement, $user): bool {
+            $mail = $notification->toMail($user);
+
+            return $notification->announcement->is($announcement)
+                && $mail->subject === 'New announcement: Campus closure'
+                && $mail->actionText === 'Read announcement';
+        });
+    }
 
     $this->get(route('admin'))
         ->assertInertia(fn ($page) => $page
