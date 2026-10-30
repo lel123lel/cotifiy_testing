@@ -280,7 +280,7 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                     <img
                                         src="/images/3rdLogo.png"
                                         alt="Cotify Logo"
-                                        className="w-12 h-12 sm:w-16 sm:h-16 object-contain -ml-2 sm:-ml-3 -mr-3 sm:-mr-6 group-hover:scale-105 transition-transform shrink-0"
+                                      className="w-30 h-30 object-contain -ml-3 -mr-6"
                                     />
                                     <div className="min-w-0">
                                         <h1 className="font-extrabold text-white text-sm sm:text-lg leading-tight tracking-tight truncate">COTIFY</h1>
@@ -721,7 +721,7 @@ export default function Client({ announcements, userName = 'Guest' }: ClientProp
                                         <img
                                             src="/images/3rdLogo.png"
                                             alt="Cotify Logo"
-                                            className="w-12 h-12 sm:w-16 sm:h-16 object-contain -ml-2 sm:-ml-3 -mr-3 sm:-mr-6"
+                                            className="w-30 h-30 object-contain -ml-3 -mr-6"
                                         />
                                         <div>
                                             <h1 className="font-extrabold text-white text-base sm:text-lg leading-tight tracking-tight">COTIFY</h1>
