@@ -131,6 +131,36 @@ test('admins can see and reply to client discussions', function () {
             ->where('messages.1.is_mine', false));
 });
 
+test('the client detail page returns every discussion message including admin comments', function () {
+    $announcement = createDiscussionAnnouncement();
+    $client = User::factory()->create();
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), [
+            'content' => 'Student comment',
+        ]);
+    $conversation = Conversation::query()->sole();
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.discussions.messages.store', $conversation), [
+            'content' => 'Office response',
+        ]);
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertInertia(fn ($page) => $page
+            ->has('messages', 2)
+            ->where('messages.0.content', 'Student comment')
+            ->where('messages.0.role', 'Client')
+            ->where('messages.1.content', 'Office response')
+            ->where('messages.1.role', 'Admin'));
+});
+
 test('admin replies are attached to a specific student comment', function () {
     $announcement = createDiscussionAnnouncement();
     $client = User::factory()->create(['name' => 'Taylor Student']);

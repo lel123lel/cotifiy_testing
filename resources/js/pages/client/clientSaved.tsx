@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 interface SavedItem {
@@ -22,15 +22,9 @@ export default function ClientSaved({
     const userName = auth?.user?.name || user.name;
     
     const [activeTab, setActiveTab] = useState<'All' | 'Events'>('All');
-    const [items, setItems] = useState<SavedItem[]>(savedItems);
+    const items = savedItems;
 
     const filteredItems = items.filter(item => activeTab === 'All' || item.category === 'Event');
-
-    const handleRemove = (e: React.MouseEvent, id: number) => {
-        e.preventDefault(); // Prevent row click
-        setItems(items.filter(item => item.id !== id));
-        router.delete(`/client/saved/${id}`, { preserveScroll: true, showProgress: false });
-    };
 
     return (
         <>
@@ -70,9 +64,9 @@ export default function ClientSaved({
                                 </Link>
                                 <nav className="hidden md:flex items-center gap-6">
                                     <Link href="/client" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Home</Link>
-                                    <Link href="/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
-                                    <Link href="/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
-                                    <Link href="/saved" className="text-sm font-bold text-white border-b-2 border-ctu-lightblue pb-1">Saved</Link>
+                                    <Link href="/client/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
+                                    <Link href="/client/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
+                                    <Link href="/client/saved" className="text-sm font-bold text-white border-b-2 border-ctu-lightblue pb-1">Saved</Link>
                                 </nav>
                             </div>
                             <div className="flex items-center gap-3 sm:gap-4">
@@ -119,7 +113,7 @@ export default function ClientSaved({
                         <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 border-dashed">
                             <h3 className="text-lg font-bold text-slate-800">Nothing else saved</h3>
                             <p className="text-sm text-slate-500 mt-2 flex items-center justify-center gap-1">
-                                Tap <i className="fa-regular fa-bookmark text-slate-400 mx-1"></i> on any announcement to keep it here.
+                                Saved announcements are not available yet.
                             </p>
                         </div>
                     ) : (
@@ -149,13 +143,6 @@ export default function ClientSaved({
                                         </p>
                                     </div>
 
-                                    {/* Remove Button (Absolute positioned to the right) */}
-                                    <button 
-                                        onClick={(e) => handleRemove(e, item.id)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 px-2 py-1"
-                                    >
-                                        Remove
-                                    </button>
                                 </Link>
                             ))}
                         </div>

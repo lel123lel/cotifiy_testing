@@ -12,6 +12,8 @@ test('registration sends a verification email without creating a user', function
     $response = $this->post(route('register.store'), [
         'name' => 'Taylor Student',
         'studentId' => 'STU-1001',
+        'course' => 'BSIT',
+        'year_level' => '3rd Year',
         'email' => 'taylor@example.com',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
@@ -27,12 +29,34 @@ test('registration sends a verification email without creating a user', function
     Notification::assertSentOnDemand(VerifyPendingRegistration::class);
 });
 
+test('registration requires a valid course and year level', function () {
+    Notification::fake();
+
+    $this->from(route('register'))
+        ->post(route('register.store'), [
+            'name' => 'Taylor Student',
+            'studentId' => 'STU-1001',
+            'course' => 'INVALID',
+            'year_level' => '5th Year',
+            'email' => 'taylor@example.com',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
+        ])
+        ->assertRedirect(route('register'))
+        ->assertSessionHasErrors(['course', 'year_level']);
+
+    $this->assertDatabaseMissing('users', ['email' => 'taylor@example.com']);
+    Notification::assertNothingSent();
+});
+
 test('a guest can resend a pending registration verification email', function () {
     Notification::fake();
 
     $response = $this->post(route('register.store'), [
         'name' => 'Taylor Student',
         'studentId' => 'STU-1001',
+        'course' => 'BSIT',
+        'year_level' => '3rd Year',
         'email' => 'taylor@example.com',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
@@ -99,6 +123,8 @@ test('a valid registration verification link creates a verified user', function 
     $this->post(route('register.store'), [
         'name' => 'Taylor Student',
         'studentId' => 'STU-1001',
+        'course' => 'BSIT',
+        'year_level' => '3rd Year',
         'email' => 'taylor@example.com',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
@@ -122,7 +148,9 @@ test('a valid registration verification link creates a verified user', function 
             ->where('verified', true));
 
     expect(User::where('email', 'taylor@example.com')->firstOrFail()->hasVerifiedEmail())
-        ->toBeTrue();
+        ->toBeTrue()
+        ->and(User::where('email', 'taylor@example.com')->value('course'))->toBe('BSIT')
+        ->and(User::where('email', 'taylor@example.com')->value('year_level'))->toBe('3rd Year');
 });
 
 test('an invalid registration verification link does not create a user', function () {
@@ -131,6 +159,8 @@ test('an invalid registration verification link does not create a user', functio
     $this->post(route('register.store'), [
         'name' => 'Taylor Student',
         'studentId' => 'STU-1001',
+        'course' => 'BSIT',
+        'year_level' => '3rd Year',
         'email' => 'taylor@example.com',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',

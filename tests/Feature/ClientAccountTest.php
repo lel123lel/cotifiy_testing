@@ -14,7 +14,8 @@ test('a client can open their account pages with their real account name', funct
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('client/clientpage')
-            ->where('userName', 'Real Account Name'));
+            ->where('userName', 'Real Account Name')
+            ->where('user.name', 'Real Account Name'));
 
     $this->get(route('client.profile'))
         ->assertOk()
@@ -43,12 +44,16 @@ test('a client can update their profile details', function () {
             'name' => 'Updated Account Name',
             'email' => $user->email,
             'student_id' => 'STU-2026',
+            'course' => 'BSCS',
+            'year_level' => '4th Year',
         ])
         ->assertRedirect();
 
     expect($user->fresh())
         ->name->toBe('Updated Account Name')
-        ->studentId->toBe('STU-2026');
+        ->studentId->toBe('STU-2026')
+        ->course->toBe('BSCS')
+        ->year_level->toBe('4th Year');
 });
 
 test('a client can change their password with their current password', function () {

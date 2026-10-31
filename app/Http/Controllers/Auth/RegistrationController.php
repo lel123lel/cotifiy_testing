@@ -21,6 +21,10 @@ use JsonException;
 
 class RegistrationController extends Controller
 {
+    private const COURSES = ['BSIT', 'BSCS', 'BSIS', 'ACT'];
+
+    private const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+
     public function store(Request $request): RedirectResponse
     {
         $request->merge([
@@ -30,6 +34,8 @@ class RegistrationController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
+            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
             'password' => ['required', 'string', Password::default(), 'confirmed'],
         ]);
@@ -37,6 +43,8 @@ class RegistrationController extends Controller
         $pendingRegistration = [
             'name' => $validated['name'],
             'studentId' => $validated['studentId'],
+            'course' => $validated['course'],
+            'year_level' => $validated['year_level'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ];
@@ -68,6 +76,8 @@ class RegistrationController extends Controller
         $validated = Validator::make($pendingRegistration, [
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
+            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
             'password' => ['required', 'string'],
         ])->validate();
@@ -95,6 +105,8 @@ class RegistrationController extends Controller
         $validated = Validator::make($pendingRegistration, [
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
+            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
             'password' => ['required', 'string'],
         ])->validate();

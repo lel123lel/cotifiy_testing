@@ -2,6 +2,7 @@
 
 use App\Models\Announcement;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 test('the client page displays announcements from the database', function () {
     $user = User::factory()->create();
@@ -31,6 +32,94 @@ test('the client page displays announcements from the database', function () {
             ->where('announcements.0.content', 'The latest update.')
             ->where('announcements.0.image', '/storage/announcements/latest.jpg')
             ->where('announcements.1.id', $olderAnnouncement->id));
+});
+
+test('the client home loads a compact recent feed and upcoming events independently', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 12) as $number) {
+        Announcement::create([
+            'title' => "Announcement {$number}",
+            'category' => 'General',
+            'posted_by' => 'Student Affairs',
+            'date' => now()->toDateString(),
+            'body' => str_repeat('Announcement details. ', 20),
+        ]);
+    }
+
+    $upcomingEvent = Announcement::create([
+        'title' => 'Next month forum',
+        'category' => 'Event',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->subMonth()->toDateString(),
+        'body' => str_repeat('Forum details. ', 20),
+        'event_date' => now()->addMonth()->toDateString(),
+        'start_time' => '09:00',
+        'location' => 'Main Hall',
+    ]);
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.clientpage'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/clientpage')
+            ->has('announcements', 10)
+            ->where('announcements.0.title', 'Announcement 12')
+            ->where('announcements.0.content', Str::limit(str_repeat('Announcement details. ', 20), 180))
+            ->where('upcomingEvents.0.id', $upcomingEvent->id)
+            ->where('upcomingEvents.0.title', 'Next month forum')
+            ->where('upcomingEvents.0.content', Str::limit(str_repeat('Forum details. ', 20), 180)));
+});
+
+test('the client can browse announcements, events, and saved items from their navigation pages', function () {
+    $user = User::factory()->create();
+    $announcement = Announcement::create([
+        'title' => 'Registration reminder',
+        'category' => 'Academic',
+        'posted_by' => 'Registrar',
+        'date' => now()->toDateString(),
+        'body' => 'Registration closes soon.',
+    ]);
+    $event = Announcement::create([
+        'title' => 'Campus forum',
+        'category' => 'Event',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'body' => 'Join the campus forum.',
+        'event_date' => now()->addWeek()->toDateString(),
+        'start_time' => '09:00',
+        'location' => 'Main Hall',
+    ]);
+    Announcement::create([
+        'title' => 'Missing event date',
+        'category' => 'Event',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'body' => 'This item is not an event listing without an event date.',
+    ]);
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/clientannounce')
+            ->where('announcements.2.id', $announcement->id)
+            ->where('announcements.2.posted_by', 'Registrar'));
+
+    $this->get(route('client.events'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/clientevent')
+            ->where('events.0.id', $event->id)
+            ->where('events.0.posted_by_office', 'Student Affairs')
+            ->where('events.0.event_date', now()->addWeek()->toDateString())
+            ->has('events', 1));
+
+    $this->get(route('client.saved'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('client/clientSaved')
+            ->where('savedItems', []));
 });
 
 test('the client can open an announcement in the read more page', function () {

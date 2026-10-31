@@ -254,14 +254,14 @@ export default function Register() {
                                                         <i className="fa-solid fa-graduation-cap text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
                                                     </div>
                                                     <select 
-                                                        id="course" name="course" required
+                                                        id="course" name="course" defaultValue="" required
                                                         className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
                                                     >
-                                                        <option value="" disabled selected>Select Course</option>
-                                                        <option value="BSIT">BS Information Technology</option>
-                                                        <option value="BSCS">BS  </option>
-                                                        <option value="BSIS">BIT Electronics</option>
-                                                        <option value="ACT">BIT</option>
+                                                        <option value="" disabled>Select Course</option>
+                                                        <option value="BSIT">BS Information Technology (BSIT)</option>
+                                                        <option value="BSCS">BS Computer Science (BSCS)</option>
+                                                        <option value="BSIS">BS Information Systems (BSIS)</option>
+                                                        <option value="ACT">Associate in Computer Technology (ACT)</option>
                                                     </select>
                                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                                         <i className="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
@@ -277,14 +277,14 @@ export default function Register() {
                                                         <i className="fa-solid fa-layer-group text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
                                                     </div>
                                                     <select 
-                                                        id="year_level" name="year_level" required
+                                                        id="year_level" name="year_level" defaultValue="" required
                                                         className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
                                                     >
-                                                        <option value="" disabled selected>Select Year</option>
-                                                        <option value="1">1st Year</option>
-                                                        <option value="2">2nd Year</option>
-                                                        <option value="3">3rd Year</option>
-                                                        <option value="4">4th Year</option>
+                                                        <option value="" disabled>Select Year</option>
+                                                        <option value="1st Year">1st Year</option>
+                                                        <option value="2nd Year">2nd Year</option>
+                                                        <option value="3rd Year">3rd Year</option>
+                                                        <option value="4th Year">4th Year</option>
                                                     </select>
                                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                                         <i className="fa-solid fa-chevron-down text-slate-400 text-xs"></i>

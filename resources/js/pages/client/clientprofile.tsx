@@ -26,7 +26,7 @@ export default function ClientProfile({ user }: ClientProfileProps) {
     const profileForm = useForm({
         name: user.name,
         course: user.course || 'BSIT',
-        year_level: user.year_level || '3',
+        year_level: user.year_level || '3rd Year',
         section: user.section || '',
         contact_number: user.contact_number || '',
     });
@@ -126,9 +126,9 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                                     </Link>
                                     <nav className="hidden md:flex items-center gap-6">
                                         <Link href="/client" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Home</Link>
-                                        <Link href="/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
-                                        <Link href="/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
-                                        <Link href="/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
+                                        <Link href="/client/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
+                                        <Link href="/client/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
+                                        <Link href="/client/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
                                     </nav>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -224,9 +224,10 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                                                         onChange={e => profileForm.setData('course', e.target.value)}
                                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-ctu-lightblue/10 outline-none transition-all cursor-pointer"
                                                     >
-                                                        <option value="BSIT">BS Information Technology</option>
-                                                        <option value="BSCS">BS Computer Science</option>
-                                                        <option value="BSIS">BS Information Systems</option>
+                                                        <option value="BSIT">BS Information Technology (BSIT)</option>
+                                                        <option value="BSCS">BS Computer Science (BSCS)</option>
+                                                        <option value="BSIS">BS Information Systems (BSIS)</option>
+                                                        <option value="ACT">Associate in Computer Technology (ACT)</option>
                                                     </select>
                                                     {profileForm.errors.course && <p className="mt-1.5 text-xs font-bold text-red-600">{profileForm.errors.course}</p>}
                                                 </div>
@@ -238,10 +239,10 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                                                         onChange={e => profileForm.setData('year_level', e.target.value)}
                                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-ctu-lightblue/10 outline-none transition-all cursor-pointer"
                                                     >
-                                                        <option value="1">1st Year</option>
-                                                        <option value="2">2nd Year</option>
-                                                        <option value="3">3rd Year</option>
-                                                        <option value="4">4th Year</option>
+                                                        <option value="1st Year">1st Year</option>
+                                                        <option value="2nd Year">2nd Year</option>
+                                                        <option value="3rd Year">3rd Year</option>
+                                                        <option value="4th Year">4th Year</option>
                                                     </select>
                                                     {profileForm.errors.year_level && <p className="mt-1.5 text-xs font-bold text-red-600">{profileForm.errors.year_level}</p>}
                                                 </div>

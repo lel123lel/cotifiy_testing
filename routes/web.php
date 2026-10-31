@@ -23,6 +23,15 @@ Route::get('/client/clientpage', ClientPageController::class)
     ->name('client.clientpage');
 Route::redirect('/client', '/client/clientpage')
     ->middleware(['auth:web', 'private-cache']);
+Route::get('/client/announcements', [ClientPageController::class, 'announcements'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.announcements.index');
+Route::get('/client/events', [ClientPageController::class, 'events'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.events');
+Route::get('/client/saved', [ClientPageController::class, 'saved'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.saved');
 Route::get('/client/profile', [ClientAccountController::class, 'profile'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.profile');

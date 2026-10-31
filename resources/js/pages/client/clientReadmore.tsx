@@ -1,5 +1,5 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Announcement {
     id: number;
@@ -59,26 +59,16 @@ export default function ClientReadMore({
     const { data, setData, post, processing, errors, reset } = useForm({
         content: '',
     });
+    const replyForm = useForm({
+        content: '',
+        parent_message_id: null as number | null,
+    });
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [rsvped, setRsvped] = useState<boolean>(announcement.has_rsvped ?? false);
+    const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const commentsRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
-    const hasTrackedRead = useRef(false);
-
-    // Public answers only (offices mark FAQ answers as public)
-    const publicAnswers = useMemo(
-        () => messages.filter((m) => m.role === 'Admin' && m.parent_message_id === null),
-        [messages],
-    );
-
-    // Issue #3 (check): marks as read when opened — fire once, silently
-    useEffect(() => {
-        if (hasTrackedRead.current) return;
-        hasTrackedRead.current = true;
-        router.post(`/client/announcements/${announcement.id}/read`, {}, { preserveScroll: true, showProgress: false });
-    }, [announcement.id]);
 
     // Polling for new answers
     useEffect(() => {
@@ -89,12 +79,16 @@ export default function ClientReadMore({
                 only: ['messages'],
                 showProgress: false,
                 onFinish: () => {
-                    if (isMounted) timeout = window.setTimeout(reloadMessages, 5000);
+                    if (isMounted)
+                        timeout = window.setTimeout(reloadMessages, 5000);
                 },
             });
         };
         timeout = window.setTimeout(reloadMessages, 5000);
-        return () => { isMounted = false; window.clearTimeout(timeout); };
+        return () => {
+            isMounted = false;
+            window.clearTimeout(timeout);
+        };
     }, []);
 
     useEffect(() => {
@@ -106,9 +100,15 @@ export default function ClientReadMore({
     useEffect(() => {
         if (!isProfileOpen) return;
         const onPointerDown = (e: PointerEvent) => {
-            if (profileRef.current && !profileRef.current.contains(e.target as Node)) setIsProfileOpen(false);
+            if (
+                profileRef.current &&
+                !profileRef.current.contains(e.target as Node)
+            )
+                setIsProfileOpen(false);
         };
-        const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsProfileOpen(false); };
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsProfileOpen(false);
+        };
         document.addEventListener('pointerdown', onPointerDown);
         document.addEventListener('keydown', onEsc);
         return () => {
@@ -126,37 +126,65 @@ export default function ClientReadMore({
         });
     };
 
-    const handleRsvp = () => {
-        if (announcement.category !== 'Event') return;
-        setRsvped((v) => !v);
-        router.post(`/client/events/${announcement.id}/rsvp`, {}, {
+    const handleSubmitReply = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (
+            !replyForm.data.content.trim() ||
+            replyForm.data.parent_message_id === null ||
+            replyForm.processing
+        )
+            return;
+
+        replyForm.post(`/client/announcements/${announcement.id}/messages`, {
             preserveScroll: true,
-            showProgress: false,
-            onError: () => setRsvped((v) => !v), // rollback on failure
+            onSuccess: () => {
+                replyForm.reset();
+                setReplyingTo(null);
+            },
         });
     };
 
     // ✅ Same as ClientHome
     const getCategoryColor = (cat: string) => {
         switch (cat) {
-            case 'Academic': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Event': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'Service': return 'bg-rose-100 text-rose-700 border-rose-200';
-            default: return 'bg-slate-100 text-slate-700 border-slate-200';
+            case 'Academic':
+                return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Event':
+                return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'Service':
+                return 'bg-rose-100 text-rose-700 border-rose-200';
+            default:
+                return 'bg-slate-100 text-slate-700 border-slate-200';
         }
     };
 
     const categoryLabel = (cat: string) =>
-        cat === 'Event' ? 'Events' : cat === 'Academic' ? 'Academic' : cat === 'Service' ? 'Services' : 'General';
+        cat === 'Event'
+            ? 'Events'
+            : cat === 'Academic'
+              ? 'Academic'
+              : cat === 'Service'
+                ? 'Services'
+                : 'General';
 
     const formatDate = (date: string) =>
-        new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
 
     const formatTime = (time: string | null) =>
-        time ? new Date(`1970-01-01T${time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+        time
+            ? new Date(`1970-01-01T${time}`).toLocaleTimeString(undefined, {
+                  hour: 'numeric',
+                  minute: '2-digit',
+              })
+            : '';
 
     const readingTime = announcement.reading_time || '1 min read';
-    const isEvent = announcement.category === 'Event' && announcement.event_date;
+    const isEvent =
+        announcement.category === 'Event' && announcement.event_date;
 
     return (
         <>
@@ -201,79 +229,131 @@ export default function ClientReadMore({
                 .animate-slide-up { animation: slideUpText 0.5s ease-out forwards; }
             `}</style>
 
-            <div className="font-sans text-slate-800 bg-slate-50 antialiased min-h-screen flex flex-col relative overflow-hidden">
-
+            <div className="relative flex min-h-screen flex-col overflow-hidden bg-slate-50 font-sans text-slate-800 antialiased">
                 {/* ✅ SAME MOVING SHAPES BACKGROUND */}
-                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                    <div className="absolute top-[5%] right-[10%] w-[35rem] h-[35rem] bg-blue-500/5 rounded-full blur-3xl shape-move-2"></div>
-                    <div className="absolute bottom-[10%] left-[5%] w-[40rem] h-[40rem] bg-indigo-500/5 rounded-full blur-3xl shape-move-1"></div>
-                    <div className="absolute top-[30%] right-[30%] w-[25rem] h-[25rem] bg-purple-500/5 rounded-full blur-3xl shape-move-3"></div>
-                    <div className="absolute top-[20%] left-[10%] w-40 h-40 border-[3px] border-blue-500/10 clip-diamond animate-spin-slow"></div>
-                    <div className="absolute bottom-[25%] right-[15%] w-32 h-32 border-[4px] border-indigo-500/10 rotate-12 shape-move-1"></div>
-                    <div className="absolute top-[50%] right-[5%] w-56 h-56 bg-blue-400/5 clip-hexagon shape-move-3"></div>
+                <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                    <div className="shape-move-2 absolute top-[5%] right-[10%] h-[35rem] w-[35rem] rounded-full bg-blue-500/5 blur-3xl"></div>
+                    <div className="shape-move-1 absolute bottom-[10%] left-[5%] h-[40rem] w-[40rem] rounded-full bg-indigo-500/5 blur-3xl"></div>
+                    <div className="shape-move-3 absolute top-[30%] right-[30%] h-[25rem] w-[25rem] rounded-full bg-purple-500/5 blur-3xl"></div>
+                    <div className="clip-diamond animate-spin-slow absolute top-[20%] left-[10%] h-40 w-40 border-[3px] border-blue-500/10"></div>
+                    <div className="shape-move-1 absolute right-[15%] bottom-[25%] h-32 w-32 rotate-12 border-[4px] border-indigo-500/10"></div>
+                    <div className="clip-hexagon shape-move-3 absolute top-[50%] right-[5%] h-56 w-56 bg-blue-400/5"></div>
                 </div>
 
                 {/* ✅ SAME DARK HEADER AS CLIENT HOME */}
-                <header className="relative z-50 bg-ctu-dark/95 backdrop-blur-xl border-b border-white/10 shadow-lg">
-                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
-
+                <header className="bg-ctu-dark/95 relative z-50 border-b border-white/10 shadow-lg backdrop-blur-xl">
+                    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+                        <div className="flex h-16 items-center justify-between gap-4 sm:h-20">
                             <div className="flex items-center gap-8">
-                                <Link href="/client" className="flex items-center shrink-0">
-                                    <img src="/images/3rdLogo.png" alt="Cotify" className="w-10 h-10 sm:w-12 sm:h-12 object-contain -ml-1 -mr-3" />
-                                    <span className="font-extrabold text-xl text-white hidden sm:block">Cotify</span>
+                                <Link
+                                    href="/client"
+                                    className="flex shrink-0 items-center"
+                                >
+                                    <img
+                                        src="/images/3rdLogo.png"
+                                        alt="Cotify"
+                                        className="-mr-3 -ml-1 h-10 w-10 object-contain sm:h-12 sm:w-12"
+                                    />
+                                    <span className="hidden text-xl font-extrabold text-white sm:block">
+                                        Cotify
+                                    </span>
                                 </Link>
 
-                                <nav className="hidden md:flex items-center gap-6">
-                                    <Link href="/client" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Home</Link>
-                                    <Link href="/announcements" className="text-sm font-bold text-white border-b-2 border-ctu-lightblue pb-1">Announcements</Link>
-                                    <Link href="/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
-                                    <Link href="/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
+                                <nav className="hidden items-center gap-6 md:flex">
+                                    <Link
+                                        href="/client"
+                                        className="text-sm font-semibold text-slate-400 transition-colors hover:text-white"
+                                    >
+                                        Home
+                                    </Link>
+                                    <Link
+                                        href="/client/announcements"
+                                        className="border-ctu-lightblue border-b-2 pb-1 text-sm font-bold text-white"
+                                    >
+                                        Announcements
+                                    </Link>
+                                    <Link
+                                        href="/client/events"
+                                        className="text-sm font-semibold text-slate-400 transition-colors hover:text-white"
+                                    >
+                                        Events
+                                    </Link>
+                                    <Link
+                                        href="/client/saved"
+                                        className="text-sm font-semibold text-slate-400 transition-colors hover:text-white"
+                                    >
+                                        Saved
+                                    </Link>
                                 </nav>
                             </div>
 
                             <div className="flex items-center gap-3 sm:gap-4">
                                 <div className="relative hidden sm:block">
-                                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                                    <i className="fa-solid fa-magnifying-glass absolute top-1/2 left-3 -translate-y-1/2 text-sm text-slate-400"></i>
                                     <input
                                         type="text"
                                         placeholder="Search announcements..."
                                         value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        className="pl-9 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-400 focus:ring-2 focus:ring-ctu-lightblue outline-none w-64 transition-all"
+                                        onChange={(e) =>
+                                            setSearchTerm(e.target.value)
+                                        }
+                                        className="focus:ring-ctu-lightblue w-64 rounded-lg border border-slate-700 bg-slate-800/50 py-2 pr-4 pl-9 text-sm text-white placeholder-slate-400 transition-all outline-none focus:ring-2"
                                     />
                                 </div>
 
-                                <button className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-800 text-slate-300 transition-colors">
+                                <button className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-300 transition-colors hover:bg-slate-800">
                                     <i className="fa-regular fa-bell text-xl"></i>
                                     {unreadCount > 0 && (
-                                        <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border-2 border-ctu-dark">
+                                        <span className="border-ctu-dark absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 bg-red-500 text-[10px] font-bold text-white">
                                             {unreadCount}
                                         </span>
                                     )}
                                 </button>
 
                                 <div className="relative" ref={profileRef}>
-                                    <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 pl-2 sm:pl-4 border-l border-slate-700 cursor-pointer group">
-                                        <div className="w-8 h-8 rounded-full bg-ctu-lightblue text-white flex items-center justify-center font-bold text-sm">
-                                            {currentUser.charAt(0).toUpperCase()}
+                                    <button
+                                        onClick={() =>
+                                            setIsProfileOpen(!isProfileOpen)
+                                        }
+                                        className="group flex cursor-pointer items-center gap-2 border-l border-slate-700 pl-2 sm:pl-4"
+                                    >
+                                        <div className="bg-ctu-lightblue flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white">
+                                            {currentUser
+                                                .charAt(0)
+                                                .toUpperCase()}
                                         </div>
-                                        <span className="text-sm font-semibold text-white hidden lg:block">{currentUser.split(' ')[0]} D.</span>
+                                        <span className="hidden text-sm font-semibold text-white lg:block">
+                                            {currentUser.split(' ')[0]} D.
+                                        </span>
                                         <i className="fa-solid fa-chevron-down text-xs text-slate-400"></i>
                                     </button>
 
                                     {isProfileOpen && (
-                                        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
+                                        <div className="animate-fade-in absolute right-0 z-50 mt-3 w-56 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
                                             <div className="p-2">
-                                                <Link href="/client/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
-                                                    <i className="fa-regular fa-user w-4 text-center"></i> My Profile
+                                                <Link
+                                                    href="/client/profile"
+                                                    className="hover:text-ctu-lightblue flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    <i className="fa-regular fa-user w-4 text-center"></i>{' '}
+                                                    My Profile
                                                 </Link>
-                                                <Link href="/client/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ctu-lightblue transition-colors">
-                                                    <i className="fa-solid fa-gear w-4 text-center"></i> Settings
+                                                <Link
+                                                    href="/client/settings"
+                                                    className="hover:text-ctu-lightblue flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                                                >
+                                                    <i className="fa-solid fa-gear w-4 text-center"></i>{' '}
+                                                    Settings
                                                 </Link>
                                                 <hr className="my-2 border-slate-100" />
-                                                <Link href="/logout" method="post" as="button" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors">
-                                                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i> Log Out
+                                                <Link
+                                                    href="/logout"
+                                                    method="post"
+                                                    as="button"
+                                                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+                                                >
+                                                    <i className="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i>{' '}
+                                                    Log Out
                                                 </Link>
                                             </div>
                                         </div>
@@ -284,179 +364,434 @@ export default function ClientReadMore({
                     </div>
                 </header>
 
-                <main className="relative z-10 flex-1 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-
+                <main className="relative z-10 mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 sm:px-6 lg:px-8">
                     {/* BREADCRUMB (issue #3 — replaces header "Back") */}
-                    <nav className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-6 animate-fade-in">
-                        <Link href="/client" className="hover:text-ctu-lightblue transition-colors">Home</Link>
+                    <nav className="animate-fade-in mb-6 flex items-center gap-2 text-xs font-bold text-slate-500">
+                        <Link
+                            href="/client"
+                            className="hover:text-ctu-lightblue transition-colors"
+                        >
+                            Home
+                        </Link>
                         <i className="fa-solid fa-chevron-right text-[8px] text-slate-400"></i>
-                        <Link href="/announcements" className="hover:text-ctu-lightblue transition-colors">Announcements</Link>
+                        <Link
+                            href="/client/announcements"
+                            className="hover:text-ctu-lightblue transition-colors"
+                        >
+                            Announcements
+                        </Link>
                         <i className="fa-solid fa-chevron-right text-[8px] text-slate-400"></i>
-                        <span className="text-slate-700 truncate max-w-[200px]">{announcement.title}</span>
+                        <span className="max-w-[200px] truncate text-slate-700">
+                            {announcement.title}
+                        </span>
                     </nav>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                         {/* LEFT COLUMN: MAIN CONTENT */}
-                        <div className="lg:col-span-8 space-y-6">
-                            <article className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-10 animate-slide-up">
-
+                        <div className="space-y-6 lg:col-span-8">
+                            <article className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
                                 {/* TITLE + SINGLE BYLINE (issue #4 — one byline, no Quick Info card) */}
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-8">
+                                <div className="mb-8 flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
                                     <div>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest border ${getCategoryColor(announcement.category)}`}>
-                                                {categoryLabel(announcement.category)}
+                                        <div className="mb-3 flex items-center gap-2">
+                                            <span
+                                                className={`rounded border px-2 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${getCategoryColor(announcement.category)}`}
+                                            >
+                                                {categoryLabel(
+                                                    announcement.category,
+                                                )}
                                             </span>
                                             {announcement.is_new && (
-                                                <span className="bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">New</span>
+                                                <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase">
+                                                    New
+                                                </span>
                                             )}
                                         </div>
-                                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+                                        <h1 className="text-2xl leading-tight font-extrabold text-slate-900 sm:text-3xl">
                                             {announcement.title}
                                         </h1>
 
                                         {/* Byline: office · date · reading time (issue #4, #6 — avatar from office) */}
-                                        <div className="flex items-center gap-3 mt-5">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 overflow-hidden">
+                                        <div className="mt-5 flex items-center gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 font-bold text-slate-500">
                                                 {announcement.posted_by_logo ? (
-                                                    <img src={announcement.posted_by_logo} alt={announcement.posted_by} className="w-full h-full object-cover" />
+                                                    <img
+                                                        src={
+                                                            announcement.posted_by_logo
+                                                        }
+                                                        alt={
+                                                            announcement.posted_by
+                                                        }
+                                                        className="h-full w-full object-cover"
+                                                    />
                                                 ) : (
-                                                    announcement.posted_by.charAt(0).toUpperCase()
+                                                    announcement.posted_by
+                                                        .charAt(0)
+                                                        .toUpperCase()
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-extrabold text-slate-900">{announcement.posted_by}</p>
+                                                <p className="text-sm font-extrabold text-slate-900">
+                                                    {announcement.posted_by}
+                                                </p>
                                                 <p className="text-xs font-medium text-slate-500">
-                                                    {formatDate(announcement.date)} · {readingTime}
+                                                    {formatDate(
+                                                        announcement.date,
+                                                    )}{' '}
+                                                    · {readingTime}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Save (dark) + Share (outline) — kept good pattern from audit */}
-                                    <div className="flex sm:flex-col gap-2 shrink-0">
-                                        <button type="button" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-white hover:bg-slate-700 transition-colors">
-                                            <i className="fa-regular fa-bookmark"></i> Save
+                                    <div className="flex shrink-0 gap-2 sm:flex-col">
+                                        <button
+                                            type="button"
+                                            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-slate-700 sm:flex-none"
+                                        >
+                                            <i className="fa-regular fa-bookmark"></i>{' '}
+                                            Save
                                         </button>
-                                        <button type="button" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
-                                            <i className="fa-solid fa-link"></i> Copy link
+                                        <button
+                                            type="button"
+                                            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:flex-none"
+                                        >
+                                            <i className="fa-solid fa-link"></i>{' '}
+                                            Copy link
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* COVER IMAGE — title above (no contrast issue); default banner per category (issue #7 fix pattern) */}
-                                <div className="w-full h-64 sm:h-80 rounded-xl overflow-hidden border border-slate-200 mb-8 flex items-center justify-center relative bg-gradient-to-br from-slate-100 to-slate-200">
+                                <div className="relative mb-8 flex h-64 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 sm:h-80">
                                     {announcement.image ? (
-                                        <img src={announcement.image} alt={announcement.title} className="w-full h-full object-cover" />
+                                        <img
+                                            src={announcement.image}
+                                            alt={announcement.title}
+                                            className="h-full w-full object-cover"
+                                        />
                                     ) : (
                                         <div className="flex flex-col items-center text-slate-400">
-                                            <i className={`text-5xl mb-3 ${
-                                                announcement.category === 'Academic' ? 'fa-solid fa-graduation-cap' :
-                                                announcement.category === 'Event' ? 'fa-regular fa-calendar' :
-                                                announcement.category === 'Service' ? 'fa-solid fa-hand-holding-heart' :
-                                                'fa-regular fa-newspaper'
-                                            }`}></i>
-                                            <span className="text-xs font-bold uppercase tracking-widest">{categoryLabel(announcement.category)}</span>
+                                            <i
+                                                className={`mb-3 text-5xl ${
+                                                    announcement.category ===
+                                                    'Academic'
+                                                        ? 'fa-solid fa-graduation-cap'
+                                                        : announcement.category ===
+                                                            'Event'
+                                                          ? 'fa-regular fa-calendar'
+                                                          : announcement.category ===
+                                                              'Service'
+                                                            ? 'fa-solid fa-hand-holding-heart'
+                                                            : 'fa-regular fa-newspaper'
+                                                }`}
+                                            ></i>
+                                            <span className="text-xs font-bold tracking-widest uppercase">
+                                                {categoryLabel(
+                                                    announcement.category,
+                                                )}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* BODY */}
-                                <div className="text-sm sm:text-base text-slate-700 leading-relaxed whitespace-pre-line mb-8">
+                                <div className="mb-8 text-sm leading-relaxed whitespace-pre-line text-slate-700 sm:text-base">
                                     {announcement.content}
                                 </div>
 
                                 {/* ATTACHMENTS (issue #8) */}
-                                {announcement.attachments && announcement.attachments.length > 0 && (
-                                    <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                        <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-3">Attachments</h4>
-                                        <div className="flex flex-wrap gap-3">
-                                            {announcement.attachments.map((file, idx) => (
-                                                <a key={idx} href={file.url} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200 hover:border-ctu-lightblue hover:shadow-sm transition-all group">
-                                                    <i className="fa-solid fa-file-pdf text-rose-500"></i>
-                                                    <span className="text-xs font-bold text-slate-700 group-hover:text-ctu-lightblue">{file.name}</span>
-                                                    <span className="text-[10px] text-slate-400">{file.size}</span>
-                                                </a>
-                                            ))}
+                                {announcement.attachments &&
+                                    announcement.attachments.length > 0 && (
+                                        <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                            <h4 className="mb-3 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                                                Attachments
+                                            </h4>
+                                            <div className="flex flex-wrap gap-3">
+                                                {announcement.attachments.map(
+                                                    (file, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={file.url}
+                                                            className="hover:border-ctu-lightblue group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 transition-all hover:shadow-sm"
+                                                        >
+                                                            <i className="fa-solid fa-file-pdf text-rose-500"></i>
+                                                            <span className="group-hover:text-ctu-lightblue text-xs font-bold text-slate-700">
+                                                                {file.name}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400">
+                                                                {file.size}
+                                                            </span>
+                                                        </a>
+                                                    ),
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* ASK THE OFFICE (issue #2 — renamed, single purpose) */}
-                                <div ref={commentsRef} className="mt-10 pt-8 border-t border-slate-200">
+                                {/* ANNOUNCEMENT DISCUSSION */}
+                                <div
+                                    ref={commentsRef}
+                                    className="mt-10 border-t border-slate-200 pt-8"
+                                >
                                     <div className="mb-4">
-                                        <h3 className="text-lg font-extrabold text-slate-900">Ask the {announcement.posted_by}</h3>
-                                        <p className="text-xs font-medium text-slate-500 mt-1">
-                                            Only the office sees your question. Answers useful to everyone are shown below.
+                                        <h3 className="text-lg font-extrabold text-slate-900">
+                                            Comments & discussion
+                                        </h3>
+                                        <p className="mt-1 text-xs font-medium text-slate-500">
+                                            Ask a question or join the
+                                            discussion about this announcement.
                                         </p>
                                     </div>
 
                                     {isLoggedIn ? (
-                                        <form onSubmit={handleSubmitQuestion} className="mb-8">
+                                        <form
+                                            onSubmit={handleSubmitQuestion}
+                                            className="mb-8"
+                                        >
                                             <textarea
                                                 value={data.content}
-                                                onChange={(e) => setData('content', e.target.value)}
-                                                placeholder="Type your question..."
-                                                rows={2}
-                                                maxLength={1000}
-                                                className="w-full p-3 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:border-ctu-lightblue focus:ring-4 focus:ring-ctu-lightblue/10 outline-none transition-all resize-none shadow-sm"
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'content',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Write a comment..."
+                                                rows={3}
+                                                maxLength={5000}
+                                                className="focus:border-ctu-lightblue focus:ring-ctu-lightblue/10 w-full resize-none rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium shadow-sm transition-all outline-none focus:ring-4"
                                             />
-                                            {errors.content && <p className="mt-1 text-xs font-bold text-red-600">{errors.content}</p>}
-                                            <div className="flex items-center justify-between mt-2">
-                                                <span className="text-[11px] font-semibold text-slate-400">{data.content.length} / 1000</span>
+                                            {errors.content && (
+                                                <p className="mt-1 text-xs font-bold text-red-600">
+                                                    {errors.content}
+                                                </p>
+                                            )}
+                                            <div className="mt-2 flex items-center justify-between">
+                                                <span className="text-[11px] font-semibold text-slate-400">
+                                                    {data.content.length} / 5000
+                                                </span>
                                                 <div className="flex items-center gap-3">
                                                     {/* Accessibility: show why disabled */}
                                                     {!data.content.trim() && (
-                                                        <span className="text-[11px] font-semibold text-slate-400">Write something first</span>
+                                                        <span className="text-[11px] font-semibold text-slate-400">
+                                                            Write something
+                                                            first
+                                                        </span>
                                                     )}
                                                     <button
                                                         type="submit"
-                                                        disabled={!data.content.trim() || processing}
-                                                        className={`px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm ${
-                                                            !data.content.trim() || processing
-                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                        disabled={
+                                                            !data.content.trim() ||
+                                                            processing
+                                                        }
+                                                        className={`rounded-lg px-5 py-2 text-xs font-bold shadow-sm transition-colors ${
+                                                            !data.content.trim() ||
+                                                            processing
+                                                                ? 'cursor-not-allowed bg-slate-100 text-slate-400'
                                                                 : 'bg-slate-800 text-white hover:bg-slate-700'
                                                         }`}
                                                     >
-                                                        {processing ? 'Sending...' : 'Send question'}
+                                                        {processing
+                                                            ? 'Sending...'
+                                                            : 'Post comment'}
                                                     </button>
                                                 </div>
                                             </div>
                                         </form>
                                     ) : (
-                                        <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                                            <p className="text-sm font-bold text-slate-700 mb-2">Log in to ask a question.</p>
-                                            <Link href="/auth/login" className="inline-block px-5 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors shadow-sm">
+                                        <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+                                            <p className="mb-2 text-sm font-bold text-slate-700">
+                                                Log in to join the discussion.
+                                            </p>
+                                            <Link
+                                                href="/auth/login"
+                                                className="inline-block rounded-lg bg-slate-800 px-5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-slate-700"
+                                            >
                                                 Log In
                                             </Link>
                                         </div>
                                     )}
 
-                                    <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-widest mb-3">
-                                        Public answers ({publicAnswers.length})
-                                    </h4>
-                                    <div className="space-y-4">
-                                        {publicAnswers.length === 0 ? (
-                                            <p className="text-sm font-medium text-slate-500 italic">No public answers yet.</p>
+                                    <div
+                                        className="space-y-3"
+                                        aria-live="polite"
+                                    >
+                                        {messages.length === 0 ? (
+                                            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+                                                <i
+                                                    className="fa-regular fa-comments mb-2 text-2xl text-slate-400"
+                                                    aria-hidden="true"
+                                                ></i>
+                                                <p className="text-sm font-semibold text-slate-600">
+                                                    No comments yet
+                                                </p>
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    Be the first to start the
+                                                    discussion.
+                                                </p>
+                                            </div>
                                         ) : (
-                                            publicAnswers.map((answer) => {
-                                                const question = messages.find(m => m.id === answer.parent_message_id);
-                                                return (
-                                                    <div key={answer.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                                        {question && (
-                                                            <p className="text-xs font-bold text-slate-800 mb-2">Q: {question.content}</p>
+                                            messages.map((message) => (
+                                                <article
+                                                    key={message.id}
+                                                    className={`rounded-xl border p-4 ${
+                                                        message.role === 'Admin'
+                                                            ? 'border-blue-100 bg-blue-50/70'
+                                                            : 'border-slate-200 bg-white'
+                                                    } ${message.parent_message_id ? 'ml-5 sm:ml-10' : ''}`}
+                                                >
+                                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                        <span className="text-sm font-bold text-slate-800">
+                                                            {message.author}
+                                                        </span>
+                                                        <span
+                                                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                                                message.role ===
+                                                                'Admin'
+                                                                    ? 'bg-blue-100 text-blue-700'
+                                                                    : 'bg-slate-100 text-slate-600'
+                                                            }`}
+                                                        >
+                                                            {message.role ===
+                                                            'Admin'
+                                                                ? announcement.posted_by
+                                                                : 'Student'}
+                                                        </span>
+                                                        {message.is_mine && (
+                                                            <span className="text-[10px] font-semibold text-slate-400">
+                                                                You
+                                                            </span>
                                                         )}
-                                                        <div className="flex gap-2 items-start">
-                                                            <i className="fa-solid fa-reply text-slate-400 mt-1"></i>
-                                                            <div>
-                                                                <p className="text-sm text-slate-700 font-medium">{answer.content}</p>
-                                                                <p className="text-[10px] font-bold text-slate-500 mt-1">- {announcement.posted_by}</p>
-                                                            </div>
-                                                        </div>
+                                                        {message.sent_at && (
+                                                            <time
+                                                                className="ml-auto text-[10px] font-medium text-slate-400"
+                                                                dateTime={
+                                                                    message.sent_at
+                                                                }
+                                                            >
+                                                                {new Date(
+                                                                    message.sent_at,
+                                                                ).toLocaleString()}
+                                                            </time>
+                                                        )}
                                                     </div>
-                                                );
-                                            })
+                                                    <p className="text-sm leading-6 break-words whitespace-pre-wrap text-slate-700">
+                                                        {message.content}
+                                                    </p>
+                                                    {isLoggedIn && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (
+                                                                    replyingTo ===
+                                                                    message.id
+                                                                ) {
+                                                                    setReplyingTo(
+                                                                        null,
+                                                                    );
+                                                                    replyForm.reset();
+                                                                    replyForm.clearErrors();
+                                                                    return;
+                                                                }
+
+                                                                setReplyingTo(
+                                                                    message.id,
+                                                                );
+                                                                replyForm.setData(
+                                                                    {
+                                                                        content:
+                                                                            '',
+                                                                        parent_message_id:
+                                                                            message.id,
+                                                                    },
+                                                                );
+                                                                replyForm.clearErrors();
+                                                            }}
+                                                            className="text-ctu-lightblue mt-3 text-xs font-bold transition hover:text-blue-700"
+                                                        >
+                                                            {replyingTo ===
+                                                            message.id
+                                                                ? 'Cancel reply'
+                                                                : 'Reply'}
+                                                        </button>
+                                                    )}
+                                                    {replyingTo ===
+                                                        message.id && (
+                                                        <form
+                                                            onSubmit={
+                                                                handleSubmitReply
+                                                            }
+                                                            className="mt-3 border-t border-slate-200 pt-3"
+                                                        >
+                                                            <label
+                                                                className="sr-only"
+                                                                htmlFor={`reply-${message.id}`}
+                                                            >
+                                                                Reply to{' '}
+                                                                {message.author}
+                                                            </label>
+                                                            <textarea
+                                                                id={`reply-${message.id}`}
+                                                                value={
+                                                                    replyForm
+                                                                        .data
+                                                                        .content
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    replyForm.setData(
+                                                                        'content',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder={`Reply to ${message.author}...`}
+                                                                rows={2}
+                                                                maxLength={5000}
+                                                                className="focus:border-ctu-lightblue focus:ring-ctu-lightblue/10 w-full resize-none rounded-lg border border-slate-300 bg-white p-3 text-sm outline-none focus:ring-4"
+                                                            />
+                                                            {replyForm.errors
+                                                                .content && (
+                                                                <p className="mt-1 text-xs font-bold text-red-600">
+                                                                    {
+                                                                        replyForm
+                                                                            .errors
+                                                                            .content
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                            {replyForm.errors
+                                                                .parent_message_id && (
+                                                                <p className="mt-1 text-xs font-bold text-red-600">
+                                                                    {
+                                                                        replyForm
+                                                                            .errors
+                                                                            .parent_message_id
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                            <div className="mt-2 flex justify-end">
+                                                                <button
+                                                                    type="submit"
+                                                                    disabled={
+                                                                        !replyForm.data.content.trim() ||
+                                                                        replyForm.processing
+                                                                    }
+                                                                    className="rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                                                                >
+                                                                    {replyForm.processing
+                                                                        ? 'Sending...'
+                                                                        : 'Post reply'}
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    )}
+                                                </article>
+                                            ))
                                         )}
                                     </div>
                                 </div>
@@ -464,11 +799,12 @@ export default function ClientReadMore({
                         </div>
 
                         {/* RIGHT COLUMN: SIDEBAR (issue #5 — no dark activity card; useful only) */}
-                        <aside className="lg:col-span-4 space-y-6">
-
+                        <aside className="space-y-6 lg:col-span-4">
                             {/* AUDIENCE (issue #8) */}
-                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-slide-up">
-                                <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">For</h3>
+                            <div className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                <h3 className="mb-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                                    For
+                                </h3>
                                 <p className="text-sm font-bold text-slate-800">
                                     {announcement.audience || 'All Students'}
                                 </p>
@@ -476,26 +812,45 @@ export default function ClientReadMore({
 
                             {/* EVENT BOX (issue #8) — only for Event category */}
                             {isEvent && (
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-slide-up" style={{ animationDelay: '0.05s' }}>
-                                    <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-3">Event details</h3>
+                                <div
+                                    className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                    style={{ animationDelay: '0.05s' }}
+                                >
+                                    <h3 className="mb-3 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                                        Event details
+                                    </h3>
 
-                                    <div className="flex gap-3 mb-3">
-                                        <div className="bg-slate-100 rounded-lg p-2 text-center min-w-[50px] shrink-0 h-fit">
-                                            <p className="text-[9px] font-extrabold uppercase text-slate-500">
-                                                {new Date(`${announcement.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}
+                                    <div className="mb-3 flex gap-3">
+                                        <div className="h-fit min-w-[50px] shrink-0 rounded-lg bg-slate-100 p-2 text-center">
+                                            <p className="text-[9px] font-extrabold text-slate-500 uppercase">
+                                                {new Date(
+                                                    `${announcement.event_date}T00:00:00`,
+                                                ).toLocaleDateString(
+                                                    undefined,
+                                                    { month: 'short' },
+                                                )}
                                             </p>
-                                            <p className="text-lg font-black leading-none mt-0.5 text-slate-800">
-                                                {new Date(`${announcement.event_date}T00:00:00`).getDate()}
+                                            <p className="mt-0.5 text-lg leading-none font-black text-slate-800">
+                                                {new Date(
+                                                    `${announcement.event_date}T00:00:00`,
+                                                ).getDate()}
                                             </p>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-bold text-slate-900">{formatDate(announcement.event_date!)}</p>
-                                            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-                                                {formatTime(announcement.start_time)}
-                                                {announcement.end_time && ` – ${formatTime(announcement.end_time)}`}
+                                            <p className="text-sm font-bold text-slate-900">
+                                                {formatDate(
+                                                    announcement.event_date!,
+                                                )}
+                                            </p>
+                                            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                                                {formatTime(
+                                                    announcement.start_time,
+                                                )}
+                                                {announcement.end_time &&
+                                                    ` – ${formatTime(announcement.end_time)}`}
                                             </p>
                                             {announcement.location && (
-                                                <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                                                <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
                                                     <i className="fa-solid fa-location-dot mr-1"></i>
                                                     {announcement.location}
                                                 </p>
@@ -504,32 +859,37 @@ export default function ClientReadMore({
                                     </div>
 
                                     <button
-                                        onClick={handleRsvp}
-                                        className={`w-full px-4 py-2 rounded-lg border text-xs font-bold transition-all ${
-                                            rsvped
-                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
-                                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                                        }`}
+                                        disabled
+                                        className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-bold text-slate-500"
                                     >
-                                        {rsvped ? (
-                                            <><i className="fa-solid fa-check mr-1"></i> I'm going</>
-                                        ) : (
-                                            "I'm going"
-                                        )}
+                                        RSVP coming soon
                                     </button>
                                 </div>
                             )}
 
                             {/* RELATED ANNOUNCEMENTS (issue #8) */}
-                            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                                <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-4">Related</h3>
+                            <div
+                                className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                style={{ animationDelay: '0.1s' }}
+                            >
+                                <h3 className="mb-4 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                                    Related
+                                </h3>
                                 {relatedAnnouncements.length === 0 ? (
-                                    <p className="text-sm text-slate-500">No related posts found.</p>
+                                    <p className="text-sm text-slate-500">
+                                        No related posts found.
+                                    </p>
                                 ) : (
                                     <div className="space-y-3">
-                                        {relatedAnnouncements.map(related => (
-                                            <Link key={related.id} href={`/client/announcements/${related.id}`} className="block group">
-                                                <p className="text-sm font-bold text-slate-700 group-hover:text-ctu-lightblue transition-colors line-clamp-2">{related.title}</p>
+                                        {relatedAnnouncements.map((related) => (
+                                            <Link
+                                                key={related.id}
+                                                href={`/client/announcements/${related.id}`}
+                                                className="group block"
+                                            >
+                                                <p className="group-hover:text-ctu-lightblue line-clamp-2 text-sm font-bold text-slate-700 transition-colors">
+                                                    {related.title}
+                                                </p>
                                             </Link>
                                         ))}
                                     </div>
@@ -540,17 +900,34 @@ export default function ClientReadMore({
                 </main>
 
                 {/* ✅ SAME FOOTER AS CLIENT HOME */}
-                <footer className="relative z-10 bg-ctu-dark text-white border-t border-slate-800 py-6 mt-auto">
-                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <footer className="bg-ctu-dark relative z-10 mt-auto border-t border-slate-800 py-6 text-white">
+                    <div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
                         <div className="flex items-center gap-2">
-                            <p className="text-xs text-slate-400">&copy; 2026 Cotify · College of Technology</p>
+                            <p className="text-xs text-slate-400">
+                                &copy; 2026 Cotify · College of Technology
+                            </p>
                         </div>
                         <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
-                            <a href="#" className="hover:text-white transition-colors">About</a>
+                            <a
+                                href="#"
+                                className="transition-colors hover:text-white"
+                            >
+                                About
+                            </a>
                             <span>·</span>
-                            <a href="#" className="hover:text-white transition-colors">Contact</a>
+                            <a
+                                href="#"
+                                className="transition-colors hover:text-white"
+                            >
+                                Contact
+                            </a>
                             <span>·</span>
-                            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                            <a
+                                href="#"
+                                className="transition-colors hover:text-white"
+                            >
+                                Privacy
+                            </a>
                         </div>
                     </div>
                 </footer>
@@ -559,8 +936,10 @@ export default function ClientReadMore({
                 {showScrollTop && (
                     <button
                         type="button"
-                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-ctu-dark hover:bg-ctu-lightblue text-white shadow-2xl flex items-center justify-center transition-all animate-fade-in hover:-translate-y-1"
+                        onClick={() =>
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }
+                        className="bg-ctu-dark hover:bg-ctu-lightblue animate-fade-in fixed right-6 bottom-6 z-40 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-2xl transition-all hover:-translate-y-1"
                         aria-label="Scroll back to top"
                     >
                         <i className="fa-solid fa-arrow-up"></i>

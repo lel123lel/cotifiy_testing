@@ -115,9 +115,9 @@ export default function ClientNotifications({
                                 </Link>
                                 <nav className="hidden md:flex items-center gap-6">
                                     <Link href="/client" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Home</Link>
-                                    <Link href="/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
-                                    <Link href="/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
-                                    <Link href="/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
+                                    <Link href="/client/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
+                                    <Link href="/client/events" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Events</Link>
+                                    <Link href="/client/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
                                 </nav>
                             </div>
                             <div className="flex items-center gap-3 sm:gap-4">

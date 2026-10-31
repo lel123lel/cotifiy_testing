@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 interface EventAnnouncement {
@@ -13,9 +13,6 @@ interface EventAnnouncement {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
-    capacity?: number | null;
-    slots_taken?: number | null;
-    has_rsvped: boolean;
 }
 
 interface ClientEventsProps {
@@ -36,35 +33,18 @@ export default function ClientEvents({
     const { auth } = usePage<any>().props;
     const userName = auth?.user?.name || user.name;
 
-    // View state: 'calendar' | 'list' | 'rsvps'
-    const [view, setView] = useState<'calendar' | 'list' | 'rsvps'>('calendar');
+    const [view, setView] = useState<'calendar' | 'list'>('calendar');
     const [searchTerm, setSearchTerm] = useState('');
 
     // Calendar state
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    // RSVP state (optimistic UI)
-    const [rsvpStatus, setRsvpStatus] = useState<Record<number, boolean>>(
-        Object.fromEntries(events.map(e => [e.id, e.has_rsvped]))
-    );
-
-    const handleRsvp = (id: number) => {
-        setRsvpStatus(prev => ({ ...prev, [id]: !prev[id] }));
-        router.post(`/client/events/${id}/rsvp`, {}, {
-            preserveScroll: true,
-            showProgress: false,
-            onError: () => setRsvpStatus(prev => ({ ...prev, [id]: !prev[id] })) // Rollback
-        });
-    };
-
     // --- Filtering & Sorting ---
     const filteredEvents = events.filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (e.location && e.location.toLowerCase().includes(searchTerm.toLowerCase()))
     ).sort((a, b) => a.event_date.localeCompare(b.event_date));
-
-    const myRsvps = filteredEvents.filter(e => rsvpStatus[e.id]);
 
     // --- Calendar Logic ---
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -171,9 +151,9 @@ export default function ClientEvents({
 
                                 <nav className="hidden md:flex items-center gap-6">
                                     <Link href="/client" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Home</Link>
-                                    <Link href="/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
-                                    <Link href="/events" className="text-sm font-bold text-white border-b-2 border-ctu-lightblue pb-1">Events</Link>
-                                    <Link href="/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
+                                    <Link href="/client/announcements" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Announcements</Link>
+                                    <Link href="/client/events" className="text-sm font-bold text-white border-b-2 border-ctu-lightblue pb-1">Events</Link>
+                                    <Link href="/client/saved" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Saved</Link>
                                 </nav>
                             </div>
 
@@ -231,12 +211,6 @@ export default function ClientEvents({
                                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${view === 'list' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 List
-                            </button>
-                            <button 
-                                onClick={() => setView('rsvps')}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${view === 'rsvps' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                My RSVPs
                             </button>
                         </div>
                     </div>
@@ -361,27 +335,10 @@ export default function ClientEvents({
                                                             </p>
                                                             
                                                             {/* Capacity / Slots */}
-                                                            {(event.capacity || event.slots_taken) && (
-                                                                <p className="text-[10px] font-bold text-slate-500 mb-3">
-                                                                    {event.slots_taken} of {event.capacity} slots taken
-                                                                </p>
-                                                            )}
-
                                                             {/* RSVP Button */}
-                                                            <button 
-                                                                onClick={() => handleRsvp(event.id)}
-                                                                className={`w-full py-2 rounded-lg text-xs font-bold transition-all mb-2 ${
-                                                                    rsvpStatus[event.id]
-                                                                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                                                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                                                                }`}
-                                                            >
-                                                                {rsvpStatus[event.id] ? (
-                                                                    <><i className="fa-solid fa-check mr-1"></i> Going</>
-                                                                ) : (
-                                                                    "I'm going"
-                                                                )}
-                                                            </button>
+                                                            <Link href={`/client/announcements/${event.id}`} className="mb-2 block w-full rounded-lg border border-slate-300 bg-white py-2 text-center text-xs font-bold text-slate-700 transition hover:bg-slate-50">
+                                                                View event details
+                                                            </Link>
                                                             
                                                             {/* External Link */}
                                                             <button className="w-full py-1.5 text-[10px] font-bold text-slate-500 hover:text-ctu-lightblue transition-colors flex items-center justify-center gap-1">
@@ -428,59 +385,13 @@ export default function ClientEvents({
                                                         </div>
                                                     </div>
                                                     
-                                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                                                        <p className="text-[11px] font-bold text-slate-500">
-                                                            {event.slots_taken} / {event.capacity} slots taken
-                                                        </p>
-                                                        <button 
-                                                            onClick={() => handleRsvp(event.id)}
-                                                            className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${
-                                                                rsvpStatus[event.id]
-                                                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                                                    : 'bg-slate-800 text-white hover:bg-slate-700 shadow-sm'
-                                                            }`}
-                                                        >
-                                                            {rsvpStatus[event.id] ? "Going" : "I'm going"}
-                                                        </button>
+                                                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                                                        <p className="text-[11px] font-bold text-slate-500">{event.posted_by_office}</p>
+                                                        <Link href={`/client/announcements/${event.id}`} className="rounded-lg bg-slate-800 px-5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-700">
+                                                            Details
+                                                        </Link>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-
-                            {/* --- MY RSVPS VIEW --- */}
-                            {view === 'rsvps' && (
-                                <div className="max-w-4xl mx-auto space-y-4">
-                                    {myRsvps.length === 0 ? (
-                                        <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <i className="fa-solid fa-ticket text-2xl text-slate-300"></i>
-                                            </div>
-                                            <h3 className="text-lg font-bold text-slate-800">You haven't RSVP'd to anything yet.</h3>
-                                            <p className="text-sm text-slate-500 mt-2">Browse the calendar or list view to find events.</p>
-                                        </div>
-                                    ) : (
-                                        myRsvps.map(event => (
-                                            <div key={event.id} className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-5 flex items-center justify-between gap-4">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                                                        <i className="fa-solid fa-check text-xl"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-base font-bold text-slate-900">{event.title}</h3>
-                                                        <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                                                            {formatShortDate(event.event_date)} • {formatTime(event.start_time)} • {event.location}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleRsvp(event.id)}
-                                                    className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
                                             </div>
                                         ))
                                     )}

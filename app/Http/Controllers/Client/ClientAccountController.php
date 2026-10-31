@@ -26,6 +26,8 @@ class ClientAccountController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'student_id' => $user->studentId,
+                'course' => $user->course,
+                'year_level' => $user->year_level,
                 'created_at' => $user->created_at?->toDateString() ?? '',
             ],
             'stats' => [
@@ -54,6 +56,8 @@ class ClientAccountController extends Controller
                 Rule::unique(AdminUser::class),
             ],
             'student_id' => ['nullable', 'string', 'max:255'],
+            'course' => ['required', 'string', Rule::in(['BSIT', 'BSCS', 'BSIS', 'ACT'])],
+            'year_level' => ['required', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -61,6 +65,8 @@ class ClientAccountController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'studentId' => $validated['student_id'] ?? null,
+            'course' => $validated['course'],
+            'year_level' => $validated['year_level'],
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ])->save();
 

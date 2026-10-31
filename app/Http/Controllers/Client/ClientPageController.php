@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,14 +17,91 @@ class ClientPageController extends Controller
     public function __invoke(Request $request): Response
     {
         $announcements = Announcement::query()
+            ->select([
+                'id',
+                'title',
+                'category',
+                'posted_by',
+                'date',
+                'body',
+                'image',
+                'event_date',
+                'start_time',
+                'end_time',
+                'location',
+            ])
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (Announcement $announcement) => $this->announcementSummaryData($announcement));
+
+        $upcomingEvents = Announcement::query()
+            ->select([
+                'id',
+                'title',
+                'category',
+                'posted_by',
+                'date',
+                'body',
+                'image',
+                'event_date',
+                'start_time',
+                'end_time',
+                'location',
+            ])
+            ->where('category', 'Event')
+            ->whereDate('event_date', '>=', now()->toDateString())
+            ->orderBy('event_date')
+            ->orderBy('id')
+            ->limit(2)
+            ->get()
+            ->map(fn (Announcement $announcement) => $this->announcementSummaryData($announcement));
+
+        return Inertia::render('client/clientpage', [
+            'announcements' => $announcements,
+            'upcomingEvents' => $upcomingEvents,
+            'userName' => $request->user()->name,
+            'user' => [
+                'name' => $request->user()->name,
+                'course' => $request->user()->course ?? '',
+                'year_level' => $request->user()->year_level ?? '',
+            ],
+        ]);
+    }
+
+    public function announcements(): Response
+    {
+        $announcements = Announcement::query()
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get()
             ->map(fn (Announcement $announcement) => $this->announcementData($announcement));
 
-        return Inertia::render('client/clientpage', [
+        return Inertia::render('client/clientannounce', [
             'announcements' => $announcements,
-            'userName' => $request->user()->name,
+        ]);
+    }
+
+    public function events(): Response
+    {
+        $events = Announcement::query()
+            ->where('category', 'Event')
+            ->whereNotNull('event_date')
+            ->orderBy('event_date')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Announcement $announcement) => $this->announcementData($announcement));
+
+        return Inertia::render('client/clientevent', [
+            'events' => $events,
+        ]);
+    }
+
+    public function saved(): Response
+    {
+        return Inertia::render('client/clientSaved', [
+            'savedItems' => [],
         ]);
     }
 
@@ -68,8 +146,31 @@ class ClientPageController extends Controller
             'title' => $announcement->title,
             'category' => $announcement->category,
             'posted_by' => $announcement->posted_by,
+            'posted_by_office' => $announcement->posted_by,
             'date' => $announcement->date->toDateString(),
             'content' => $announcement->body,
+            'image' => $announcement->image
+                ? Storage::disk('public')->url($announcement->image)
+                : null,
+            'event_date' => $announcement->event_date?->toDateString(),
+            'start_time' => $announcement->start_time,
+            'end_time' => $announcement->end_time,
+            'location' => $announcement->location,
+        ];
+    }
+
+    /**
+     * @return array<string, int|string|null>
+     */
+    private function announcementSummaryData(Announcement $announcement): array
+    {
+        return [
+            'id' => $announcement->id,
+            'title' => $announcement->title,
+            'category' => $announcement->category,
+            'posted_by_office' => $announcement->posted_by,
+            'date' => $announcement->date->toDateString(),
+            'content' => Str::limit(strip_tags($announcement->body), 180),
             'image' => $announcement->image
                 ? Storage::disk('public')->url($announcement->image)
                 : null,
