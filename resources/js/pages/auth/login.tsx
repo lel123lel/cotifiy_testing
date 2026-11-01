@@ -164,7 +164,7 @@ export default function Login() {
 
                         <h2 className="text-4xl font-extrabold mb-4 leading-tight">Welcome Back!</h2>
                         <p className="text-slate-400 mb-10 leading-relaxed text-lg">
-                            Log in to your account to access announcements, manage events, and stay connected with the community.
+                            Log in to your account to access announcements, see events, and stay connected with the community.
                         </p>
 
                         <ul className="space-y-6 text-base text-slate-300 font-medium">
@@ -178,7 +178,7 @@ export default function Login() {
                                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                                     <i className="fa-regular fa-calendar text-blue-400 text-lg"></i>
                                 </div>
-                                Manage upcoming events
+                                See upcoming events
                             </li>
                             <li className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">

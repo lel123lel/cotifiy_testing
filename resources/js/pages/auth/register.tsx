@@ -1,14 +1,35 @@
 import { Form, Head, Link } from '@inertiajs/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ChangeEvent } from 'react'
 
 export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    
+    // Password strength state
+    const [password, setPassword] = useState('');
+    const [strength, setStrength] = useState(0);
 
     useEffect(() => {
         setIsLoaded(true);
     }, []);
+
+    // Password strength calculator
+    const calculateStrength = (pass: string) => {
+        let score = 0;
+        if (!pass) return 0;
+        if (pass.length >= 8) score += 1;
+        if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) score += 1;
+        if (/[0-9]/.test(pass)) score += 1;
+        if (/[^a-zA-Z0-9]/.test(pass)) score += 1;
+        return score;
+    };
+
+    const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setPassword(val);
+        setStrength(calculateStrength(val));
+    };
 
     return (
         <>
@@ -61,55 +82,36 @@ export default function Register() {
 
             <div className="font-sans text-slate-800 bg-[#F1F1F1] antialiased min-h-screen flex relative overflow-hidden">
                 
-                {/* BACKGROUND SHAPES - Changed to vibrant blue */}
+                {/* BACKGROUND SHAPES */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                    
-                    {/* Glowing soft orbs */}
                     <div className="absolute top-[10%] left-[10%] w-[30rem] h-[30rem] bg-blue-500/10 rounded-full blur-3xl shape-move-1"></div>
                     <div className="absolute bottom-[10%] right-[10%] w-[35rem] h-[35rem] bg-blue-600/10 rounded-full blur-3xl shape-move-2"></div>
-
-                    {/* Circles & Rings */}
                     <div className="absolute top-[15%] right-[15%] w-[25rem] h-[25rem] border-[3px] border-blue-500/20 rounded-full shape-move-1"></div>
                     <div className="absolute bottom-[20%] left-[10%] w-32 h-32 border-[4px] border-blue-600/20 rounded-full shape-move-2"></div>
                     <div className="absolute top-[60%] right-[30%] w-20 h-20 border-[2px] border-blue-400/30 rounded-full shape-move-3"></div>
-
-                    {/* Hexagons */}
                     <div className="absolute top-[20%] left-[30%] w-40 h-40 bg-blue-500/10 clip-hexagon shape-move-2"></div>
                     <div className="absolute bottom-[15%] right-[20%] w-56 h-56 border-[4px] border-blue-600/15 clip-hexagon shape-move-1 bg-transparent">
                         <div className="w-full h-full bg-blue-500/5 clip-hexagon scale-[0.95]"></div>
                     </div>
-
-                    {/* Octagons */}
                     <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-blue-600/10 clip-octagon shape-move-3"></div>
                     <div className="absolute bottom-[35%] right-[35%] w-48 h-48 border-[4px] border-blue-500/15 clip-octagon shape-move-1 bg-transparent">
-                         <div className="w-full h-full bg-blue-500/5 clip-octagon scale-[0.95]"></div>
+                        <div className="w-full h-full bg-blue-500/5 clip-octagon scale-[0.95]"></div>
                     </div>
-
-                    {/* Squares / Diamonds */}
                     <div className="absolute top-[70%] right-[10%] w-28 h-28 border-[3px] border-blue-500/20 rotate-45 shape-move-2"></div>
                     <div className="absolute bottom-[10%] left-[40%] w-16 h-16 bg-blue-600/15 rotate-12 shape-move-3"></div>
-
-                    {/* Triangles */}
                     <div className="absolute top-[10%] right-[40%] w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-blue-500/15 shape-move-2"></div>
                     <div className="absolute bottom-[40%] left-[5%] w-0 h-0 border-l-[30px] border-l-transparent border-r-[30px] border-r-transparent border-t-[50px] border-t-blue-600/15 shape-move-1"></div>
-
-                    {/* Abstract Lines */}
                     <div className="absolute top-[30%] right-[5%] w-3 h-48 bg-gradient-to-b from-blue-500/20 to-transparent rounded-full shape-move-1"></div>
                     <div className="absolute bottom-[20%] left-[25%] w-48 h-3 bg-gradient-to-r from-blue-600/20 to-transparent rounded-full shape-move-3"></div>
-                    
-                    {/* Large Torus & Extra Shapes */}
                     <div className="absolute top-[5%] right-[5%] w-64 h-64 border-[15px] border-blue-600/10 rounded-full shape-move-3"></div>
                     <div className="absolute bottom-[5%] right-[30%] w-24 h-24 bg-blue-500/15 clip-octagon shape-move-1"></div>
                     <div className="absolute top-[55%] left-[30%] w-20 h-20 border-[3px] border-blue-500/20 rotate-45 shape-move-2"></div>
                     <div className="absolute bottom-[25%] left-[15%] w-0 h-0 border-l-[35px] border-l-transparent border-r-[35px] border-r-transparent border-b-[60px] border-b-blue-500/15 shape-move-3"></div>
                     <div className="absolute top-[85%] right-[10%] w-56 h-2 bg-gradient-to-r from-transparent via-blue-600/25 to-transparent rounded-full shape-move-1"></div>
-
                 </div>
 
-                {/* LEFT SIDE: Info Panel with Animation */}
+                {/* LEFT SIDE: Info Panel */}
                 <div className="hidden lg:flex w-1/2 bg-slate-900 text-white flex-col justify-center px-16 relative overflow-hidden z-10 border-r border-slate-200 shadow-2xl">
-                    
-                    {/* Animated Background Image */}
                     <div className="absolute inset-0 z-0 overflow-hidden">
                         <img 
                             src="/images/download.jpg" 
@@ -124,7 +126,6 @@ export default function Register() {
                             isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'
                         }`}
                     >
-                        {/* CHANGED: Replaced icon with larger logo image and adjusted spacing */}
                         <div className="flex items-center mb-12">
                             <img 
                                 src="/images/3rdLogo.png" 
@@ -149,12 +150,9 @@ export default function Register() {
                                 </div>
                                 Access all announcements
                             </li>
-                            <li className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                    <i className="fa-solid fa-check text-blue-400 text-lg"></i>
-                                </div>
-                                Register for events
-                            </li>
+                            
+                            {/* FIXED: Removed the "Register for events" line entirely as requested */}
+                            
                             <li className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                                     <i className="fa-solid fa-check text-blue-400 text-lg"></i>
@@ -168,23 +166,21 @@ export default function Register() {
                 {/* RIGHT SIDE: Register Form */}
                 <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-12 relative z-10">
                     
-                    {/* Back Button */}
                     <Link 
                         href="/" 
+                        aria-label="Back to home"
                         className="absolute top-6 left-6 sm:top-8 sm:left-8 w-11 h-11 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm z-20 group" 
                         title="Back to Home"
                     >
                         <i className="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
                     </Link>
 
-                    {/* Form Container */}
                     <div 
-                        className={`w-full max-w-md rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-1000 ease-out delay-150 ${
+                        className={`w-full max-w-lg rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-1000 ease-out delay-150 ${
                             isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
                         }`}
                     >
-                        
-                        {/* Background Image & Dark Overlay */}
+                        {/* Background Image & Dark Overlay (Original Design) */}
                         <div className="absolute inset-0 z-0">
                             <img 
                                 src="/images/download.jpg" 
@@ -194,10 +190,8 @@ export default function Register() {
                             <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-sm"></div>
                         </div>
 
-                        {/* Form Content */}
                         <div className="relative z-10 p-8 sm:p-10 border border-white/10 rounded-3xl">
                             
-                            {/* CHANGED: Mobile Logo pulled close together */}
                             <div className="flex lg:hidden items-center mb-10">
                                 <img 
                                     src="/images/3rdLogo.png" 
@@ -216,50 +210,98 @@ export default function Register() {
                             <Form method="POST" action="/register" className="space-y-5">
                                 {({ errors, processing }) => (
                                     <>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Full Name</label>
-                                            <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                    <i className="fa-regular fa-user text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                            <div>
+                                                <label htmlFor="name" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Full Name</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <i className="fa-regular fa-user text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                    </div>
+                                                    <input 
+                                                        id="name" type="text" name="name" placeholder="Juan Dela Cruz" 
+                                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                        required
+                                                    />
                                                 </div>
-                                                <input 
-                                                    type="text" 
-                                                    name="name" 
-                                                    placeholder="Enter your full name" 
-                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
-                                                    required
-                                                />
+                                                {errors.name && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.name}</p>}
                                             </div>
-                                            {errors.name && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.name}</p>}
+
+                                            <div>
+                                                <label htmlFor="studentId" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Student ID</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <i className="fa-regular fa-id-card text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                    </div>
+                                                    <input 
+                                                        id="studentId" type="text" name="studentId" placeholder="123456" 
+                                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
+                                                        required
+                                                    />
+                                                </div>
+                                                {errors.studentId ? (
+                                                    <p className="mt-1.5 text-xs font-bold text-red-400">{errors.studentId}</p>
+                                                ) : (
+                                                    <p className="mt-1.5 text-[10px] font-semibold text-slate-400">Format: 123456</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                            <div>
+                                                <label htmlFor="course" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Course</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <i className="fa-solid fa-graduation-cap text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                    </div>
+                                                    <select 
+                                                        id="course" name="course" required
+                                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="" disabled selected>Select Course</option>
+                                                        <option value="BSIT">BS Information Technology</option>
+                                                        <option value="BSCS">BS  </option>
+                                                        <option value="BSIS">BIT Electronics</option>
+                                                        <option value="ACT">BIT</option>
+                                                    </select>
+                                                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                                        <i className="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
+                                                    </div>
+                                                </div>
+                                                {errors.course && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.course}</p>}
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="year_level" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Year Level</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <i className="fa-solid fa-layer-group text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                                                    </div>
+                                                    <select 
+                                                        id="year_level" name="year_level" required
+                                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="" disabled selected>Select Year</option>
+                                                        <option value="1">1st Year</option>
+                                                        <option value="2">2nd Year</option>
+                                                        <option value="3">3rd Year</option>
+                                                        <option value="4">4th Year</option>
+                                                    </select>
+                                                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                                        <i className="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
+                                                    </div>
+                                                </div>
+                                                {errors.year_level && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.year_level}</p>}
+                                            </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Student ID</label>
-                                            <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                    <i className="fa-regular fa-id-card text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
-                                                </div>
-                                                <input 
-                                                    type="text" 
-                                                    name="studentId"
-                                                    placeholder="Enter your student ID" 
-                                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
-                                                    required
-                                                />
-                                            </div>
-                                            {errors.studentId && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.studentId}</p>}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Email Address</label>
+                                            <label htmlFor="email" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Email Address</label>
                                             <div className="relative group">
                                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                     <i className="fa-regular fa-envelope text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
                                                 </div>
                                                 <input 
-                                                    type="email" 
-                                                    name="email" 
-                                                    placeholder="you@example.com" 
+                                                    id="email" type="email" name="email" placeholder="you@example.com" 
                                                     className="w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
                                                     required
                                                 />
@@ -268,49 +310,88 @@ export default function Register() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Password</label>
+                                            <label htmlFor="password" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Password</label>
                                             <div className="relative group">
                                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                     <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
                                                 </div>
                                                 <input 
+                                                    id="password" 
                                                     type={showPassword ? "text" : 'password'} 
                                                     name="password" 
-                                                    placeholder="At least 6 characters" 
+                                                    /* FIXED: Placeholder changed to "Create a strong password" */
+                                                    placeholder="Create a strong password" 
+                                                    onChange={handlePasswordChange}
                                                     className="w-full pl-11 pr-11 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
                                                     required
                                                 />
-                                                <div 
+                                                <button 
+                                                    type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
+                                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                     className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer"
                                                 >
                                                     <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-blue-400 transition-colors`}></i>
-                                                </div>
+                                                </button>
                                             </div>
-                                            {errors.password && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.password}</p>}
+                                            
+                                            {/* FIXED: Helper text is now below the field so it doesn't disappear when typing */}
+                                            <div className="mt-2 space-y-1.5">
+                                                <p className="text-[10px] font-semibold text-slate-400">
+                                                    Must be 8+ characters with letters and numbers.
+                                                </p>
+                                                <div className="flex gap-1 h-1.5 w-full bg-slate-700/50 rounded-full overflow-hidden">
+                                                    <div className={`h-full transition-all duration-300 ${strength >= 1 ? 'w-1/4 bg-red-500' : 'w-0'}`}></div>
+                                                    <div className={`h-full transition-all duration-300 ${strength >= 2 ? 'w-1/4 bg-orange-500' : 'w-0'}`}></div>
+                                                    <div className={`h-full transition-all duration-300 ${strength >= 3 ? 'w-1/4 bg-yellow-500' : 'w-0'}`}></div>
+                                                    <div className={`h-full transition-all duration-300 ${strength >= 4 ? 'w-1/4 bg-green-500' : 'w-0'}`}></div>
+                                                </div>
+                                                {errors.password && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.password}</p>}
+                                            </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Confirm Password</label>
+                                            <label htmlFor="password_confirmation" className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Confirm Password</label>
                                             <div className="relative group">
                                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                     <i className="fa-solid fa-lock text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
                                                 </div>
                                                 <input 
+                                                    id="password_confirmation" 
                                                     type={showConfirmPassword ? "text" : "password"} 
                                                     name="password_confirmation" 
                                                     placeholder="Re-enter your password" 
                                                     className="w-full pl-11 pr-11 py-3.5 bg-slate-900/60 rounded-xl border border-slate-600/50 text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium"
                                                     required
                                                 />
-                                                <div 
+                                                <button 
+                                                    type="button"
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                                                     className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer"
                                                 >
                                                     <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-slate-400 hover:text-blue-400 transition-colors`}></i>
-                                                </div>
+                                                </button>
                                             </div>
                                             {errors.password_confirmation && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.password_confirmation}</p>}
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <label className="flex items-start gap-3 cursor-pointer group">
+                                                <div className="relative flex items-center justify-center mt-0.5">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        name="terms" 
+                                                        required
+                                                        className="peer w-5 h-5 appearance-none border-2 border-slate-500/70 rounded-md checked:bg-blue-600 checked:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all cursor-pointer bg-slate-900/60 shrink-0"
+                                                    />
+                                                    <i className="fa-solid fa-check text-white text-xs absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"></i>
+                                                </div>
+                                                <span className="text-xs text-slate-300 leading-relaxed">
+                                                    I agree to the <a href="#" className="text-blue-400 hover:underline font-bold">Terms of Service</a> and <a href="#" className="text-blue-400 hover:underline font-bold">Privacy Policy</a> in accordance with the Data Privacy Act of 2012.
+                                                </span>
+                                            </label>
+                                            {errors.terms && <p className="mt-1.5 text-xs font-bold text-red-400">{errors.terms}</p>}
                                         </div>
 
                                         <button 
