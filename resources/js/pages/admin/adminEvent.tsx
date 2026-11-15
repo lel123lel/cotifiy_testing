@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm, Form } from '@inertiajs/react';
 import { useState } from 'react';
 import StaffSidebar from '../staff/StaffSidebar';
+import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
 
 type AdminEvent = {
     id: number;
@@ -141,10 +142,12 @@ export default function AdminEvents({
     events = [],
     staffMode = false,
     staffName = '',
+    staffDepartment = null,
 }: {
     events: AdminEvent[];
     staffMode?: boolean;
     staffName?: string;
+    staffDepartment?: string | null;
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLogoutHovered, setIsLogoutHovered] = useState(false);
@@ -164,7 +167,7 @@ export default function AdminEvents({
     const eventForm = useForm<EventFormData>({
         title: '',
         category: 'Event',
-        posted_by: "Registrar's Office",
+        posted_by: staffDepartment ?? (staffMode ? "Registrar's Office" : 'Admin'),
         body: '',
         event_date: '',
         event_end_date: '',
@@ -183,7 +186,7 @@ export default function AdminEvents({
         eventForm.setData({
             title: event?.title ?? '',
             category: 'Event',
-            posted_by: event?.posted_by ?? "Registrar's Office",
+            posted_by: staffDepartment ?? event?.posted_by ?? (staffMode ? "Registrar's Office" : 'Admin'),
             body: event?.body ?? '',
             event_date: event?.date ?? selectedDate ?? '',
             event_end_date: event?.end_date ?? event?.date ?? selectedDate ?? '',
@@ -416,10 +419,14 @@ export default function AdminEvents({
                                 <input type="text" placeholder="Search..." className="w-full pl-11 pr-4 py-2 bg-white border border-slate-200 text-slate-800 rounded-xl text-sm focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder-slate-400 font-medium shadow-sm" />
                             </div>
 
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            </button>
+                            {staffMode ? (
+                                <StaffNotificationDropdown />
+                            ) : (
+                                <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
+                                    <i className="fa-regular fa-bell text-lg"></i>
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                                </button>
+                            )}
 
                         </div>
                     </header>
@@ -661,6 +668,7 @@ export default function AdminEvents({
                                             required
                                             maxLength={255}
                                             value={eventForm.data.posted_by}
+                                            readOnly={staffMode && staffDepartment !== null}
                                             onChange={(e) => eventForm.setData('posted_by', e.target.value)}
                                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-ctu-lightblue focus:outline-none"
                                         />

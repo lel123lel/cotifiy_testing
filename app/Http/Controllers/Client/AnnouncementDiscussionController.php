@@ -6,15 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Office;
+use App\Models\StaffUser;
+use App\Models\User;
+use App\Notifications\AnnouncementDiscussionNotification;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class AnnouncementDiscussionController extends Controller
 {
     public function store(Request $request, Announcement $announcement): RedirectResponse
     {
+        abort_if($announcement->status === 'Draft', 404);
+
+        $client = $request->user('web');
+        abort_unless($client instanceof User, 403);
+
         $validated = $request->validate([
             'content' => ['required', 'string', 'max:5000'],
             'parent_message_id' => [
@@ -26,9 +36,9 @@ class AnnouncementDiscussionController extends Controller
                         Conversation::query()
                             ->select('id')
                             ->where('announcement_id', $announcement->id)
-                            ->where(function ($query) use ($request): void {
+                            ->where(function ($query) use ($client): void {
                                 $query->whereNull('client_id')
-                                    ->orWhere('client_id', $request->user()->id);
+                                    ->orWhere('client_id', $client->id);
                             }),
                     ),
                 ),
@@ -37,13 +47,15 @@ class AnnouncementDiscussionController extends Controller
 
         if (isset($validated['parent_message_id'])) {
             $conversation = Message::query()
-                ->findOrFail($validated['parent_message_id'])
-                ->conversation;
+                ->whereKey($validated['parent_message_id'])
+                ->firstOrFail()
+                ->conversation()
+                ->firstOrFail();
         } else {
             $conversation = Conversation::query()->firstOrCreate(
                 [
                     'announcement_id' => $announcement->id,
-                    'client_id' => $request->user()->id,
+                    'client_id' => $client->id,
                 ],
                 [
                     'type' => 'announcement',
@@ -54,12 +66,46 @@ class AnnouncementDiscussionController extends Controller
 
         $conversation->messages()->create([
             'parent_message_id' => $validated['parent_message_id'] ?? null,
-            'sender_id' => $request->user()->id,
+            'sender_id' => $client->id,
             'content' => trim($validated['content']),
         ]);
 
         $conversation->touch();
+        $this->notifyLinkedStaffAccounts(
+            $announcement,
+            $client,
+            isset($validated['parent_message_id']),
+        );
 
         return back();
+    }
+
+    private function notifyLinkedStaffAccounts(Announcement $announcement, User $commenter, bool $isReply): void
+    {
+        $officeIds = Office::query()
+            ->where('name', $announcement->posted_by)
+            ->pluck('id');
+
+        $authorOfficeId = $announcement->staffAuthor?->office_id;
+        if ($authorOfficeId !== null) {
+            $officeIds->push($authorOfficeId);
+        }
+
+        $staffAccountIds = StaffUser::query()
+            ->whereIn('office_id', $officeIds->unique())
+            ->pluck('id');
+
+        if ($announcement->author_staff_id !== null) {
+            $staffAccountIds->push($announcement->author_staff_id);
+        }
+
+        $recipients = StaffUser::query()
+            ->whereKey($staffAccountIds->unique())
+            ->get();
+
+        Notification::send(
+            $recipients,
+            new AnnouncementDiscussionNotification($announcement, $commenter, $isReply),
+        );
     }
 }

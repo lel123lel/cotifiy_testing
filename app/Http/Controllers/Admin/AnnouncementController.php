@@ -25,6 +25,7 @@ class AnnouncementController extends Controller
     public function index(Request $request): Response
     {
         $announcements = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -33,6 +34,7 @@ class AnnouncementController extends Controller
             'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'recentAnnouncements' => $announcements->take(5)->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'upcomingEvents' => Announcement::query()
+                ->where('status', '!=', 'Draft')
                 ->where('category', 'Event')
                 ->where(function ($query) {
                     $query->whereDate('event_end_date', '>=', now()->toDateString())
@@ -56,7 +58,7 @@ class AnnouncementController extends Controller
                     'location' => $announcement->location,
                 ]),
             'announcementCount' => $announcements->count(),
-            'eventCount' => Announcement::query()->where('category', 'Event')->count(),
+            'eventCount' => Announcement::query()->where('status', '!=', 'Draft')->where('category', 'Event')->count(),
             'userCount' => User::query()->count(),
             'adminId' => $request->user('admin')->id,
             'discussions' => $this->discussionData(),
@@ -67,6 +69,7 @@ class AnnouncementController extends Controller
     public function staffDashboard(Request $request): Response
     {
         $announcements = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -74,6 +77,7 @@ class AnnouncementController extends Controller
         return Inertia::render('staff/staff', [
             'recentAnnouncements' => $announcements->take(5)->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'upcomingEvents' => Announcement::query()
+                ->where('status', '!=', 'Draft')
                 ->where('category', 'Event')
                 ->where(function ($query) {
                     $query->whereDate('event_end_date', '>=', now()->toDateString())
@@ -95,8 +99,10 @@ class AnnouncementController extends Controller
                     'end_time' => $announcement->end_time,
                     'location' => $announcement->location,
                 ]),
-            'announcementCount' => $announcements->count(),
-            'eventCount' => Announcement::query()->where('category', 'Event')->count(),
+            'announcementCount' => Announcement::query()
+                ->where('author_staff_id', $request->user('staff')->id)
+                ->count(),
+            'eventCount' => Announcement::query()->where('status', '!=', 'Draft')->where('category', 'Event')->count(),
             'userName' => $request->user('staff')->name,
         ]);
     }
@@ -112,15 +118,21 @@ class AnnouncementController extends Controller
             'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'discussions' => $this->discussionData(),
             'announcementComments' => $this->announcementCommentData(),
+            'openAnnouncementId' => $request->integer('announcement') ?: null,
+            'openAnnouncementSection' => $request->query('section') === 'comments' ? 'comments' : null,
             'staffMode' => true,
             'staffName' => $request->user('staff')->name,
             'staffId' => $request->user('staff')->id,
+            'staffDepartment' => $request->user('staff')->office?->name,
+            'initialTab' => $request->query('tab') === 'my-posts' ? 'My Posts' : null,
+            'initialCategoryFilter' => $request->query('category') === 'Event' ? 'Event' : null,
         ]);
     }
 
     public function staffEvents(Request $request): Response
     {
         $events = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->where('category', 'Event')
             ->orderByDesc('event_date')
             ->orderByDesc('id')
@@ -152,6 +164,7 @@ class AnnouncementController extends Controller
             'events' => $events,
             'staffMode' => true,
             'staffName' => $request->user('staff')->name,
+            'staffDepartment' => $request->user('staff')->office?->name,
         ]);
     }
 
@@ -173,6 +186,7 @@ class AnnouncementController extends Controller
     public function events(): Response
     {
         $events = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->where('category', 'Event')
             ->orderByDesc('event_date')
             ->orderByDesc('id')
@@ -284,20 +298,30 @@ class AnnouncementController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $isDraft = $request->input('status') === 'Draft';
+        $staffDepartment = $request->user('staff')?->office?->name;
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
-            'posted_by' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
+            'title' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
+            'category' => [$isDraft ? 'nullable' : 'required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
+            'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
+            'body' => [$isDraft ? 'nullable' : 'required', 'string'],
+            'status' => ['nullable', Rule::in(['Draft', 'Published'])],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
-            'event_date' => ['nullable', 'required_if:category,Event', 'date'],
-            'event_end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
-            'start_time' => ['nullable', 'required_with:end_time', 'date_format:H:i'],
-            'end_time' => ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
-            'location' => ['nullable', 'required_if:category,Event', 'string', 'max:255'],
+            'event_date' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'date'],
+            'event_end_date' => $isDraft ? ['nullable', 'date'] : ['nullable', 'date', 'after_or_equal:event_date'],
+            'start_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:end_time', 'date_format:H:i'],
+            'end_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
+            'location' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'string', 'max:255'],
         ]);
+
+        $validated['title'] = $validated['title'] ?: 'Untitled draft';
+        $validated['category'] = $validated['category'] ?: 'General';
+        $postedByFallback = ($validated['posted_by'] ?? '') ?: ($request->user('staff')->name ?? $request->user('admin')->name ?? 'Staff');
+        $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
+        $validated['body'] = $validated['body'] ?? '';
+        $validated['status'] = $isDraft ? 'Draft' : 'Published';
 
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -319,9 +343,11 @@ class AnnouncementController extends Controller
             ...$this->eventFields($validated),
         ]);
 
-        User::query()->chunkById(100, function ($users) use ($announcement): void {
-            Notification::send($users, new AnnouncementPublished($announcement));
-        });
+        if (! $isDraft) {
+            User::query()->chunkById(100, function ($users) use ($announcement): void {
+                Notification::send($users, new AnnouncementPublished($announcement));
+            });
+        }
 
         return back();
     }
@@ -330,22 +356,32 @@ class AnnouncementController extends Controller
     {
         $this->ensureStaffOwnsAnnouncement($request, $announcement);
 
+        $isDraft = $request->input('status', $announcement->status) === 'Draft';
+        $staffDepartment = $request->user('staff')?->office?->name;
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'category' => ['required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
-            'posted_by' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
+            'title' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
+            'category' => [$isDraft ? 'nullable' : 'required', Rule::in(['General', 'Academic', 'Event', 'Service'])],
+            'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
+            'body' => [$isDraft ? 'nullable' : 'required', 'string'],
+            'status' => ['sometimes', Rule::in(['Draft', 'Published'])],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
             'remove_attachments' => ['sometimes', 'array'],
             'remove_attachments.*' => ['string', Rule::in(array_column($announcement->attachments ?? [], 'path'))],
-            'event_date' => ['nullable', 'required_if:category,Event', 'date'],
-            'event_end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
-            'start_time' => ['nullable', 'required_with:end_time', 'date_format:H:i'],
-            'end_time' => ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
-            'location' => ['nullable', 'required_if:category,Event', 'string', 'max:255'],
+            'event_date' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'date'],
+            'event_end_date' => $isDraft ? ['nullable', 'date'] : ['nullable', 'date', 'after_or_equal:event_date'],
+            'start_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:end_time', 'date_format:H:i'],
+            'end_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
+            'location' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'string', 'max:255'],
         ]);
+
+        $validated['title'] = $validated['title'] ?: 'Untitled draft';
+        $validated['category'] = $validated['category'] ?: 'General';
+        $postedByFallback = ($validated['posted_by'] ?? '') ?: ($request->user('staff')->name ?? $request->user('admin')->name ?? 'Staff');
+        $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
+        $validated['body'] = $validated['body'] ?? '';
+        $validated['status'] = $request->input('status', $announcement->status ?? 'Published');
 
         $oldImage = $announcement->image;
         $imagePath = $oldImage;
@@ -368,6 +404,7 @@ class AnnouncementController extends Controller
             ...$this->storeAttachments($validated['attachments'] ?? []),
         ];
 
+        $wasDraft = $announcement->status === 'Draft';
         $announcement->update([
             ...$validated,
             'image' => $imagePath,
@@ -383,6 +420,12 @@ class AnnouncementController extends Controller
 
         if ($imagePath !== $oldImage && $oldImage !== null && ! Storage::disk('public')->delete($oldImage)) {
             throw new RuntimeException('Failed to remove the replaced announcement image.');
+        }
+
+        if ($wasDraft && $announcement->status === 'Published') {
+            User::query()->chunkById(100, function ($users) use ($announcement): void {
+                Notification::send($users, new AnnouncementPublished($announcement));
+            });
         }
 
         return back();
@@ -415,6 +458,7 @@ class AnnouncementController extends Controller
             'id' => $announcement->id,
             'author_staff_id' => $announcement->author_staff_id,
             'author_admin_id' => $announcement->author_admin_id,
+            'status' => $announcement->status,
             'title' => $announcement->title,
             'category' => $announcement->category,
             'posted_by' => $announcement->posted_by,
@@ -469,11 +513,11 @@ class AnnouncementController extends Controller
     {
         if ($validated['category'] === 'Event') {
             return [
-                'event_date' => $validated['event_date'],
-                'event_end_date' => $validated['event_end_date'] ?? $validated['event_date'],
+                'event_date' => $validated['event_date'] ?? null,
+                'event_end_date' => $validated['event_end_date'] ?? $validated['event_date'] ?? null,
                 'start_time' => $validated['start_time'] ?? null,
                 'end_time' => $validated['end_time'] ?? null,
-                'location' => $validated['location'],
+                'location' => $validated['location'] ?? null,
             ];
         }
 

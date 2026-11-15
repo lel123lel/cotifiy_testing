@@ -1,6 +1,7 @@
 import { Head, router, useForm, Link, Form } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import StaffSidebar from './StaffSidebar';
+import StaffNotificationDropdown from './StaffNotificationDropdown';
 
 type AdminEvent = {
     id: number;
@@ -19,11 +20,9 @@ type AdminEvent = {
 export default function StaffEvents({
     events = [],
     userName = 'Staff User',
-    userCourse = 'BSIT',
 }: {
     events: AdminEvent[];
     userName?: string;
-    userCourse?: string;
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'Upcoming' | 'Past'>('Upcoming');
@@ -130,7 +129,7 @@ export default function StaffEvents({
                     <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-indigo-500/5 clip-octagon shape-move-3"></div>
                 </div>
 
-                <StaffSidebar activePage="events" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} userCourse={userCourse} />
+                <StaffSidebar activePage="events" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
@@ -154,10 +153,7 @@ export default function StaffEvents({
                                 <input type="text" placeholder="Search events..." className="w-full pl-11 pr-4 py-2 bg-slate-100 border border-transparent text-slate-800 rounded-xl text-sm focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder-slate-400 font-medium" />
                             </div>
 
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            </button>
+                            <StaffNotificationDropdown />
                         </div>
                     </header>
 

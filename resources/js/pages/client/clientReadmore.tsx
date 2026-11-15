@@ -20,7 +20,6 @@ interface Announcement {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
-    audience: string | null;
     reading_time?: string | null;
     has_rsvped?: boolean;
     is_saved?: boolean;
@@ -42,13 +41,11 @@ interface DiscussionMessage {
 interface ClientReadMoreProps {
     announcement: Announcement;
     messages: DiscussionMessage[];
-    relatedAnnouncements?: Announcement[];
 }
 
 export default function ClientReadMore({
     announcement,
     messages,
-    relatedAnnouncements = [],
 }: ClientReadMoreProps) {
     const { auth } = usePage<any>().props;
     const isLoggedIn = auth?.user !== undefined;
@@ -256,7 +253,7 @@ export default function ClientReadMore({
 
                             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                                 {/* LEFT COLUMN: MAIN CONTENT */}
-                                <div className="space-y-6 lg:col-span-8">
+                                <div className={`space-y-6 ${isEvent ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
                                     <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
                                         
                                         <div className="mb-8 flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
@@ -576,20 +573,10 @@ export default function ClientReadMore({
                                 </div>
 
                                 {/* RIGHT COLUMN: SIDEBAR */}
-                                <aside className="space-y-6 lg:col-span-4">
+                                {isEvent && (
+                                    <aside className="space-y-6 lg:col-span-4">
                                     
-                                    {/* AUDIENCE */}
-                                    <div className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                        <h3 className="mb-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
-                                            For
-                                        </h3>
-                                        <p className="text-base font-bold text-slate-900">
-                                            {announcement.audience || 'All Students'}
-                                        </p>
-                                    </div>
-
-                                    {/* EVENT BOX */}
-                                    {isEvent && (
+                                        {/* EVENT BOX */}
                                         <div className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                             <h3 className="mb-4 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
                                                 Event details
@@ -628,34 +615,9 @@ export default function ClientReadMore({
                                                 RSVP coming soon
                                             </button>
                                         </div>
-                                    )}
 
-                                    {/* RELATED ANNOUNCEMENTS */}
-                                    <div className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                        <h3 className="mb-4 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
-                                            Related
-                                        </h3>
-                                        {relatedAnnouncements.length === 0 ? (
-                                            <p className="text-sm text-slate-500">
-                                                No related posts found.
-                                            </p>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {relatedAnnouncements.map((related) => (
-                                                    <Link
-                                                        key={related.id}
-                                                        href={`/client/announcements/${related.id}`}
-                                                        className="group block rounded"
-                                                    >
-                                                        <p className="line-clamp-2 text-sm font-bold text-slate-700 transition-colors group-hover:text-blue-600">
-                                                            {related.title}
-                                                        </p>
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </aside>
+                                    </aside>
+                                )}
                             </div>
                         </div>
                     </main>

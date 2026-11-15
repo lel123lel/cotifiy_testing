@@ -4,6 +4,8 @@ use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Office;
+use App\Models\StaffUser;
 use App\Models\User;
 
 function createDiscussionAnnouncement(): Announcement
@@ -492,4 +494,159 @@ test('discussion messages must contain non-empty text', function () {
         ->assertSessionHasErrors('content');
 
     expect(Conversation::query()->count())->toBe(0);
+});
+
+test('client comments and replies notify accounts linked to the announcement office', function () {
+    $announcement = createDiscussionAnnouncement();
+    $office = Office::create(['name' => 'Student Affairs']);
+    $otherOffice = Office::create(['name' => 'Library']);
+    $staffAccounts = collect([
+        StaffUser::create([
+            'name' => 'Student Affairs One',
+            'email' => 'sao-one@example.com',
+            'password' => 'secret-password',
+        ]),
+        StaffUser::create([
+            'name' => 'Student Affairs Two',
+            'email' => 'sao-two@example.com',
+            'password' => 'secret-password',
+        ]),
+    ]);
+    $staffAccounts->each(fn (StaffUser $staff) => $staff->forceFill(['office_id' => $office->id])->save());
+    $unrelatedStaff = StaffUser::create([
+        'name' => 'Library Staff',
+        'email' => 'library@example.com',
+        'password' => 'secret-password',
+    ]);
+    $unrelatedStaff->forceFill(['office_id' => $otherOffice->id])->save();
+    $client = User::factory()->create(['name' => 'Taylor Student']);
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), ['content' => 'Student question'])
+        ->assertRedirect();
+    $parentMessage = Message::query()->sole();
+
+    $this->post(route('client.announcements.messages.store', $announcement), [
+        'content' => 'Student reply',
+        'parent_message_id' => $parentMessage->id,
+    ])->assertRedirect();
+
+    foreach ($staffAccounts as $staff) {
+        $notifications = $staff->notifications()->get();
+
+        expect($notifications)->toHaveCount(2)
+            ->and($notifications->pluck('data.title')->all())->toContain(
+                'New comment on an announcement',
+                'New reply on an announcement',
+            )
+            ->and($notifications->pluck('data.message')->all())->toContain(
+                'Taylor Student commented on Campus event.',
+                'Taylor Student replied to a comment on Campus event.',
+            )
+            ->and($notifications->first()->data['office'])->toBe('Student Affairs')
+            ->and($notifications->first()->announcement_id)->toBe($announcement->id);
+    }
+
+    expect($unrelatedStaff->notifications()->count())->toBe(0);
+});
+
+test('staff can mark their own discussion notifications read', function () {
+    $announcement = createDiscussionAnnouncement();
+    $office = Office::create(['name' => 'Student Affairs']);
+    $staff = StaffUser::create([
+        'name' => 'Student Affairs Staff',
+        'email' => 'sao@example.com',
+        'password' => 'secret-password',
+    ]);
+    $staff->forceFill(['office_id' => $office->id])->save();
+    $otherStaff = StaffUser::create([
+        'name' => 'Other Staff',
+        'email' => 'other@example.com',
+        'password' => 'secret-password',
+    ]);
+    $otherStaff->forceFill(['office_id' => $office->id])->save();
+    $client = User::factory()->create();
+
+    $this->actingAs($client, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), ['content' => 'First comment']);
+    $firstNotification = $staff->notifications()->firstOrFail();
+    $this->post(route('client.announcements.messages.store', $announcement), ['content' => 'Second comment']);
+    $secondNotification = $staff->notifications()
+        ->where('id', '!=', $firstNotification->id)
+        ->firstOrFail();
+    $firstNotification->forceFill([
+        'data' => [
+            ...$firstNotification->data,
+            'link' => route('staff.announcements.index'),
+        ],
+    ])->save();
+
+    $this->actingAs($staff, 'staff')
+        ->get(route('staff.announcements.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('staffUnreadCount', 2)
+            ->has('staffRecentNotifications', 2)
+            ->where('staffRecentNotifications.0.title', 'New comment on an announcement')
+            ->where(
+                'staffRecentNotifications.0.link',
+                route('staff.announcements.index', [
+                    'announcement' => $announcement->id,
+                    'section' => 'comments',
+                ]),
+            )
+            ->where(
+                'staffRecentNotifications.1.link',
+                route('staff.announcements.index', [
+                    'announcement' => $announcement->id,
+                    'section' => 'comments',
+                ]),
+            ));
+
+    $this->get(route('staff.announcements.index', [
+        'announcement' => $announcement->id,
+        'section' => 'comments',
+    ]))->assertInertia(fn ($page) => $page
+        ->where('openAnnouncementId', $announcement->id)
+        ->where('openAnnouncementSection', 'comments'));
+
+    $this->get(route('staff.announcements.index', [
+        'tab' => 'my-posts',
+        'category' => 'Event',
+    ]))->assertInertia(fn ($page) => $page
+        ->where('initialTab', 'My Posts')
+        ->where('initialCategoryFilter', 'Event'));
+
+    $this->get(route('staff.notifications.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('staff/staffnotif')
+            ->has('notifications', 2)
+            ->where('staffDepartment', 'Student Affairs')
+            ->where('notifications.0.title', 'New comment on an announcement')
+            ->where(
+                'notifications.0.link',
+                route('staff.announcements.index', [
+                    'announcement' => $announcement->id,
+                    'section' => 'comments',
+                ]),
+            ));
+
+    $this->actingAs($otherStaff, 'staff')
+        ->post(route('staff.notifications.read', $firstNotification->id))
+        ->assertNotFound();
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.notifications.read', $firstNotification->id))
+        ->assertRedirect();
+    expect($firstNotification->fresh()->read_at)->not->toBeNull()
+        ->and($secondNotification->fresh()->read_at)->toBeNull()
+        ->and($staff->fresh()->unreadNotifications()->count())->toBe(1);
+
+    $this->post(route('staff.notifications.mark-all-read'))
+        ->assertRedirect();
+    expect($staff->fresh()->unreadNotifications()->count())->toBe(0);
+
+    $this->delete(route('staff.notifications.clear'))
+        ->assertRedirect();
+    expect($staff->fresh()->notifications()->count())->toBe(0)
+        ->and($otherStaff->fresh()->notifications()->count())->toBe(2);
 });

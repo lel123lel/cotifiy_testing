@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import StaffSidebar from './StaffSidebar';
+import StaffNotificationDropdown from './StaffNotificationDropdown';
 
 type UpcomingEvent = {
     id: number;
@@ -18,11 +19,22 @@ type Announcement = {
     id: number;
     title: string;
     category: string;
-    status: string;
     date: string;
-    is_pinned?: boolean;
-    image?: string | null;
-    content?: string;
+    posted_by?: string;
+    image_url?: string | null;
+    body?: string;
+};
+
+const summarizeAnnouncement = (body = '') => {
+    const text = body
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[`*_~>#]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (!text) return 'No summary available.';
+    return text.length > 180 ? `${text.slice(0, 177).trimEnd()}...` : text;
 };
 
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
@@ -37,14 +49,12 @@ export default function StaffDashboard({
     announcementCount = 0,
     eventCount = 0,
     userName = 'Staff User',
-    userCourse = 'BSIT',
 }: {
     recentAnnouncements: Announcement[];
     upcomingEvents: UpcomingEvent[];
     announcementCount: number;
     eventCount: number;
     userName?: string;
-    userCourse?: string;
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -89,7 +99,7 @@ export default function StaffDashboard({
                     <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-indigo-500/5 clip-octagon shape-move-3"></div>
                 </div>
 
-                <StaffSidebar activePage="dashboard" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} userCourse={userCourse} />
+                <StaffSidebar activePage="dashboard" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
@@ -108,12 +118,7 @@ export default function StaffDashboard({
                         </div>
                         
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border border-white animate-pop-in">
-                                    3
-                                </span>
-                            </button>
+                            <StaffNotificationDropdown />
                         </div>
                     </header>
 
@@ -122,7 +127,7 @@ export default function StaffDashboard({
                             
                             {/* STATS ROW */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                                <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                                <Link href="/staff/announcements" aria-label="View my announcements" className="block rounded-2xl bg-gradient-to-br from-blue-50 to-white p-6 border border-blue-100 shadow-sm transition-shadow hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
                                     <p className="text-sm font-bold text-blue-600 mb-2 uppercase tracking-wider">My Announcements</p>
                                     <div className="flex items-end justify-between">
                                         <h3 className="text-4xl font-extrabold text-slate-900">{announcementCount}</h3>
@@ -130,8 +135,12 @@ export default function StaffDashboard({
                                             <i className="fa-solid fa-bullhorn"></i>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-2xl border border-purple-100 shadow-sm hover:shadow-md transition-shadow">
+                                </Link>
+                                <Link
+                                    href="/staff/announcements?tab=my-posts&category=Event"
+                                    aria-label="View my event posts"
+                                    className="block rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm transition-shadow hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+                                >
                                     <p className="text-sm font-bold text-purple-600 mb-2 uppercase tracking-wider">My Events</p>
                                     <div className="flex items-end justify-between">
                                         <h3 className="text-4xl font-extrabold text-slate-900">{eventCount}</h3>
@@ -139,60 +148,51 @@ export default function StaffDashboard({
                                             <i className="fa-regular fa-calendar"></i>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             </div>
 
                             {/* TWO COLUMN LAYOUT FOR CARDS */}
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 
-                                {/* RECENT ANNOUNCEMENTS (List style inside the card container) */}
+                                {/* RECENT ANNOUNCEMENTS */}
                                 <div className="lg:col-span-2 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Recent Announcements</h3>
-                                        <Link href="/staff/announcements" className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight sm:text-2xl">Recent Announcements from All Departments</h3>
+                                            <p className="mt-1 text-sm text-slate-500">Latest updates shared by departments across campus.</p>
+                                        </div>
+                                        <Link href="/staff/announcements" className="shrink-0 text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
                                             View all
                                         </Link>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        {recentAnnouncements.map((announcement) => (
-                                            <div 
-                                                key={announcement.id} 
-                                                className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md h-full"
-                                            >
-                                                {/* Image or Placeholder */}
-                                                <div className="h-40 w-full bg-slate-100 flex items-center justify-center overflow-hidden">
-                                                    {announcement.image ? (
-                                                        <img src={announcement.image} alt={announcement.title} className="h-full w-full object-cover" />
+                                    <div className="divide-y divide-slate-200 border-y border-slate-200 bg-white">
+                                        {recentAnnouncements.length === 0 ? (
+                                            <p className="py-8 text-center text-sm font-medium text-slate-500">No announcements yet.</p>
+                                        ) : recentAnnouncements.map((announcement) => (
+                                            <div key={announcement.id} className="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 py-4 transition-colors hover:bg-slate-50 sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-3">
+                                                <div className="row-span-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 sm:row-span-1">
+                                                    {announcement.image_url ? (
+                                                        <img src={announcement.image_url} alt="" className="h-full w-full object-cover" />
                                                     ) : (
-                                                        <div className="text-slate-400">
-                                                            <i className="fa-regular fa-newspaper text-4xl"></i>
-                                                        </div>
+                                                        <i className="fa-regular fa-newspaper text-xl text-slate-400" aria-hidden="true"></i>
                                                     )}
                                                 </div>
 
-                                                {/* Content */}
-                                                <div className="flex flex-1 flex-col p-5">
-                                                    <div className="mb-2 flex items-center gap-2">
-                                                        <span className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
-                                                            {announcement.category || 'General'}
-                                                        </span>
-                                                        <span className="text-xs font-semibold text-slate-500">{formatDate(announcement.date)}</span>
-                                                    </div>
-
-                                                    <h4 className="mb-2 text-base font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="line-clamp-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-blue-600 sm:text-base">
                                                         {announcement.title}
                                                     </h4>
-                                                    
-                                                    <p className="mb-4 text-sm font-medium text-slate-500 line-clamp-2">
-                                                        {announcement.content || 'Click to read the full details of this announcement.'}
+                                                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                                                        {summarizeAnnouncement(announcement.body)}
                                                     </p>
-
-                                                    <div className="mt-auto flex items-center border-t border-slate-100 pt-4">
-                                                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                                                            <i className="fa-regular fa-eye text-slate-400"></i> 124
-                                                        </span>
-                                                    </div>
+                                                </div>
+                                                <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:col-start-3 sm:flex-col sm:items-end sm:gap-1">
+                                                    <span className="font-bold uppercase text-blue-700">{announcement.category || 'General'}</span>
+                                                    <span className="font-medium text-slate-500">{formatDate(announcement.date)}</span>
+                                                    {announcement.posted_by && (
+                                                        <span className="max-w-full whitespace-normal break-words text-slate-500 sm:text-right">Posted by {announcement.posted_by}</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}

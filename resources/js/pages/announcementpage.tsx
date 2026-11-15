@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type Announcement = {
     id: number;
@@ -27,6 +27,7 @@ type AnnouncementPageProps = {
     discussions?: Discussion[];
     announcementComments?: DiscussionMessage[];
     staffMode?: boolean;
+    initialTab?: 'announcement' | 'comments';
     onClose?: () => void;
 };
 
@@ -77,14 +78,19 @@ export default function AnnouncementPage({
     discussions = [],
     announcementComments = [],
     staffMode = false,
+    initialTab = 'announcement',
     onClose,
 }: AnnouncementPageProps) {
     const panelBase = staffMode ? '/staff' : '/admin';
     const isModal = Boolean(onClose);
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const [activeTab, setActiveTab] = useState<'announcement' | 'comments'>(
-        'announcement',
+        initialTab,
     );
+    useEffect(() => {
+        if (isModal) contentRef.current?.scrollTo({ top: 0 });
+    }, [activeTab, isModal]);
     const totalCommentCount =
         discussions.reduce(
             (count, discussion) => count + discussion.messages.length,
@@ -112,10 +118,32 @@ export default function AnnouncementPage({
             ? `${formatTime(announcement.start_time)} - ${formatTime(announcement.end_time)}`
             : formatTime(announcement.start_time),
     ].filter(Boolean);
-    const hasModalImage = isModal;
+    const categoryLabel =
+        announcement.category === 'Event'
+            ? 'Events'
+            : announcement.category === 'Service'
+              ? 'Services'
+              : announcement.category;
+    const categoryColor =
+        announcement.category === 'Event'
+            ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+            : announcement.category === 'Academic'
+              ? 'bg-blue-100 text-blue-700 border-blue-200'
+              : announcement.category === 'Service'
+                ? 'bg-purple-100 text-purple-700 border-purple-200'
+                : 'bg-slate-100 text-slate-700 border-slate-200';
+    const categoryIcon =
+        announcement.category === 'Academic'
+            ? 'fa-solid fa-graduation-cap'
+            : announcement.category === 'Event'
+              ? 'fa-regular fa-calendar'
+              : announcement.category === 'Service'
+                ? 'fa-solid fa-hand-holding-heart'
+                : 'fa-regular fa-newspaper';
     const announcementImage = announcement.image_url ? (
         failedImageUrl === announcement.image_url ? (
             <div
+                ref={contentRef}
                 className={
                     isModal
                         ? 'flex h-64 items-center justify-center bg-slate-100 md:h-full md:min-h-[19rem]'
@@ -138,7 +166,10 @@ export default function AnnouncementPage({
         )
     ) : isModal ? (
         <div className="flex h-64 flex-col items-center justify-center gap-2 bg-slate-100 px-6 text-center text-sm font-medium text-slate-500 md:h-full md:min-h-[19rem]">
-            <i className="fa-regular fa-image text-3xl text-slate-400" aria-hidden="true"></i>
+            <i
+                className="fa-regular fa-image text-3xl text-slate-400"
+                aria-hidden="true"
+            ></i>
             <span>No cover image</span>
         </div>
     ) : null;
@@ -235,17 +266,17 @@ export default function AnnouncementPage({
         >
             {!isModal && <Head title={announcement.title} />}
             <article
-                className={`relative w-full overflow-y-auto ${
+                className={`relative w-full ${
                     isModal
-                        ? 'h-[95vh] max-h-[95vh] max-w-6xl rounded-3xl bg-slate-50 p-4 shadow-2xl sm:p-6'
-                        : 'max-h-[90vh] max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl'
+                        ? 'flex h-[95vh] max-h-[95vh] max-w-6xl flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl'
+                        : 'max-h-[90vh] max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl'
                 }`}
                 onClick={
                     isModal ? (event) => event.stopPropagation() : undefined
                 }
             >
                 {isModal && (
-                    <nav className="sticky top-0 z-10 -mx-4 -mt-4 mb-5 flex items-center justify-between border-b border-slate-200 bg-slate-50/95 px-4 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6">
+                    <nav className="z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-4 backdrop-blur sm:px-6">
                         <div
                             className="flex gap-1"
                             role="tablist"
@@ -301,161 +332,346 @@ export default function AnnouncementPage({
                     </nav>
                 )}
 
-                {(!isModal || activeTab === 'announcement') && (
-                    <div
-                        id={isModal ? 'announcement-tab-panel' : undefined}
-                        role={isModal ? 'tabpanel' : undefined}
-                        aria-labelledby={
-                            isModal ? 'announcement-tab' : undefined
-                        }
-                    >
-                        {hasModalImage && (
-                            <div className="mb-6 grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[minmax(16rem,0.85fr)_minmax(0,1.4fr)]">
-                                <div className="min-h-64 bg-slate-100 md:min-h-[19rem]">
-                                    {announcementImage}
-                                </div>
-                                <header className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
-                                    {announcementHeading}
-                                </header>
-                            </div>
-                        )}
-                        {!isModal && announcementImage}
-
+                <div
+                    className={
+                        isModal ? 'min-h-0 flex-1 overflow-y-auto p-4 sm:p-6' : undefined
+                    }
+                >
+                    {(!isModal || activeTab === 'announcement') && (
                         <div
-                            className={
-                                isModal
-                                    ? 'rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-10'
-                                    : 'p-6 sm:p-8'
-                            }
+                            id={isModal ? 'announcement-tab-panel' : undefined}
+                            role={isModal ? 'tabpanel' : undefined}
+                            aria-labelledby={isModal ? 'announcement-tab' : undefined}
                         >
-                            {!hasModalImage && (
-                                <div className="mb-7">
-                                    {announcementHeading}
-                                </div>
-                            )}
-
-                            <section aria-label="Announcement details">
-                                <h2 className="mb-3 text-3xl font-bold text-slate-900">
-                                    Details
-                                </h2>
-                                <div
-                                    dangerouslySetInnerHTML={{ __html: announcement.body_html }}
-                                    className={`break-words text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-4 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 ${
-                                        isModal
-                                            ? 'text-base leading-8 sm:text-lg'
-                                            : 'text-sm leading-7'
-                                    }`}
+                            {isModal && (
+                                <ClientStyleAnnouncementLayout
+                                    announcement={announcement}
+                                    failedImageUrl={failedImageUrl}
+                                    onImageError={() =>
+                                        setFailedImageUrl(announcement.image_url)
+                                    }
+                                    categoryLabel={categoryLabel}
+                                    categoryColor={categoryColor}
+                                    categoryIcon={categoryIcon}
+                                    eventTime={eventTime[0]}
                                 />
-                            </section>
-                            {announcement.attachments.length > 0 && (
-                                <section aria-label="Downloadable documents" className="mt-8">
-                                    <h2 className="mb-3 text-lg font-bold text-slate-900">
-                                        Attachments
-                                    </h2>
-                                    <div className="flex flex-wrap gap-3">
-                                        {announcement.attachments.map((file) => (
-                                            <a
-                                                key={file.path}
-                                                href={file.url}
-                                                download={file.name}
-                                                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-400 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <i className="fa-solid fa-file-arrow-down text-blue-600" aria-hidden="true"></i>
-                                                <span className="break-all">{file.name}</span>
-                                                <span className="shrink-0 text-xs font-medium text-slate-400">{file.size}</span>
-                                            </a>
-                                        ))}
-                                    </div>
-                                </section>
+                            )}
+                            {!isModal && announcementImage}
+
+                            {!isModal && (
+                                <div className="p-6 sm:p-8">
+                                    <div className="mb-7">{announcementHeading}</div>
+
+                                    <section aria-label="Announcement details">
+                                        <h2 className="mb-3 text-3xl font-bold text-slate-900">
+                                            Details
+                                        </h2>
+                                        <div
+                                            dangerouslySetInnerHTML={{
+                                                __html: announcement.body_html,
+                                            }}
+                                            className="text-sm leading-7 break-words text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-4 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                                        />
+                                    </section>
+                                    {announcement.attachments.length > 0 && (
+                                        <section
+                                            aria-label="Downloadable documents"
+                                            className="mt-8"
+                                        >
+                                            <h2 className="mb-3 text-lg font-bold text-slate-900">
+                                                Attachments
+                                            </h2>
+                                            <div className="flex flex-wrap gap-3">
+                                                {announcement.attachments.map((file) => (
+                                                    <a
+                                                        key={file.path}
+                                                        href={file.url}
+                                                        download={file.name}
+                                                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-400 hover:text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                                    >
+                                                        <i
+                                                            className="fa-solid fa-file-arrow-down text-blue-600"
+                                                            aria-hidden="true"
+                                                        ></i>
+                                                        <span className="break-all">
+                                                            {file.name}
+                                                        </span>
+                                                        <span className="shrink-0 text-xs font-medium text-slate-400">
+                                                            {file.size}
+                                                        </span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {isModal && activeTab === 'comments' && (
-                    <section
-                        id="comments-tab-panel"
-                        role="tabpanel"
-                        aria-labelledby="comments-tab"
-                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                    >
-                        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
-                            <div className="flex items-center gap-3">
-                                <div className="text-ctu-lightblue flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                                    <i
-                                        className="fa-solid fa-comments"
-                                        aria-hidden="true"
-                                    ></i>
+                    {isModal && activeTab === 'comments' && (
+                        <section
+                            id="comments-tab-panel"
+                            role="tabpanel"
+                            aria-labelledby="comments-tab"
+                            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                        >
+                            <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-ctu-lightblue flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                                        <i
+                                            className="fa-solid fa-comments"
+                                            aria-hidden="true"
+                                        ></i>
+                                    </div>
+                                    <div>
+                                        <h2 className="font-bold text-slate-900">Comments</h2>
+                                        <p className="text-xs text-slate-500">
+                                            Announcement-wide discussion and student threads
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="font-bold text-slate-900">
-                                        Comments
-                                    </h2>
-                                    <p className="text-xs text-slate-500">
-                                        Announcement-wide discussion and student threads
-                                    </p>
-                                </div>
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                    {totalCommentCount}{' '}
+                                    {totalCommentCount === 1 ? 'comment' : 'comments'}
+                                </span>
+                            </header>
+
+                            <div className="border-b border-slate-100 bg-slate-50 p-4 sm:p-6">
+                                <AnnouncementCommentForm
+                                    announcementId={announcement.id}
+                                    panelBase={panelBase}
+                                />
                             </div>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                {totalCommentCount}{' '}
-                                {totalCommentCount === 1 ? 'comment' : 'comments'}
-                            </span>
-                        </header>
 
-                        {announcementComments.length > 0 && (
-                            <div className="space-y-3 border-b border-slate-100 p-4 sm:p-6">
-                                <h3 className="text-sm font-bold text-slate-700">
-                                    Announcement-wide discussion
-                                </h3>
-                                {announcementComments
-                                    .filter((message) => message.parent_message_id === null)
-                                    .map((message) => (
-                                        <AnnouncementMessageThread
-                                            key={message.id}
-                                            announcementId={announcement.id}
-                                            message={message}
-                                            messages={announcementComments}
+                            {announcementComments.length > 0 && (
+                                <div className="space-y-3 border-b border-slate-100 p-4 sm:p-6">
+                                    <h3 className="text-sm font-bold text-slate-700">
+                                        Announcement-wide discussion
+                                    </h3>
+                                    {announcementComments
+                                        .filter((message) => message.parent_message_id === null)
+                                        .map((message) => (
+                                            <AnnouncementMessageThread
+                                                key={message.id}
+                                                announcementId={announcement.id}
+                                                message={message}
+                                                messages={announcementComments}
+                                                panelBase={panelBase}
+                                            />
+                                        ))}
+                                </div>
+                            )}
+
+                            {discussions.length === 0 ? (
+                                <div className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
+                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                                        <i
+                                            className="fa-regular fa-comment-dots text-xl"
+                                            aria-hidden="true"
+                                        ></i>
+                                    </div>
+                                    <h3 className="font-semibold text-slate-800">
+                                        No student comments yet
+                                    </h3>
+                                </div>
+                            ) : (
+                                <div className="space-y-5 p-4 sm:p-6">
+                                    {discussions.map((discussion) => (
+                                        <DiscussionThread
+                                            key={discussion.id}
+                                            discussion={discussion}
                                             panelBase={panelBase}
                                         />
                                     ))}
-                            </div>
-                        )}
-
-                        {discussions.length === 0 ? (
-                            <div className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
-                                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                                    <i
-                                        className="fa-regular fa-comment-dots text-xl"
-                                        aria-hidden="true"
-                                    ></i>
                                 </div>
-                                <h3 className="font-semibold text-slate-800">
-                                    No student comments yet
-                                </h3>
-                            </div>
-                        ) : (
-                            <div className="space-y-5 p-4 sm:p-6">
-                                {discussions.map((discussion) => (
-                                    <DiscussionThread
-                                        key={discussion.id}
-                                        discussion={discussion}
-                                        panelBase={panelBase}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                            )}
 
-                        <div className="border-t border-slate-100 bg-slate-50 p-4 sm:p-6">
-                            <AnnouncementCommentForm announcementId={announcement.id} panelBase={panelBase} />
-                        </div>
-                    </section>
-                )}
+                        </section>
+                    )}
+                </div>
             </article>
         </div>
     );
 }
 
-function DiscussionThread({ discussion, panelBase }: { discussion: Discussion; panelBase: string }) {
+function ClientStyleAnnouncementLayout({
+    announcement,
+    failedImageUrl,
+    onImageError,
+    categoryLabel,
+    categoryColor,
+    categoryIcon,
+    eventTime,
+}: {
+    announcement: Announcement;
+    failedImageUrl: string | null;
+    onImageError: () => void;
+    categoryLabel: string;
+    categoryColor: string;
+    categoryIcon: string;
+    eventTime?: string;
+}) {
+    return (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+            <article
+                className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10 ${announcement.category === 'Event' && announcement.event_date ? 'lg:col-span-8' : 'lg:col-span-12'}`}
+            >
+                <header className="mb-8">
+                    <span
+                        className={`mb-3 inline-flex rounded border px-2.5 py-1 text-xs font-bold tracking-wider uppercase ${categoryColor}`}
+                    >
+                        {categoryLabel}
+                    </span>
+                    <h1
+                        id="announcement-detail-title"
+                        className="text-3xl leading-tight font-extrabold text-slate-900"
+                    >
+                        {announcement.title}
+                    </h1>
+                    <div className="mt-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 font-bold text-slate-500">
+                            {announcement.posted_by
+                                .trim()
+                                .charAt(0)
+                                .toUpperCase() || 'A'}
+                        </div>
+                        <div>
+                            <p className="text-base font-extrabold text-slate-900">
+                                {announcement.posted_by}
+                            </p>
+                            <p className="mt-0.5 text-sm font-medium text-slate-500">
+                                {formatDate(announcement.date)}
+                            </p>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="relative mb-8 flex h-64 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 sm:h-80">
+                    {announcement.image_url &&
+                    failedImageUrl !== announcement.image_url ? (
+                        <img
+                            src={announcement.image_url}
+                            alt={announcement.title}
+                            className="h-full w-full object-cover"
+                            onError={onImageError}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center text-slate-400">
+                            <i
+                                className={`mb-3 text-5xl ${categoryIcon}`}
+                                aria-hidden="true"
+                            ></i>
+                            <span className="text-sm font-bold tracking-widest uppercase">
+                                {categoryLabel}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                <div
+                    dangerouslySetInnerHTML={{ __html: announcement.body_html }}
+                    className="mb-10 text-base leading-relaxed break-words text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-4 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
+                />
+
+                {announcement.attachments.length > 0 && (
+                    <section
+                        className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-5"
+                        aria-label="Attachments"
+                    >
+                        <h2 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                            Attachments
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
+                            {announcement.attachments.map((file) => (
+                                <a
+                                    key={file.path}
+                                    href={file.url}
+                                    download={file.name}
+                                    className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm"
+                                >
+                                    <i
+                                        className="fa-solid fa-file-pdf text-rose-500"
+                                        aria-hidden="true"
+                                    ></i>
+                                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
+                                        {file.name}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                        {file.size}
+                                    </span>
+                                </a>
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </article>
+
+            {announcement.category === 'Event' && announcement.event_date && (
+                <aside className="space-y-6 lg:col-span-4">
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h2 className="mb-4 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                            Event details
+                        </h2>
+                        <div className="mb-2 flex gap-4">
+                            <div className="h-fit min-w-[56px] shrink-0 rounded-lg border border-slate-200 bg-slate-100 p-2.5 text-center">
+                                <p className="text-[10px] font-extrabold text-slate-500 uppercase">
+                                    {new Date(
+                                        `${announcement.event_date}T00:00:00`,
+                                    ).toLocaleDateString(undefined, {
+                                        month: 'short',
+                                    })}
+                                </p>
+                                <p className="mt-0.5 text-xl leading-none font-black text-slate-800">
+                                    {new Date(
+                                        `${announcement.event_date}T00:00:00`,
+                                    ).getDate()}
+                                </p>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-base font-bold text-slate-900">
+                                    {formatDate(announcement.event_date)}
+                                </p>
+                                {announcement.event_end_date &&
+                                    announcement.event_end_date !==
+                                        announcement.event_date && (
+                                        <p className="mt-1 text-sm font-medium text-slate-500">
+                                            through{' '}
+                                            {formatDate(
+                                                announcement.event_end_date,
+                                            )}
+                                        </p>
+                                    )}
+                                {eventTime && (
+                                    <p className="mt-1 text-sm font-medium text-slate-500">
+                                        {eventTime}
+                                    </p>
+                                )}
+                                {announcement.location && (
+                                    <p className="mt-1 text-sm font-medium text-slate-500">
+                                        <i
+                                            className="fa-solid fa-location-dot mr-1.5"
+                                            aria-hidden="true"
+                                        ></i>
+                                        {announcement.location}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+            )}
+        </div>
+    );
+}
+
+function DiscussionThread({
+    discussion,
+    panelBase,
+}: {
+    discussion: Discussion;
+    panelBase: string;
+}) {
     const rootMessages = discussion.messages.filter(
         (message) => message.parent_message_id === null,
     );
@@ -480,9 +696,6 @@ function DiscussionThread({ discussion, panelBase }: { discussion: Discussion; p
                         />
                     </div>
                 ))}
-            </div>
-            <div className="border-t border-slate-100 bg-slate-50 p-4">
-                <DiscussionReplyForm discussionId={discussion.id} panelBase={panelBase} />
             </div>
         </article>
     );
@@ -568,12 +781,12 @@ function DiscussionReplyForm({
     panelBase,
 }: {
     discussionId: number;
-    comment?: DiscussionMessage;
+    comment: DiscussionMessage;
     panelBase: string;
 }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         content: '',
-        parent_message_id: comment?.id ?? null,
+        parent_message_id: comment.id,
     });
 
     const handleReply = (event: React.FormEvent<HTMLFormElement>) => {
@@ -592,24 +805,18 @@ function DiscussionReplyForm({
         <form onSubmit={handleReply} className="flex items-end gap-3">
             <div className="flex-1">
                 <label
-                    htmlFor={`reply-${discussionId}-${comment?.id ?? 'new'}`}
+                    htmlFor={`reply-${discussionId}-${comment.id}`}
                     className="mb-1 block text-xs font-semibold text-slate-600"
                 >
-                    {comment
-                        ? `Reply directly to ${comment.author}'s comment`
-                        : 'Add a comment to this discussion'}
+                    {`Reply directly to ${comment.author}'s comment`}
                 </label>
                 <textarea
-                    id={`reply-${discussionId}-${comment?.id ?? 'new'}`}
+                    id={`reply-${discussionId}-${comment.id}`}
                     value={data.content}
                     onChange={(event) => setData('content', event.target.value)}
                     rows={2}
                     maxLength={5000}
-                    placeholder={
-                        comment
-                            ? `Reply to ${comment.author}...`
-                            : 'Write a comment...'
-                    }
+                    placeholder={`Reply to ${comment.author}...`}
                     className="w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                 />
                 {errors.content && (
@@ -623,13 +830,19 @@ function DiscussionReplyForm({
                 disabled={!data.content.trim() || processing}
                 className="bg-ctu-dark rounded-xl px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
             >
-                {processing ? 'Posting...' : comment ? 'Reply' : 'Post Comment'}
+                {processing ? 'Posting...' : 'Reply'}
             </button>
         </form>
     );
 }
 
-function AnnouncementCommentForm({ announcementId, panelBase }: { announcementId: number; panelBase: string }) {
+function AnnouncementCommentForm({
+    announcementId,
+    panelBase,
+}: {
+    announcementId: number;
+    panelBase: string;
+}) {
     return (
         <AnnouncementCommentFormFields
             announcementId={announcementId}
@@ -658,11 +871,11 @@ function AnnouncementMessageThread({
     return (
         <article className="rounded-xl border border-slate-200 bg-white p-3">
             <MessageBubble message={message} />
-            <div className="ml-4 mt-2 border-l-2 border-blue-100 pl-4 sm:ml-8">
+            <div className="mt-2 ml-4 border-l-2 border-blue-100 pl-4 sm:ml-8">
                 <button
                     type="button"
                     onClick={() => setIsReplyOpen((open) => !open)}
-                    className="text-sm font-bold text-ctu-lightblue hover:text-blue-700"
+                    className="text-ctu-lightblue text-sm font-bold hover:text-blue-700"
                 >
                     {isReplyOpen ? 'Cancel reply' : 'Reply'}
                 </button>
@@ -748,9 +961,13 @@ function AnnouncementCommentFormFields({
             <button
                 type="submit"
                 disabled={!data.content.trim() || processing}
-                className="rounded-xl bg-ctu-dark px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+                className="bg-ctu-dark rounded-xl px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
             >
-                {processing ? 'Posting...' : parentMessageId ? 'Reply' : 'Post Comment'}
+                {processing
+                    ? 'Posting...'
+                    : parentMessageId
+                      ? 'Reply'
+                      : 'Post Comment'}
             </button>
         </form>
     );

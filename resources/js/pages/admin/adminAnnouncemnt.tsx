@@ -1,7 +1,8 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AnnouncementPage, { type Announcement } from '../announcementpage';
 import StaffSidebar from '../staff/StaffSidebar';
+import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
 
 type DiscussionMessage = {
     id: number;
@@ -37,21 +38,33 @@ export default function AdminAnnouncements({
     announcementComments = [],
     staffMode = false,
     staffName = '',
+    staffDepartment = null,
     staffId,
     adminId,
+    openAnnouncementId = null,
+    openAnnouncementSection = null,
+    initialTab = null,
+    initialCategoryFilter = null,
 }: {
     announcements: Announcement[];
     discussions: Discussion[];
     announcementComments: AnnouncementComment[];
     staffMode?: boolean;
     staffName?: string;
+    staffDepartment?: string | null;
     staffId?: number;
     adminId?: number;
+    openAnnouncementId?: number | null;
+    openAnnouncementSection?: 'comments' | null;
+    initialTab?: 'My Posts' | null;
+    initialCategoryFilter?: 'Event' | null;
 }) {
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
     const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
-    const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(
+        () => announcements.find((announcement) => announcement.id === openAnnouncementId) ?? null,
+    );
     const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
     const [selectedImageName, setSelectedImageName] = useState('');
     const [selectedAttachmentNames, setSelectedAttachmentNames] = useState<string[]>([]);
@@ -64,33 +77,59 @@ export default function AdminAnnouncements({
     // Table State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLogoutHovered, setIsLogoutHovered] = useState(false);
-    const [activeTab, setActiveTab] = useState('My Posts');
+    const [activeTab, setActiveTab] = useState(initialTab ?? 'My Posts');
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter ?? 'All');
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const panelBase = staffMode ? '/staff' : '/admin';
+    const statusInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (openAnnouncementId === null) return;
+
+        const announcement = announcements.find((item) => item.id === openAnnouncementId);
+        if (announcement) setSelectedAnnouncement(announcement);
+    }, [announcements, openAnnouncementId]);
+
+    const closeAnnouncement = () => {
+        setSelectedAnnouncement(null);
+
+        if (staffMode && openAnnouncementId !== null) {
+            router.get('/staff/announcements', {}, {
+                replace: true,
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    };
     const tabs = [
         ...(staffMode ? [{
             label: 'My Posts',
-            count: announcements.filter((announcement) => announcement.author_staff_id === staffId).length,
+            count: announcements.filter((announcement) => announcement.author_staff_id === staffId && announcement.status !== 'Draft').length,
         }] : []),
         ...(!staffMode ? [{
             label: 'My Posts',
-            count: announcements.filter((announcement) => announcement.author_admin_id === adminId).length,
+            count: announcements.filter((announcement) => announcement.author_admin_id === adminId && announcement.status !== 'Draft').length,
         }] : []),
-        { label: 'All', count: announcements.length },
-        { label: 'Drafts', count: 2 },
-        { label: 'Archived', count: 3 },
+        { label: 'All', count: announcements.filter((announcement) => announcement.status !== 'Draft' && announcement.status !== 'Archived').length },
+        { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft' && (!staffMode || announcement.author_staff_id === staffId)).length },
+        { label: 'Archived', count: announcements.filter((announcement) => announcement.status === 'Archived').length },
     ];
 
     // Filtering Logic
     const filteredAnnouncements = announcements.filter((ann) => {
         const matchesTab = activeTab === 'My Posts'
             ? staffMode
-                ? ann.author_staff_id === staffId
-                : ann.author_admin_id === adminId
-            : activeTab === 'All' || ann.status === activeTab;
+                ? ann.author_staff_id === staffId && ann.status !== 'Draft'
+                : ann.author_admin_id === adminId && ann.status !== 'Draft'
+            : activeTab === 'Drafts'
+                ? ann.status === 'Draft' && (!staffMode || ann.author_staff_id === staffId)
+                : activeTab === 'Archived'
+                    ? ann.status === 'Archived'
+                    : activeTab === 'All'
+                        ? ann.status !== 'Draft' && ann.status !== 'Archived'
+                        : ann.status === activeTab;
         const matchesSearch = ann.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = categoryFilter === 'All' || ann.category === categoryFilter;
         return matchesTab && matchesSearch && matchesCategory;
@@ -297,10 +336,14 @@ export default function AdminAnnouncements({
                         </div>
                         
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            </button>
+                            {staffMode ? (
+                                <StaffNotificationDropdown />
+                            ) : (
+                                <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
+                                    <i className="fa-regular fa-bell text-lg"></i>
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                                </button>
+                            )}
 
                             <button 
                                 type="button" 
@@ -368,53 +411,125 @@ export default function AdminAnnouncements({
                             {/* TABLE */}
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible mb-6">
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse min-w-[900px]">
+                                    <table className="w-full table-fixed text-left border-collapse min-w-[1000px]">
+                                        <colgroup>
+                                            <col className="w-12" />
+                                            <col className="w-[25%]" />
+                                            <col className="w-[15%]" />
+                                            <col className="w-[12%]" />
+                                            <col className="w-[12%]" />
+                                            <col className="w-[14%]" />
+                                            <col className="w-[22%]" />
+                                        </colgroup>
                                         <thead>
                                             <tr className="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-extrabold bg-slate-50/50">
                                                 <th className="px-4 py-3 w-10">
                                                     <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.length === filteredAnnouncements.length && filteredAnnouncements.length > 0} className="rounded border-slate-300 cursor-pointer" />
                                                 </th>
                                                 <th className="px-4 py-3">Title</th>
-                                                <th className="px-4 py-3">Category</th>
-                                                <th className="px-4 py-3">Audience</th>
-                                                <th className="px-4 py-3">Status</th>
-                                                <th className="px-4 py-3">Date</th>
-                                                {!staffMode && <th className="px-4 py-3 text-right">Actions</th>}
+                                                <th className="py-3 pl-6 pr-4">Category</th>
+                                                <th className="px-4 py-3">Posted By</th>
+                                                <th className="py-3 pl-6 pr-4">Status</th>
+                                                <th className="whitespace-nowrap px-4 py-3">Date</th>
+                                                <th className="px-4 py-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {filteredAnnouncements.map((announcement: any) => (
                                                 <tr key={announcement.id} className="text-sm text-slate-700 hover:bg-slate-50 transition-colors group">
-                                                    <td className="px-4 py-4">
+                                                    <td className="px-4 py-5">
                                                         <input type="checkbox" checked={selectedRows.includes(announcement.id)} onChange={() => handleSelectRow(announcement.id)} className="rounded border-slate-300 cursor-pointer" />
                                                     </td>
-                                                    <td className="px-4 py-4">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedAnnouncement(announcement)}
-                                                            className="line-clamp-1 text-left font-bold text-slate-900 transition-colors hover:text-ctu-lightblue focus:outline-none focus-visible:ring-2 focus-visible:ring-ctu-lightblue rounded"
-                                                        >
+                                                    <td className="px-4 py-5">
+                                                        <span className="line-clamp-1 font-bold text-slate-900">
                                                             {announcement.title}
-                                                        </button>
+                                                        </span>
                                                     </td>
-                                                    <td className="px-4 py-4">
+                                                    <td className="px-4 py-5">
                                                         <span className="border border-slate-200 bg-slate-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{announcement.category}</span>
                                                     </td>
-                                                    <td className="px-4 py-4 text-xs font-semibold">{announcement.audience || 'All'}</td>
-                                                    <td className="px-4 py-4">
+                                                    <td className="px-4 py-5 text-xs font-semibold">{announcement.posted_by || '—'}</td>
+                                                    <td className="px-4 py-5">
                                                         <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${announcement.status === 'Scheduled' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-800'}`}>
                                                             {announcement.status || 'Published'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-4 text-xs">{formatDate(announcement.date)}</td>
-                                                    {!staffMode && (
-                                                        <td className="px-4 py-4 text-right">
-                                                            <div className="flex justify-end gap-2">
-                                                                <button onClick={() => openEditor(announcement)} className="px-3 py-1.5 border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Edit</button>
-                                                                <button onClick={() => setAnnouncementToDelete(announcement)} className="w-8 h-8 flex items-center justify-center rounded border border-slate-300 hover:bg-rose-50 text-rose-600"><i className="fa-solid fa-trash"></i></button>
+                                                    <td className="whitespace-nowrap px-4 py-5 text-xs">{formatDate(announcement.date)}</td>
+                                                    <td className="px-4 py-5 text-right">
+                                                        {activeTab === 'My Posts' && (staffMode
+                                                            ? announcement.author_staff_id === staffId
+                                                            : announcement.author_admin_id === adminId) ? (
+                                                            <div className="flex justify-end gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedAnnouncement(announcement)}
+                                                                    title="View announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                                                                >
+                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openEditor(announcement)}
+                                                                    title="Edit announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-2 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                                                                >
+                                                                    <i className="fa-solid fa-pen" aria-hidden="true"></i> Edit
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setAnnouncementToDelete(announcement)}
+                                                                    title="Delete announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-2 text-[10px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
+                                                                >
+                                                                    <i className="fa-solid fa-trash" aria-hidden="true"></i> Delete
+                                                                </button>
                                                             </div>
-                                                        </td>
-                                                    )}
+                                                        ) : activeTab === 'All' ? (
+                                                            <div className="flex justify-end gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedAnnouncement(announcement)}
+                                                                    title="View announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                                                                >
+                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
+                                                                </button>
+                                                                {!staffMode && (
+                                                                    <>
+                                                                        <button onClick={() => openEditor(announcement)} className="px-2 py-2 border border-slate-300 rounded-md text-[10px] font-bold hover:bg-slate-50">Edit</button>
+                                                                        <button onClick={() => setAnnouncementToDelete(announcement)} title="Delete announcement" className="h-9 w-9 flex items-center justify-center rounded-md border border-slate-300 hover:bg-rose-50 text-rose-600"><i className="fa-solid fa-trash" aria-hidden="true"></i></button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        ) : staffMode ? (
+                                                            announcement.status === 'Draft' && announcement.author_staff_id === staffId ? (
+                                                                <div className="flex justify-end gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openEditor(announcement)}
+                                                                        className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-[11px] font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                                                                    >
+                                                                        <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                                                        Continue
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setAnnouncementToDelete(announcement)}
+                                                                        className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-2 text-[11px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
+                                                                    >
+                                                                        <i className="fa-solid fa-trash" aria-hidden="true"></i>
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            ) : null
+                                                        ) : (
+                                                            <div className="flex justify-end gap-2">
+                                                                <button onClick={() => openEditor(announcement)} className="px-3 py-2.5 border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Edit</button>
+                                                                <button onClick={() => setAnnouncementToDelete(announcement)} className="h-9 w-9 flex items-center justify-center rounded border border-slate-300 hover:bg-rose-50 text-rose-600"><i className="fa-solid fa-trash"></i></button>
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -427,13 +542,15 @@ export default function AdminAnnouncements({
 
                 {selectedAnnouncement && (
                     <AnnouncementPage
+                        key={`${selectedAnnouncement.id}-${openAnnouncementSection ?? 'announcement'}`}
                         announcement={selectedAnnouncement}
                         discussions={discussions.filter((discussion) => discussion.announcement_id === selectedAnnouncement.id)}
                         announcementComments={announcementComments
                             .filter((comment) => comment.announcement_id === selectedAnnouncement.id)
                             .flatMap((comment) => comment.messages)}
                         staffMode={staffMode}
-                        onClose={() => setSelectedAnnouncement(null)}
+                        initialTab={openAnnouncementSection ?? 'announcement'}
+                        onClose={closeAnnouncement}
                     />
                 )}
 
@@ -451,6 +568,7 @@ export default function AdminAnnouncements({
                                 {({ errors, processing }) => (
                                     <>
                                     {editingAnnouncement && <input type="hidden" name="_method" value="put" />}
+                                    <input ref={statusInputRef} type="hidden" name="status" defaultValue={editingAnnouncement?.status === 'Draft' ? 'Draft' : 'Published'} />
 
                                     <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
                                         <div className="flex items-center gap-4">
@@ -462,8 +580,30 @@ export default function AdminAnnouncements({
                                             </h2>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <button type="submit" disabled={processing} className="px-4 py-2 bg-ctu-dark hover:bg-slate-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50">
-                                                {processing ? 'Saving...' : editingAnnouncement ? 'Save changes' : 'Publish'}
+                                            {(!editingAnnouncement || editingAnnouncement.status === 'Draft') && (
+                                                <button
+                                                    type="submit"
+                                                    formNoValidate
+                                                    disabled={processing}
+                                                    onClick={() => {
+                                                        if (statusInputRef.current) statusInputRef.current.value = 'Draft';
+                                                    }}
+                                                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                                                >
+                                                    Save as draft
+                                                </button>
+                                            )}
+                                            <button
+                                                type="submit"
+                                                disabled={processing}
+                                                onClick={() => {
+                                                        if (statusInputRef.current) {
+                                                        statusInputRef.current.value = 'Published';
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-ctu-dark hover:bg-slate-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                                            >
+                                                {processing ? 'Saving...' : editingAnnouncement?.status === 'Draft' ? 'Publish' : editingAnnouncement ? 'Save changes' : 'Publish'}
                                             </button>
                                         </div>
                                     </div>
@@ -602,7 +742,7 @@ export default function AdminAnnouncements({
                                                 >
                                                     <option value="Academic">Academic</option>
                                                     <option value="General">General</option>
-                                                    {editingAnnouncement?.category === 'Event' && <option value="Event">Event</option>}
+                                                    {(staffMode || editingAnnouncement?.category === 'Event') && <option value="Event">Event</option>}
                                                     <option value="Service">Service</option>
                                                 </select>
                                                 {errors.category && <p className="mb-3 text-xs font-bold text-red-600">{errors.category}</p>}
@@ -614,7 +754,8 @@ export default function AdminAnnouncements({
                                                     id="posted_by"
                                                     type="text"
                                                     name="posted_by"
-                                                    defaultValue={editingAnnouncement?.posted_by ?? "Registrar's Office"}
+                                                    defaultValue={staffDepartment ?? editingAnnouncement?.posted_by ?? (staffMode ? "Registrar's Office" : 'Admin')}
+                                                    readOnly={staffMode && staffDepartment !== null}
                                                     required
                                                     maxLength={255}
                                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-ctu-lightblue"

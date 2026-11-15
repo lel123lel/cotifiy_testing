@@ -20,6 +20,7 @@ class ClientPageController extends Controller
     public function welcome(): Response
     {
         $publicAnnouncements = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->select(['id', 'title', 'category', 'date', 'body'])
             ->orderByDesc('date')
             ->orderByDesc('id')
@@ -46,7 +47,7 @@ class ClientPageController extends Controller
             $user = $request->user();
             $newAnnouncementCount = DB::transaction(function () use ($user): int {
                 $user = User::query()->lockForUpdate()->findOrFail($user->id);
-                $latestAnnouncementId = (int) (Announcement::query()->max('id') ?? 0);
+                $latestAnnouncementId = (int) (Announcement::query()->where('status', '!=', 'Draft')->max('id') ?? 0);
                 $lastAnnouncementId = $user->last_announcement_id;
 
                 $count = $lastAnnouncementId === null
@@ -54,6 +55,7 @@ class ClientPageController extends Controller
                     : Announcement::query()
                         ->where('id', '>', $lastAnnouncementId)
                         ->where('id', '<=', $latestAnnouncementId)
+                        ->where('status', '!=', 'Draft')
                         ->count();
 
                 if ($latestAnnouncementId > ($lastAnnouncementId ?? 0)) {
@@ -67,6 +69,7 @@ class ClientPageController extends Controller
         }
 
         $announcements = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->select([
                 'id',
                 'title',
@@ -88,6 +91,7 @@ class ClientPageController extends Controller
             ->map(fn (Announcement $announcement) => $this->announcementSummaryData($announcement));
 
         $upcomingEvents = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->select([
                 'id',
                 'title',
@@ -132,6 +136,7 @@ class ClientPageController extends Controller
     public function announcements(): Response
     {
         $announcements = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get()
@@ -145,6 +150,7 @@ class ClientPageController extends Controller
     public function events(): Response
     {
         $events = Announcement::query()
+            ->where('status', '!=', 'Draft')
             ->where('category', 'Event')
             ->whereNotNull('event_date')
             ->orderBy('event_date')
@@ -164,6 +170,7 @@ class ClientPageController extends Controller
 
         return Inertia::render('client/clientSaved', [
             'savedItems' => $user->savedAnnouncements()
+                ->where('status', '!=', 'Draft')
                 ->orderByPivot('created_at', 'desc')
                 ->get()
                 ->map(fn (Announcement $announcement) => [
@@ -178,6 +185,8 @@ class ClientPageController extends Controller
 
     public function saveAnnouncement(Request $request, Announcement $announcement): RedirectResponse
     {
+        abort_if($announcement->status === 'Draft', 404);
+
         /** @var User $user */
         $user = $request->user();
         $user->savedAnnouncements()->syncWithoutDetaching([$announcement->id]);
@@ -196,6 +205,8 @@ class ClientPageController extends Controller
 
     public function show(Request $request, Announcement $announcement): Response
     {
+        abort_if($announcement->status === 'Draft', 404);
+
         /** @var User $user */
         $user = $request->user();
         $user->notifications()

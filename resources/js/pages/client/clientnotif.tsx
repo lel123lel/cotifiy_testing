@@ -49,6 +49,15 @@ export default function ClientNotifications({
         router.post('/client/notifications/mark-all-read', {}, { preserveScroll: true, showProgress: false });
     };
 
+    const handleClearNotifications = () => {
+        if (!window.confirm('Clear all notifications for your account? This cannot be undone.')) return;
+
+        router.delete('/client/notifications', {
+            preserveScroll: true,
+            showProgress: false,
+        });
+    };
+
     const handleNotificationClick = (id: string, link: string, isRead: boolean) => {
         if (!isRead) {
             setItems(items.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -167,15 +176,26 @@ export default function ClientNotifications({
 
                     <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
                         <div className="max-w-4xl mx-auto animate-slide-up">
-                            <div className="mb-8 flex items-center justify-between">
+                            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                                 <h1 className="text-3xl font-extrabold text-slate-900">Notifications</h1>
-                                <button
-                                    type="button"
-                                    onClick={handleMarkAllRead}
-                                    className="rounded text-sm font-bold text-blue-600 transition-colors hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    Mark all as read
-                                </button>
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleMarkAllRead}
+                                        className="rounded text-sm font-bold text-blue-600 transition-colors hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        Mark all as read
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearNotifications}
+                                        disabled={items.length === 0}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+                                    >
+                                        <i className="fa-regular fa-trash-can" aria-hidden="true"></i>
+                                        Clear notifications
+                                    </button>
+                                </div>
                             </div>
 
                             {items.length === 0 ? (

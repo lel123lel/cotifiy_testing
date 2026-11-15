@@ -1,6 +1,7 @@
 import { Form, Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import StaffSidebar from './StaffSidebar';
+import StaffNotificationDropdown from './StaffNotificationDropdown';
 
 type Announcement = {
     id: number;
@@ -45,12 +46,10 @@ export default function StaffAnnouncements({
     announcements = [],
     discussions = [],
     userName = 'Staff User',
-    userCourse = 'BSIT',
 }: {
     announcements: Announcement[];
     discussions: Discussion[];
     userName?: string;
-    userCourse?: string;
 }) {
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -134,7 +133,7 @@ export default function StaffAnnouncements({
                     <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-indigo-500/5 clip-octagon shape-move-3"></div>
                 </div>
 
-                <StaffSidebar activePage="announcements" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} userCourse={userCourse} />
+                <StaffSidebar activePage="announcements" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
@@ -164,10 +163,7 @@ export default function StaffAnnouncements({
                                 />
                             </div>
 
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            </button>
+                            <StaffNotificationDropdown />
                         </div>
                     </header>
 

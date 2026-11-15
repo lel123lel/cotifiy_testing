@@ -256,7 +256,7 @@ test('staff announcement pages show all announcements and provide the signed-in 
         ->assertInertia(fn ($page) => $page
             ->has('recentAnnouncements', 3)
             ->where('recentAnnouncements.0.title', 'Other staff event')
-            ->where('announcementCount', 3)
+            ->where('announcementCount', 2)
             ->where('eventCount', 2)
             ->has('upcomingEvents', 2)
             ->where('upcomingEvents.0.title', 'My event')
@@ -281,6 +281,64 @@ test('staff announcement pages show all announcements and provide the signed-in 
     $this->delete(route('staff.announcements.destroy', $otherEvent))
         ->assertForbidden();
     $this->assertDatabaseHas('announcement', ['id' => $otherEvent->id]);
+});
+
+test('staff can save an incomplete announcement as a private draft', function () {
+    Notification::fake();
+    $staff = StaffUser::create([
+        'name' => 'Drafting Staff',
+        'email' => 'drafting-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $client = User::factory()->create();
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.store'), [
+            'status' => 'Draft',
+            'title' => '',
+            'category' => '',
+            'posted_by' => '',
+            'body' => '',
+        ])
+        ->assertRedirect();
+
+    $draft = Announcement::query()->where('title', 'Untitled draft')->firstOrFail();
+    expect($draft->status)->toBe('Draft')
+        ->and($draft->author_staff_id)->toBe($staff->id);
+    Notification::assertNothingSent();
+
+    $this->get(route('staff.announcements.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.status', 'Draft')
+            ->where('announcements.0.title', 'Untitled draft'));
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.clientpage'))
+        ->assertInertia(fn ($page) => $page->has('announcements', 0));
+
+    $this->get(route('client.announcements.show', $draft))
+        ->assertNotFound();
+
+    $this->post(route('client.announcements.messages.store', $draft), ['content' => 'A reply to a draft.'])
+        ->assertNotFound();
+
+    $this->actingAs($staff, 'staff')
+        ->put(route('staff.announcements.update', $draft), [
+            'status' => 'Published',
+            'title' => 'Published from draft',
+            'category' => 'General',
+            'posted_by' => 'Drafting Staff',
+            'body' => 'This announcement is now public.',
+        ])
+        ->assertRedirect();
+
+    expect($draft->fresh()->status)->toBe('Published');
+    Notification::assertSentTo($client, AnnouncementPublished::class);
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.clientpage'))
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.title', 'Published from draft'));
 });
 
 test('staff can reply to announcement discussions using the staff identity', function () {

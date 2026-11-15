@@ -177,4 +177,13 @@ class ClientAccountController extends Controller
 
         return back();
     }
+
+    public function clearNotifications(Request $request): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $user->notifications()->delete();
+
+        return back();
+    }
 }

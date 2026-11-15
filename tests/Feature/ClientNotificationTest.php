@@ -62,6 +62,11 @@ test('clients can view and manage persisted announcement notifications', functio
     $this->post(route('client.notifications.mark-all-read'))
         ->assertRedirect();
     expect($user->fresh()->unreadNotifications()->count())->toBe(0);
+
+    $this->delete(route('client.notifications.clear'))
+        ->assertRedirect();
+    expect($user->fresh()->notifications()->count())->toBe(0)
+        ->and($anotherUser->fresh()->notifications()->count())->toBe(1);
 });
 
 test('opening an announcement marks only the signed-in user notifications for it as read', function () {

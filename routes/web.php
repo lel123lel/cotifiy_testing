@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementDiscussionController as AdminAnnouncementDiscussionController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StaffNotificationController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
@@ -68,6 +69,9 @@ Route::post('/client/notifications/{notification}/read', [ClientAccountControlle
 Route::post('/client/notifications/mark-all-read', [ClientAccountController::class, 'markAllNotificationsRead'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.notifications.mark-all-read');
+Route::delete('/client/notifications', [ClientAccountController::class, 'clearNotifications'])
+    ->middleware(['auth:web', 'private-cache'])
+    ->name('client.notifications.clear');
 Route::get('/client/announcements/{announcement}', [ClientPageController::class, 'show'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.announcements.show');
@@ -107,6 +111,18 @@ Route::get('/staff/settings', [SettingsController::class, 'staffIndex'])
 Route::put('/staff/settings/password', [SettingsController::class, 'updateStaffPassword'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.settings.password');
+Route::get('/staff/notifications', [StaffNotificationController::class, 'index'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.notifications.index');
+Route::post('/staff/notifications/{notification}/read', [StaffNotificationController::class, 'markRead'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.notifications.read');
+Route::post('/staff/notifications/mark-all-read', [StaffNotificationController::class, 'markAllRead'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.notifications.mark-all-read');
+Route::delete('/staff/notifications', [StaffNotificationController::class, 'clear'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.notifications.clear');
 Route::get('/admin/announcements', [AnnouncementController::class, 'announcements'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.index');
@@ -131,6 +147,12 @@ Route::get('/admin/settings', [SettingsController::class, 'index'])
 Route::put('/admin/settings/password', [SettingsController::class, 'updatePassword'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.settings.password');
+Route::post('/admin/offices', [SettingsController::class, 'storeOffice'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.offices.store');
+Route::put('/admin/offices/{office}', [SettingsController::class, 'updateOffice'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.offices.update');
 Route::post('/admin/users/admins', [UserController::class, 'storeAdmin'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.admins.store');
