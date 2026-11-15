@@ -1,5 +1,6 @@
-import { Head, Link, Form } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
+import StaffSidebar from './StaffSidebar';
 
 type UpcomingEvent = {
     id: number;
@@ -46,14 +47,6 @@ export default function StaffDashboard({
     userCourse?: string;
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-
-    // Main Navigation Links
-    const navLinks = [
-        { href: '/staff', label: 'Home', icon: 'fa-solid fa-house', active: true },
-        { href: '/staff/announcements', label: 'Announcements', icon: 'fa-solid fa-bullhorn', active: false },
-        { href: '/staff/events', label: 'Events', icon: 'fa-regular fa-calendar', active: false },
-    ];
 
     return (
         <>
@@ -96,87 +89,7 @@ export default function StaffDashboard({
                     <div className="absolute top-[45%] left-[15%] w-32 h-32 bg-indigo-500/5 clip-octagon shape-move-3"></div>
                 </div>
 
-                {/* COLLAPSIBLE SIDEBAR */}
-                <aside 
-                    onMouseEnter={() => setIsSidebarExpanded(true)}
-                    onMouseLeave={() => setIsSidebarExpanded(false)}
-                    className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
-                    ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
-                    ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
-                >
-                    <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
-                        
-                        {/* Logo Section */}
-                        <div className="px-4 flex items-center h-20 mb-4">
-                            <Link href="/staff" className="flex items-center shrink-0">
-                                <img src="/images/3rdLogo.png" alt="Cotify Logo" className="w-20 h-20 sm:w-28 sm:h-28 object-contain -ml-4 sm:-ml-6 -mr-6 sm:-mr-8"  />
-                                <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                                    <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Staff Portal</p>
-                                </div>
-                            </Link>
-                        </div>
-
-                        {/* Main Navigation Links */}
-                        <nav className="space-y-1 px-3">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className={`flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all group ${
-                                        link.active
-                                            ? 'bg-[#3b82f6] text-white shadow-sm'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                                    }`}
-                                    title={!isSidebarExpanded ? link.label : undefined}
-                                >
-                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                                        {link.label}
-                                    </span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-
-                    {/* BOTTOM SECTION */}
-                    <div className="p-3">
-
-                        <div className="flex items-center gap-4 px-3 py-3 mb-1 rounded-xl border border-transparent">
-                            <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
-                                {userName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                                <p className="text-white text-[15px] font-extrabold truncate">{userName.split(' ')[0]}</p>
-                                <p className="text-slate-400 text-xs font-semibold truncate">{userCourse}</p>
-                            </div>
-                        </div>
-                        
-                        <Form method="post" action="/staff/logout">
-                            {({ processing }) => (
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="flex w-full items-center gap-4 px-3 py-3.5 text-left font-bold text-[15px] rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white group disabled:opacity-60"
-                                    title={!isSidebarExpanded ? "Log Out" : undefined}
-                                >
-                                    <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0"></i>
-                                    <span className={`whitespace-nowrap transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                                        {processing ? 'Logging out...' : 'Log Out'}
-                                    </span>
-                                </button>
-                            )}
-                        </Form>
-                    </div>
-                </aside>
-
-                {/* Overlay for mobile */}
-                {isSidebarOpen && (
-                    <div 
-                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in"
-                        onClick={() => setIsSidebarOpen(false)}
-                    ></div>
-                )}
+                <StaffSidebar activePage="dashboard" isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} userName={userName} userCourse={userCourse} />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
@@ -275,13 +188,10 @@ export default function StaffDashboard({
                                                         {announcement.content || 'Click to read the full details of this announcement.'}
                                                     </p>
 
-                                                    <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
+                                                    <div className="mt-auto flex items-center border-t border-slate-100 pt-4">
                                                         <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
                                                             <i className="fa-regular fa-eye text-slate-400"></i> 124
                                                         </span>
-                                                        <Link href={`/staff/announcements/${announcement.id}/edit`} className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-slate-700">
-                                                            Edit
-                                                        </Link>
                                                     </div>
                                                 </div>
                                             </div>
