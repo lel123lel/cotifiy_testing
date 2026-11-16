@@ -228,6 +228,14 @@ export default function AdminAnnouncements({
 
                 .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
                 .clip-octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+
+                /* Fix: hide horizontal overflow on mobile */
+                @media (max-width: 767px) {
+                    .mobile-scroll-x {
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: thin;
+                    }
+                }
             `}</style>
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
@@ -259,16 +267,20 @@ export default function AdminAnnouncements({
                         onMouseEnter={() => setIsSidebarExpanded(true)}
                         onMouseLeave={() => setIsSidebarExpanded(false)}
                         className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
-                        ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
-                        ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
+                        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                        w-64 ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
                     >
                         <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
 
                             {/* Logo Section */}
                             <div className="px-4 flex items-center h-20 mb-4">
                                 <Link href="/admin" className="flex items-center shrink-0">
-                                    <img src="/images/3rdLogo.png" alt="Cotify Logo" className="w-15 h-15 sm:w-28 sm:h-28 object-contain -ml-4 sm:-ml-6 -mr-6 sm:-mr-8" />
-                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                    <img 
+                                        src="/images/3rdLogo.png" 
+                                        alt="Cotify Logo" 
+                                        className="w-20 h-20 sm:w-12 sm:h-12 object-contain -ml-2 sm:-ml-1 shrink-0 transition-all duration-300" 
+                                    />
+                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                         <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
                                     </div>
@@ -277,7 +289,7 @@ export default function AdminAnnouncements({
 
                             {/* Main Navigation Links */}
                             <nav className="space-y-1 px-3">
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Main
                                 </p>
                                 {navLinks.slice(0, 3).map((link) => (
@@ -292,13 +304,13 @@ export default function AdminAnnouncements({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     People
                                 </p>
                                 {navLinks.slice(3, 5).map((link) => (
@@ -309,13 +321,13 @@ export default function AdminAnnouncements({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     System
                                 </p>
                                 {navLinks.slice(5).map((link) => (
@@ -326,7 +338,7 @@ export default function AdminAnnouncements({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
@@ -340,7 +352,7 @@ export default function AdminAnnouncements({
                                 <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
                                     <i className="fa-solid fa-user"></i>
                                 </div>
-                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     <p className="text-white text-[15px] font-extrabold truncate">Admin</p>
                                     <p className="text-slate-400 text-xs font-semibold truncate">Registrar's Office</p>
                                 </div>
@@ -357,7 +369,7 @@ export default function AdminAnnouncements({
                                 title={!isSidebarExpanded ? "Log Out" : undefined}
                             >
                                 <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0 ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i>
-                                <span className={`whitespace-nowrap transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Log Out
                                 </span>
                             </button>
@@ -368,18 +380,18 @@ export default function AdminAnnouncements({
                 {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
 
                 {/* MAIN CONTENT */}
-                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
+                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10 min-w-0">
 
                     {/* TOP BAR */}
-                    <header className="h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-6 shrink-0 z-20">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden">
+                    <header className="h-16 sm:h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden shrink-0">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
-                            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Manage Announcements</h2>
+                            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">Manage Announcements</h2>
                         </div>
 
-                        <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                             {staffMode ? (
                                 <StaffNotificationDropdown />
                             ) : (
@@ -391,13 +403,13 @@ export default function AdminAnnouncements({
                         </div>
                     </header>
 
-                    <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+                    <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
 
                         <div className="max-w-[1200px] mx-auto animate-fade-up">
 
                             {/* PAGE TITLE & TABS */}
                             <div className="mb-6">
-                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-6">Announcements</h1>
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-6">Announcements</h1>
 
                                 <div className="flex items-center gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
                                     {tabs.map((tab) => (
@@ -418,8 +430,8 @@ export default function AdminAnnouncements({
                             </div>
 
                             {/* SEARCH, FILTER & NEW ANNOUNCEMENT */}
-                            <div className="flex flex-wrap items-center gap-3 mb-6">
-                                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 mb-6">
+                                <div className="relative flex-1 min-w-[200px] max-w-full sm:max-w-xs">
                                     <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                                     <input
                                         type="text"
@@ -434,7 +446,7 @@ export default function AdminAnnouncements({
                                     value={categoryFilter}
                                     onChange={(e) => setCategoryFilter(e.target.value)}
                                     aria-label="Filter announcements by category"
-                                    className="min-w-[160px] px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm focus:border-ctu-lightblue outline-none shadow-sm"
+                                    className="w-full sm:w-auto min-w-[160px] px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm focus:border-ctu-lightblue outline-none shadow-sm"
                                 >
                                     <option value="All">All categories</option>
                                     <option value="Academic">Academic</option>
@@ -446,7 +458,7 @@ export default function AdminAnnouncements({
                                 <button
                                     type="button"
                                     onClick={() => openEditor()}
-                                    className="ml-auto bg-ctu-dark hover:bg-slate-800 text-white text-sm font-bold px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 hover:-translate-y-0.5 shrink-0"
+                                    className="sm:ml-auto bg-ctu-dark hover:bg-slate-800 text-white text-sm font-bold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-slate-900/20 hover:-translate-y-0.5 shrink-0"
                                 >
                                     <i className="fa-solid fa-plus"></i>
                                     <span>New announcement</span>
@@ -455,7 +467,7 @@ export default function AdminAnnouncements({
 
                             {/* TABLE */}
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible mb-6">
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto mobile-scroll-x">
                                     <table className="w-full table-fixed text-left border-collapse min-w-[1000px]">
                                         <colgroup>
                                             <col className="w-12" />
@@ -615,16 +627,16 @@ export default function AdminAnnouncements({
                                     {editingAnnouncement && <input type="hidden" name="_method" value="put" />}
                                     <input ref={statusInputRef} type="hidden" name="status" defaultValue={editingAnnouncement?.status === 'Draft' ? 'Draft' : 'Published'} />
 
-                                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shrink-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200 bg-white shrink-0 gap-3">
                                         <div className="flex items-center gap-4">
                                             <button type="button" onClick={() => setIsEditorOpen(false)} className="text-slate-400 hover:text-slate-700">
                                                 <i className="fa-solid fa-arrow-left"></i>
                                             </button>
-                                            <h2 className="text-xl font-bold text-slate-900">
+                                            <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                                                 {editingAnnouncement ? 'Edit announcement' : 'New announcement'}
                                             </h2>
                                         </div>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-3 w-full sm:w-auto">
                                             {(!editingAnnouncement || editingAnnouncement.status === 'Draft') && (
                                                 <button
                                                     type="submit"
@@ -633,7 +645,7 @@ export default function AdminAnnouncements({
                                                     onClick={() => {
                                                         if (statusInputRef.current) statusInputRef.current.value = 'Draft';
                                                     }}
-                                                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
                                                 >
                                                     Save as draft
                                                 </button>
@@ -646,7 +658,7 @@ export default function AdminAnnouncements({
                                                         statusInputRef.current.value = 'Published';
                                                     }
                                                 }}
-                                                className="px-4 py-2 bg-ctu-dark hover:bg-slate-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                                                className="flex-1 sm:flex-none px-4 py-2 bg-ctu-dark hover:bg-slate-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                                 {processing ? 'Saving...' : editingAnnouncement?.status === 'Draft' ? 'Publish' : editingAnnouncement ? 'Save changes' : 'Publish'}
                                             </button>
@@ -654,7 +666,7 @@ export default function AdminAnnouncements({
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto flex flex-col md:flex-row bg-white">
-                                        <div className="flex-1 p-6 space-y-6 md:border-r border-slate-200">
+                                        <div className="flex-1 p-4 sm:p-6 space-y-6 md:border-r border-slate-200">
                                             <div>
                                                 <label htmlFor="title" className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
                                                     Title <span className="text-rose-500">*</span>
@@ -772,7 +784,7 @@ export default function AdminAnnouncements({
                                             </div>
                                         </div>
 
-                                        <div className="w-full md:w-[320px] bg-slate-50/50 p-6 space-y-6 shrink-0">
+                                        <div className="w-full md:w-[320px] bg-slate-50/50 p-4 sm:p-6 space-y-6 shrink-0">
                                             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                                                 <label htmlFor="category" className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
                                                     Category <span className="text-rose-500">*</span>
@@ -895,7 +907,7 @@ export default function AdminAnnouncements({
                 {/* Delete Modal */}
                 {announcementToDelete && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 animate-scale-in text-center">
                             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mx-auto mb-5">
                                 <i className="fa-solid fa-triangle-exclamation text-red-500 text-2xl"></i>
                             </div>
@@ -920,7 +932,7 @@ export default function AdminAnnouncements({
                 {/* LOGOUT CONFIRMATION MODAL */}
                 {isLogoutModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center relative overflow-hidden">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 animate-scale-in text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
 
                             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mx-auto mb-5 border border-slate-200">

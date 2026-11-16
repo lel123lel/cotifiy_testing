@@ -305,6 +305,14 @@ export default function AdminEvents({
 
                 .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
                 .clip-octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+
+                /* Fix: hide horizontal overflow on mobile */
+                @media (max-width: 767px) {
+                    .mobile-scroll-x {
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: thin;
+                    }
+                }
             `}</style>
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
@@ -336,16 +344,20 @@ export default function AdminEvents({
                         onMouseEnter={() => setIsSidebarExpanded(true)}
                         onMouseLeave={() => setIsSidebarExpanded(false)}
                         className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
-                        ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
-                        ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
+                        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                        w-64 ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
                     >
                         <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
 
                             {/* Logo Section */}
                             <div className="px-4 flex items-center h-20 mb-4">
                                 <Link href="/admin" className="flex items-center shrink-0">
-                                    <img src="/images/3rdLogo.png" alt="Cotify Logo" className="w-15 h-15 sm:w-28 sm:h-28 object-contain -ml-4 sm:-ml-6 -mr-6 sm:-mr-8" />
-                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                    <img 
+                                        src="/images/3rdLogo.png" 
+                                        alt="Cotify Logo" 
+                                        className="w-20 h-20 sm:w-12 sm:h-12 object-contain -ml-2 sm:-ml-1 shrink-0 transition-all duration-300" 
+                                    />
+                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                         <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
                                     </div>
@@ -354,7 +366,7 @@ export default function AdminEvents({
 
                             {/* Main Navigation Links */}
                             <nav className="space-y-1 px-3">
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Main
                                 </p>
                                 {navLinks.slice(0, 3).map((link) => (
@@ -369,13 +381,13 @@ export default function AdminEvents({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     People
                                 </p>
                                 {navLinks.slice(3, 5).map((link) => (
@@ -386,13 +398,13 @@ export default function AdminEvents({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     System
                                 </p>
                                 {navLinks.slice(5).map((link) => (
@@ -403,7 +415,7 @@ export default function AdminEvents({
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
@@ -417,7 +429,7 @@ export default function AdminEvents({
                                 <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
                                     <i className="fa-solid fa-user"></i>
                                 </div>
-                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     <p className="text-white text-[15px] font-extrabold truncate">Admin</p>
                                     <p className="text-slate-400 text-xs font-semibold truncate">Registrar's Office</p>
                                 </div>
@@ -434,7 +446,7 @@ export default function AdminEvents({
                                 title={!isSidebarExpanded ? "Log Out" : undefined}
                             >
                                 <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0 ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i>
-                                <span className={`whitespace-nowrap transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Log Out
                                 </span>
                             </button>
@@ -445,18 +457,18 @@ export default function AdminEvents({
                 {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
 
                 {/* MAIN CONTENT */}
-                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
+                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10 min-w-0">
 
                     {/* TOP BAR */}
-                    <header className="h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-6 shrink-0 z-20">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden">
+                    <header className="h-16 sm:h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden shrink-0">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
-                            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Manage Events</h2>
+                            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">Manage Events</h2>
                         </div>
 
-                        <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                             <div className="relative w-64 hidden md:block group">
                                 <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within:text-ctu-lightblue transition-colors"></i>
                                 <input type="text" placeholder="Search..." className="w-full pl-11 pr-4 py-2 bg-white border border-slate-200 text-slate-800 rounded-xl text-sm focus:border-ctu-lightblue focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder-slate-400 font-medium shadow-sm" />
@@ -474,33 +486,33 @@ export default function AdminEvents({
                         </div>
                     </header>
 
-                    <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+                    <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
                         <div className="max-w-[1000px] mx-auto space-y-8 animate-fade-up">
 
                             {/* EVENTS CALENDAR */}
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 
                                 {/* Card Header */}
-                                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                                <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
                                         <h3 className="text-lg font-extrabold text-slate-900">Events calendar</h3>
                                         <p className="text-xs font-medium text-slate-500 mt-1">{events.length} events</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <button
                                             type="button"
                                             onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))}
                                             aria-label="Previous month"
-                                            className="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            className="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center shrink-0"
                                         >
                                             <i className="fa-solid fa-chevron-left"></i>
                                         </button>
-                                        <h4 className="min-w-36 text-center text-sm font-extrabold text-slate-800">{monthLabel}</h4>
+                                        <h4 className="min-w-[120px] text-center text-sm font-extrabold text-slate-800">{monthLabel}</h4>
                                         <button
                                             type="button"
                                             onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))}
                                             aria-label="Next month"
-                                            className="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                            className="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center shrink-0"
                                         >
                                             <i className="fa-solid fa-chevron-right"></i>
                                         </button>
@@ -510,7 +522,7 @@ export default function AdminEvents({
                                                 const today = new Date();
                                                 setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
                                             }}
-                                            className="ml-1 px-3 h-9 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                                            className="ml-1 px-3 h-9 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shrink-0"
                                         >
                                             Today
                                         </button>
@@ -518,7 +530,7 @@ export default function AdminEvents({
                                 </div>
 
                                 {/* Calendar */}
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto mobile-scroll-x">
                                     <div className="min-w-[700px]">
                                         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
                                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -582,7 +594,7 @@ export default function AdminEvents({
                 {selectedDate && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
                         <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl animate-scale-in">
-                            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+                            <div className="flex items-start justify-between border-b border-slate-200 px-4 sm:px-6 py-4 sm:py-5">
                                 <div>
                                     <h3 className="text-lg font-extrabold text-slate-900">
                                         {isEventEditorOpen
@@ -607,14 +619,14 @@ export default function AdminEvents({
                                         setSelectedDate(null);
                                     }}
                                     aria-label="Close"
-                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 shrink-0"
                                 >
                                     <i className="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
 
                             {isEventEditorOpen ? (
-                                <form onSubmit={saveEvent} className="space-y-4 p-6">
+                                <form onSubmit={saveEvent} className="space-y-4 p-4 sm:p-6">
                                     <div>
                                         <label htmlFor="calendar-event-title" className="mb-1 block text-xs font-bold text-slate-700">Title</label>
                                         <input
@@ -808,7 +820,7 @@ export default function AdminEvents({
                                     </div>
                                 </form>
                             ) : (
-                                <div className="space-y-3 p-6">
+                                <div className="space-y-3 p-4 sm:p-6">
                                     {(eventsByDate[selectedDate] ?? []).length === 0 ? (
                                         <p className="rounded-lg bg-slate-50 p-4 text-sm font-medium text-slate-500">
                                             No events on this day yet.
@@ -855,7 +867,7 @@ export default function AdminEvents({
                 {/* DELETE CONFIRMATION MODAL */}
                 {eventToDelete && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-scale-in">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-scale-in">
 
                             <h3 className="text-xl font-extrabold text-slate-900 mb-2">Delete this event?</h3>
                             <p className="text-sm font-medium text-slate-600 mb-2 leading-relaxed">
@@ -885,7 +897,7 @@ export default function AdminEvents({
                 {/* LOGOUT CONFIRMATION MODAL */}
                 {isLogoutModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center relative overflow-hidden">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 animate-scale-in text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
 
                             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mx-auto mb-5 border border-slate-200">

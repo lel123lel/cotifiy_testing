@@ -99,6 +99,14 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
 
                 .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
                 .clip-octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+
+                /* Fix: hide horizontal overflow on mobile */
+                @media (max-width: 767px) {
+                    .mobile-scroll-x {
+                        -webkit-overflow-scrolling: touch;
+                        scrollbar-width: thin;
+                    }
+                }
             `}</style>
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
@@ -129,16 +137,20 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                         onMouseEnter={() => setIsSidebarExpanded(true)}
                         onMouseLeave={() => setIsSidebarExpanded(false)}
                         className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
-                        ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
-                        ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
+                        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                        w-64 ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
                     >
                         <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
 
                             {/* Logo Section */}
                             <div className="px-4 flex items-center h-20 mb-4">
                                 <Link href="/admin" className="flex items-center shrink-0">
-                                    <img src="/images/3rdLogo.png" alt="Cotify Logo" className="w-15 h-15 sm:w-28 sm:h-28 object-contain -ml-4 sm:-ml-6 -mr-6 sm:-mr-8" />
-                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                    <img 
+                                        src="/images/3rdLogo.png" 
+                                        alt="Cotify Logo" 
+                                        className="w-20 h-20 sm:w-12 sm:h-12 object-contain -ml-2 sm:-ml-1 shrink-0 transition-all duration-300" 
+                                    />
+                                    <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                         <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
                                     </div>
@@ -147,7 +159,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
 
                             {/* Main Navigation Links */}
                             <nav className="space-y-1 px-3">
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Main
                                 </p>
                                 {navLinks.slice(0, 3).map((link) => (
@@ -162,13 +174,13 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     People
                                 </p>
                                 {navLinks.slice(3, 5).map((link) => (
@@ -183,13 +195,13 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
                                 ))}
 
-                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     System
                                 </p>
                                 {navLinks.slice(5).map((link) => (
@@ -204,7 +216,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                         title={!isSidebarExpanded ? link.label : undefined}
                                     >
                                         <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                             {link.label}
                                         </span>
                                     </Link>
@@ -218,7 +230,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                 <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
                                     <i className="fa-solid fa-user"></i>
                                 </div>
-                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     <p className="text-white text-[15px] font-extrabold truncate">Admin</p>
                                     <p className="text-slate-400 text-xs font-semibold truncate">Registrar's Office</p>
                                 </div>
@@ -235,7 +247,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                 title={!isSidebarExpanded ? "Log Out" : undefined}
                             >
                                 <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0 ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i>
-                                <span className={`whitespace-nowrap transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
                                     Log Out
                                 </span>
                             </button>
@@ -246,17 +258,17 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                 {!staffMode && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
 
                 {/* MAIN CONTENT */}
-                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
+                <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10 min-w-0">
 
-                    <header className="h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-6 shrink-0 z-20">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden">
+                    <header className="h-16 sm:h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-4 sm:px-6 shrink-0 z-20 gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle sidebar" className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden shrink-0">
                                 <i className="fa-solid fa-bars"></i>
                             </button>
-                            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Settings</h2>
+                            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">Settings</h2>
                         </div>
 
-                        <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                             {staffMode ? (
                                 <StaffNotificationDropdown />
                             ) : (
@@ -268,11 +280,11 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                         </div>
                     </header>
 
-                    <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+                    <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
                         <div className="max-w-[1000px] mx-auto animate-fade-up">
 
                             <div className="mb-6">
-                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
+                                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Settings</h1>
                                 <p className="text-sm font-medium text-slate-500 mt-1">Manage system preferences and your account.</p>
                             </div>
 
@@ -299,12 +311,12 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                             {/* TAB CONTENT: PASSWORD */}
                             {activeTab === 'password' && (
                                 <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fade-in">
-                                    <div className="border-b border-slate-200 px-6 py-4">
+                                    <div className="border-b border-slate-200 px-4 sm:px-6 py-4">
                                         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
                                             <i className="fa-solid fa-lock text-blue-600"></i> Change Password
                                         </h3>
                                     </div>
-                                    <Form method="put" action={`${panelBase}/settings/password`} resetOnSuccess className="space-y-5 p-6 sm:p-8">
+                                    <Form method="put" action={`${panelBase}/settings/password`} resetOnSuccess className="space-y-5 p-4 sm:p-6 md:p-8">
                                         {({ errors, processing }) => (
                                             <>
                                                 <div>
@@ -337,7 +349,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-end pt-4 border-t border-slate-100">
-                                                    <button type="submit" disabled={processing} className="rounded-xl bg-ctu-dark px-8 py-3.5 text-sm font-bold text-white transition-all shadow-lg hover:bg-slate-800 hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0">
+                                                    <button type="submit" disabled={processing} className="w-full sm:w-auto rounded-xl bg-ctu-dark px-8 py-3.5 text-sm font-bold text-white transition-all shadow-lg hover:bg-slate-800 hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0">
                                                         {processing ? 'Updating...' : 'Update Password'}
                                                     </button>
                                                 </div>
@@ -350,26 +362,26 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                             {/* TAB CONTENT: OFFICES (Mockup for super admin) */}
                             {!staffMode && activeTab === 'offices' && (
                                 <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm animate-fade-in">
-                                    <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                                    <div className="border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
                                             <i className="fa-solid fa-building text-blue-600"></i> Manage Offices
                                         </h3>
-                                        <button type="button" onClick={() => openOfficeModal()} className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800 transition-colors">
+                                        <button type="button" onClick={() => openOfficeModal()} className="w-full sm:w-auto px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800 transition-colors">
                                             + New Office
                                         </button>
                                     </div>
-                                    <div className="p-6">
+                                    <div className="p-4 sm:p-6">
                                         <div className="space-y-3">
                                             {offices.map((office) => {
                                                 const linkedAccounts = staffAccounts.filter((account) => account.office_id === office.id);
 
                                                 return (
-                                                    <div key={office.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                                    <div key={office.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                                                         <div className="min-w-0">
                                                             <span className="font-bold text-slate-800">{office.name}</span>
-                                                            {linkedAccounts.length > 0 && <p className="mt-1 text-xs text-slate-500">Linked accounts ({linkedAccounts.length}/5): {linkedAccounts.map((account) => account.name).join(', ')}</p>}
+                                                            {linkedAccounts.length > 0 && <p className="mt-1 text-xs text-slate-500 break-words">Linked accounts ({linkedAccounts.length}/5): {linkedAccounts.map((account) => account.name).join(', ')}</p>}
                                                         </div>
-                                                        <button type="button" onClick={() => openOfficeModal(office)} className="shrink-0 text-xs font-bold text-slate-500 hover:text-slate-900">Edit</button>
+                                                        <button type="button" onClick={() => openOfficeModal(office)} className="shrink-0 text-xs font-bold text-slate-500 hover:text-slate-900 self-end sm:self-auto">Edit</button>
                                                     </div>
                                                 );
                                             })}
@@ -391,11 +403,11 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                             aria-labelledby="office-modal-title"
                             onClick={(event) => event.stopPropagation()}
                             onSubmit={saveOffice}
-                            className="w-full max-w-lg space-y-5 rounded-xl bg-white p-6 shadow-2xl"
+                            className="w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-5 rounded-xl bg-white p-4 sm:p-6 shadow-2xl"
                         >
                             <div className="flex items-center justify-between gap-4">
-                                <h2 id="office-modal-title" className="text-xl font-extrabold text-slate-900">{editingOffice ? 'Edit Office' : 'New Office'}</h2>
-                                <button type="button" aria-label="Close" onClick={() => setIsOfficeModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
+                                <h2 id="office-modal-title" className="text-lg sm:text-xl font-extrabold text-slate-900">{editingOffice ? 'Edit Office' : 'New Office'}</h2>
+                                <button type="button" aria-label="Close" onClick={() => setIsOfficeModalOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 shrink-0">
                                     <i className="fa-solid fa-xmark" aria-hidden="true"></i>
                                 </button>
                             </div>
@@ -471,9 +483,9 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                 {officeErrors.staff_account_ids && <p className="text-xs font-semibold text-rose-600">{officeErrors.staff_account_ids}</p>}
                             </div>
 
-                            <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-                                <button type="button" onClick={() => setIsOfficeModalOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50">Cancel</button>
-                                <button type="submit" disabled={isSavingOffice} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+                            <div className="flex flex-col sm:flex-row justify-end gap-3 border-t border-slate-100 pt-4">
+                                <button type="button" onClick={() => setIsOfficeModalOpen(false)} className="w-full sm:w-auto rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 order-2 sm:order-1">Cancel</button>
+                                <button type="submit" disabled={isSavingOffice} className="w-full sm:w-auto rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 order-1 sm:order-2">
                                     {isSavingOffice ? 'Saving...' : 'Save Office'}
                                 </button>
                             </div>
@@ -484,7 +496,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                 {/* LOGOUT CONFIRMATION MODAL */}
                 {isLogoutModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center relative overflow-hidden">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 animate-scale-in text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
 
                             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mx-auto mb-5 border border-slate-200">
