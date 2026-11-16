@@ -225,6 +225,7 @@ test('the client can save and remove an announcement from their saved page', fun
         'posted_by' => 'Student Affairs',
         'date' => now()->toDateString(),
         'body' => 'Event details.',
+        'image' => 'announcements/campus-event.jpg',
         'event_date' => now()->addWeek()->toDateString(),
     ]);
 
@@ -243,6 +244,7 @@ test('the client can save and remove an announcement from their saved page', fun
             ->where('savedItems.0.id', $announcement->id)
             ->where('savedItems.0.title', 'Campus event')
             ->where('savedItems.0.category', 'Event')
+            ->where('savedItems.0.image', '/storage/announcements/campus-event.jpg')
             ->where('savedItems.0.link', route('client.announcements.show', $announcement)));
 
     $this->delete(route('client.saved.destroy', $announcement))

@@ -178,6 +178,9 @@ class ClientPageController extends Controller
                     'title' => $announcement->title,
                     'subtitle' => $announcement->posted_by.' · '.$announcement->date->format('M j, Y'),
                     'category' => $announcement->category,
+                    'image' => $announcement->image
+                        ? Storage::disk('public')->url($announcement->image)
+                        : null,
                     'link' => route('client.announcements.show', $announcement),
                 ]),
         ]);

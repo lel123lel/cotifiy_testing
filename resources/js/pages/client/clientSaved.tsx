@@ -8,6 +8,7 @@ interface SavedItem {
     title: string;
     subtitle: string;
     category: 'Event' | 'Academic' | 'General' | 'Service';
+    image: string | null;
     link: string;
 }
 
@@ -152,7 +153,9 @@ export default function ClientSaved({
 
                                             {/* Icon/Thumbnail */}
                                             <div className="pointer-events-none flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                                                {item.category === 'Event' ? (
+                                                {item.image ? (
+                                                    <img src={item.image} alt="" className="h-full w-full object-cover" />
+                                                ) : item.category === 'Event' ? (
                                                     <i className="fa-regular fa-calendar text-2xl text-slate-300"></i>
                                                 ) : (
                                                     <i className="fa-regular fa-newspaper text-2xl text-slate-300"></i>
