@@ -126,17 +126,17 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                             aria-label="Cotify Home"
                             className="flex h-full w-full items-center"
                         >
-                            {/* Logo wrapper - ensures perfect centering on both collapsed and expanded states */}
-                            <div className={`flex h-full shrink-0 items-center justify-center transition-all duration-300 ${isExpanded ? 'w-24' : 'w-24 md:w-20'}`}>
+                            {/* Fixed-width wrapper keeps the logo stationary as the sidebar expands. */}
+                            <div className="flex h-full w-20 shrink-0 items-center justify-center">
                                 <img
                                     src="/images/3rdLogo.png"
                                     alt="Cotify Logo"
-                                    className="h-20 w-20 sm:h-24 sm:w-24 object-contain transition-all duration-300"
+                                    className="h-20 w-20 max-w-none object-contain sm:h-28 sm:w-28"
                                 />
                             </div>
                             
                             {/* Text Wrapper */}
-                            <div className={`flex-none overflow-hidden whitespace-nowrap transition-[width,margin] duration-300 ease-in-out ml-1 opacity-100 ${isExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
+                            <div className={`flex-none overflow-hidden whitespace-nowrap transition-[width,margin,opacity] duration-300 ease-in-out ${isExpanded ? 'ml-2 w-40 opacity-100' : 'ml-0 w-0 opacity-0'}`}>
                                 <div className="text-white">
                                     <h1 className="text-xl leading-tight font-extrabold tracking-tight">Cotify</h1>
                                     <p className="mt-0.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -162,7 +162,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                                     isClientSidebarNavigationPending = false;
                                 }}
                                 aria-current={activePage === page ? 'page' : undefined}
-                                className={`group flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors ${
+                                className={`group relative flex items-center gap-4 rounded-xl px-3 py-3.5 transition-colors ${
                                     activePage === page
                                         ? 'bg-ctu-lightblue text-white shadow-md'
                                         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -170,10 +170,10 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                                 title={!isExpanded ? label : undefined}
                             >
                                 <i
-                                    className={`${icon} w-5 shrink-0 text-center text-lg opacity-100`}
+                                    className={`${icon} absolute left-[18px] w-5 shrink-0 text-center text-lg opacity-100`}
                                     aria-hidden="true"
                                 />
-                                <span className={`min-w-0 whitespace-nowrap text-[15px] font-bold transition-opacity duration-300 opacity-100 ${isExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
+                                <span className={`ml-[42px] min-w-0 overflow-hidden whitespace-nowrap text-[15px] font-bold transition-[width,opacity] duration-300 opacity-100 ${isExpanded ? 'md:w-auto md:opacity-100' : 'md:w-0 md:opacity-0'}`}>
                                     {label}
                                 </span>
                             </Link>
@@ -194,7 +194,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                             isClientSidebarNavigationPending = false;
                         }}
                         aria-current={activePage === 'settings' ? 'page' : undefined}
-                        className={`group mb-1 flex items-center gap-4 rounded-xl px-3 py-3.5 text-left text-[15px] font-bold transition-colors ${
+                        className={`group relative mb-1 flex items-center gap-4 rounded-xl px-3 py-3.5 text-left text-[15px] font-bold transition-colors ${
                             activePage === 'settings'
                                 ? 'bg-ctu-lightblue text-white shadow-md'
                                 : 'text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -202,15 +202,15 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                         title={!isExpanded ? 'Settings' : undefined}
                     >
                         <i
-                            className="fa-solid fa-gear w-5 shrink-0 text-center text-lg opacity-100"
+                            className="fa-solid fa-gear absolute left-[18px] w-5 shrink-0 text-center text-lg opacity-100"
                             aria-hidden="true"
                         />
-                        <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
+                        <span className={`ml-[42px] overflow-hidden whitespace-nowrap transition-[width,opacity] duration-300 opacity-100 ${isExpanded ? 'md:w-auto md:opacity-100' : 'md:w-0 md:opacity-0'}`}>
                             Settings
                         </span>
                     </Link>
 
-                    <div className="mb-1 flex items-center gap-4 px-3 py-3 rounded-xl border border-transparent">
+                    <div className="mb-1 flex items-center gap-4 rounded-xl border border-transparent px-2 py-3">
                         {auth?.user?.profile_photo_url ? (
                             <img
                                 src={auth.user.profile_photo_url}
@@ -222,7 +222,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                                 {userName.charAt(0).toUpperCase()}
                             </div>
                         )}
-                        <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden opacity-100 ${isExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
+                        <div className={`whitespace-nowrap transition-[width,opacity] duration-300 overflow-hidden opacity-100 ${isExpanded ? 'md:w-auto md:opacity-100' : 'md:w-0 md:opacity-0'}`}>
                             <p className="max-w-[120px] truncate text-[15px] font-extrabold text-white">{userName.split(' ')[0]}</p>
                             <p className="max-w-[120px] truncate text-xs font-semibold text-slate-400">{userCourse}</p>
                         </div>
@@ -231,14 +231,14 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                     <button
                         type="button"
                         onClick={() => setIsLogoutModalOpen(true)}
-                        className="group flex w-full items-center gap-4 rounded-xl px-3 py-3.5 text-left text-[15px] font-bold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                        className="group relative flex w-full items-center gap-4 rounded-xl px-3 py-3.5 text-left text-[15px] font-bold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                         title={!isExpanded ? 'Log Out' : undefined}
                     >
                         <i
-                            className="fa-solid fa-arrow-right-from-bracket w-5 shrink-0 text-center text-lg opacity-100"
+                            className="fa-solid fa-arrow-right-from-bracket absolute left-[18px] w-5 shrink-0 text-center text-lg opacity-100"
                             aria-hidden="true"
                         />
-                        <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
+                        <span className={`ml-[42px] overflow-hidden whitespace-nowrap transition-[width,opacity] duration-300 opacity-100 ${isExpanded ? 'md:w-auto md:opacity-100' : 'md:w-0 md:opacity-0'}`}>
                             Log Out
                         </span>
                     </button>
