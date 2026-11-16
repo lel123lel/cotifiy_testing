@@ -61,8 +61,11 @@ export default function admin({
 }) {
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
     const [isLogoutHovered, setIsLogoutHovered] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [announcementTab, setAnnouncementTab] = useState<'All' | 'My Posts'>('All');
+
     const visibleAnnouncements = announcementTab === 'All'
         ? recentAnnouncements
         : recentAnnouncements.filter((announcement) => announcement.author_admin_id === adminId);
@@ -76,10 +79,20 @@ export default function admin({
         return () => window.clearInterval(interval);
     }, []);
 
+    // Navigation Links
+    const navLinks = [
+        { href: '#dashboard', label: 'Dashboard', icon: 'fa-solid fa-house', active: true },
+        { href: '/admin/announcements', label: 'Announcements', icon: 'fa-solid fa-bullhorn', active: false },
+        { href: '/admin/events', label: 'Events', icon: 'fa-regular fa-calendar', active: false },
+        { href: '/admin/users', label: 'Students', icon: 'fa-solid fa-users', active: false },
+        { href: '/admin/staff', label: 'Staff & Admins', icon: 'fa-solid fa-user-shield', active: false },
+        { href: '/admin/settings', label: 'Settings', icon: 'fa-solid fa-gear', active: false },
+    ];
+
     return (
         <>
             <Head title="Admin Dashboard | Cotify" />
-            
+
             <style>{`
                 @keyframes fadeInUp {
                     from { opacity: 0; transform: translateY(20px); }
@@ -93,7 +106,7 @@ export default function admin({
                     from { opacity: 0; transform: scale(0.95); }
                     to { opacity: 1; transform: scale(1); }
                 }
-                
+
                 @keyframes move-around-1 {
                     0% { transform: translate(0, 0) rotate(0deg); }
                     25% { transform: translate(-15vw, 10vh) rotate(15deg); }
@@ -118,7 +131,7 @@ export default function admin({
                 .animate-fade-up { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
                 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; opacity: 0; }
                 .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-                
+
                 .shape-move-1 { animation: move-around-1 25s ease-in-out infinite; }
                 .shape-move-2 { animation: move-around-2 30s ease-in-out infinite; }
                 .shape-move-3 { animation: move-around-3 35s ease-in-out infinite; }
@@ -128,7 +141,7 @@ export default function admin({
             `}</style>
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
-                
+
                 {/* MOVING SHAPES BACKGROUND */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute top-[10%] left-[10%] w-[30rem] h-[30rem] bg-blue-500/5 rounded-full blur-3xl shape-move-1"></div>
@@ -145,84 +158,119 @@ export default function admin({
                     <div className="absolute bottom-[10%] left-[40%] w-16 h-16 bg-indigo-500/5 rotate-12 shape-move-3"></div>
                 </div>
 
-                {/* SIDEBAR */}
-                <aside 
-                    className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-transform duration-300 shadow-2xl w-64 
-                    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+                {/* COLLAPSIBLE SIDEBAR */}
+                <aside
+                    onMouseEnter={() => setIsSidebarExpanded(true)}
+                    onMouseLeave={() => setIsSidebarExpanded(false)}
+                    className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
+                    ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+                    ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
                 >
-                    <div className="flex-1 overflow-y-auto no-scrollbar w-64">
-                        <div className="p-6 flex items-center">
-                            <img src="/images/3rdLogo.png" alt="Cotify Logo" className="w-16 h-16 object-contain -ml-2 -mr-4" />
-                            <div className="text-white">
-                                <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
-                            </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
+
+                        {/* Logo Section */}
+                        <div className="px-4 flex items-center h-20 mb-4">
+                            <Link href="/admin" className="flex items-center shrink-0">
+                                <img src="/images/3rdLogo.png" alt="Cotify Logo"  className="w-15 h-15 sm:w-28 sm:h-28 object-contain -ml-4 sm:-ml-6 -mr-6 sm:-mr-8" />
+                                <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                    <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
+                                </div>
+                            </Link>
                         </div>
 
-                        <nav className="mt-2 space-y-6 px-3">
-                            <div>
-                                <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Main</p>
-                                <a href="#dashboard" className="flex items-center gap-3 px-3 py-2.5 bg-ctu-lightblue text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-blue-900/30">
-                                    <i className="fa-solid fa-house w-5 text-center"></i> Dashboard
+                        {/* Main Navigation Links */}
+                        <nav className="space-y-1 px-3">
+                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                Main
+                            </p>
+                            {navLinks.slice(0, 3).map((link) => (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all group ${
+                                        link.active
+                                            ? 'bg-ctu-lightblue text-white shadow-md'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                    }`}
+                                    title={!isSidebarExpanded ? link.label : undefined}
+                                >
+                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
+                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        {link.label}
+                                    </span>
                                 </a>
-                                <Link href="/admin/announcements" className="mt-1 flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all group">
-                                    <i className="fa-solid fa-bullhorn w-5 text-center group-hover:scale-110 transition-transform"></i> Announcements
-                                </Link>
-                                <Link href="/admin/events" className="mt-1 flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all group">
-                                    <i className="fa-regular fa-calendar w-5 text-center group-hover:scale-110 transition-transform"></i> Events
-                                </Link>
-                            </div>
+                            ))}
 
-                            <div>
-                                <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">People</p>
-                                <Link href="/admin/users" prefetch="mount" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all group">
-                                    <i className="fa-solid fa-users w-5 text-center group-hover:scale-110 transition-transform"></i> Students
+                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                People
+                            </p>
+                            {navLinks.slice(3, 5).map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                    title={!isSidebarExpanded ? link.label : undefined}
+                                >
+                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
+                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        {link.label}
+                                    </span>
                                 </Link>
-                                <Link href="/admin/staff" prefetch="mount" className="mt-1 flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all group">
-                                    <i className="fa-solid fa-user-shield w-5 text-center group-hover:scale-110 transition-transform"></i> Staff & Admins
-                                </Link>
-                            </div>
+                            ))}
 
-                            <div>
-                                <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">System</p>
-                                <Link href="/admin/settings" prefetch="mount" className="mt-1 flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all group">
-                                    <i className="fa-solid fa-gear w-5 text-center group-hover:rotate-90 transition-transform duration-300"></i> Settings
+                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                System
+                            </p>
+                            {navLinks.slice(5).map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                    title={!isSidebarExpanded ? link.label : undefined}
+                                >
+                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
+                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                        {link.label}
+                                    </span>
                                 </Link>
-                            </div>
+                            ))}
                         </nav>
                     </div>
 
-                    <div className="p-4 border-t border-slate-800/50 w-64">
-                        <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 text-sm ring-2 ring-slate-700">
+                    {/* BOTTOM SECTION */}
+                    <div className="p-3">
+                        <div className="flex items-center gap-4 px-3 py-3 mb-1 rounded-xl border border-transparent">
+                            <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
                                 <i className="fa-solid fa-user"></i>
                             </div>
-                            <div>
-                                <p className="text-white text-sm font-bold">Niggas</p>
-                                <p className="text-slate-400 text-[11px] font-medium">Registrar's Office</p>
+                            <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                <p className="text-white text-[15px] font-extrabold truncate">Admin</p>
+                                <p className="text-slate-400 text-xs font-semibold truncate">Registrar's Office</p>
                             </div>
-                        </div> 
-                        <Form method="post" action="/admin/logout">
-                            {({ processing }) => (
-                                <button 
-                                    type="submit" 
-                                    disabled={processing} 
-                                    onMouseEnter={() => setIsLogoutHovered(true)}
-                                    onMouseLeave={() => setIsLogoutHovered(false)}
-                                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-bold rounded-xl transition-all disabled:opacity-60
-                                        ${isLogoutHovered ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
-                                    `}
-                                >
-                                    <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center transition-colors ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i> 
-                                    {processing ? 'Logging Out...' : 'Log Out'}
-                                </button>
-                            )}
-                        </Form>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setIsLogoutModalOpen(true)}
+                            onMouseEnter={() => setIsLogoutHovered(true)}
+                            onMouseLeave={() => setIsLogoutHovered(false)}
+                            className={`flex w-full items-center gap-4 px-3 py-3.5 text-left font-bold text-[15px] rounded-xl transition-all
+                                ${isLogoutHovered ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}
+                            `}
+                            title={!isSidebarExpanded ? "Log Out" : undefined}
+                        >
+                            <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0 ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i>
+                            <span className={`whitespace-nowrap transition-opacity duration-300 ${isSidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                Log Out
+                            </span>
+                        </button>
                     </div>
                 </aside>
 
                 {/* Overlay for mobile */}
                 {isSidebarOpen && (
-                    <div 
+                    <div
                         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in"
                         onClick={() => setIsSidebarOpen(false)}
                     ></div>
@@ -230,20 +278,20 @@ export default function admin({
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
-                    
+
                     {/* TOP BAR */}
                     <header className="h-20 bg-transparent border-b border-slate-200/50 flex items-center justify-between px-6 shrink-0 z-20">
                         <div className="flex items-center gap-4">
-                            <button 
+                            <button
                                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                                 aria-label="Toggle sidebar"
-                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden" 
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors md:hidden"
                             >
                                 <i className="fa-solid fa-bars"></i>
                             </button>
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Dashboard</h2>
                         </div>
-                        
+
                         <div className="flex items-center gap-3 sm:gap-4">
                             <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
                                 <i className="fa-regular fa-bell text-lg"></i>
@@ -253,9 +301,9 @@ export default function admin({
                     </header>
 
                     <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                        
+
                         <section className="mb-8 animate-fade-up">
-                            
+
                             {/* NEEDS ATTENTION */}
                             <div className="mb-8">
                                 <h3 className="text-sm font-bold text-slate-500 mb-3">Needs attention</h3>
@@ -298,7 +346,7 @@ export default function admin({
 
                             {/* TWO PANEL LAYOUT */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                
+
                                 {/* RECENT ANNOUNCEMENTS */}
                                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                                     <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -324,7 +372,7 @@ export default function admin({
                                             </button>
                                         ))}
                                     </div>
-                                    
+
                                     <div className="flex-1">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
@@ -341,7 +389,7 @@ export default function admin({
                                                             <div className="flex items-start gap-2">
                                                                 {announcement.is_pinned && <i className="fa-solid fa-thumbtack text-[10px] text-rose-500 mt-1"></i>}
                                                                 <div>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => setSelectedAnnouncement(announcement)}
                                                                         className="text-left font-bold text-slate-800 hover:text-ctu-lightblue transition-colors text-sm line-clamp-1"
                                                                     >
@@ -374,7 +422,7 @@ export default function admin({
                                         <h4 className="font-extrabold text-slate-900">Upcoming events</h4>
                                         <Link href="/admin/events" className="text-xs font-bold text-slate-500 hover:text-ctu-lightblue transition-colors">+ New event</Link>
                                     </div>
-                                    
+
                                     <div className="p-4 space-y-4 flex-1">
                                         {upcomingEvents.length === 0 ? (
                                             <p className="p-4 text-sm font-medium text-slate-500 text-center">No upcoming events scheduled.</p>
@@ -407,6 +455,42 @@ export default function admin({
                             .flatMap((comment) => comment.messages)}
                         onClose={() => setSelectedAnnouncement(null)}
                     />
+                )}
+
+                {/* LOGOUT CONFIRMATION MODAL */}
+                {isLogoutModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                        <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
+
+                            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mx-auto mb-5 border border-slate-200">
+                                <i className="fa-solid fa-arrow-right-from-bracket text-slate-700 text-2xl"></i>
+                            </div>
+
+                            <h3 className="text-2xl font-extrabold text-slate-900 mb-2">Log Out?</h3>
+                            <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+                                Are you sure you want to log out of Cotify? You will need to sign in again to access your portal.
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsLogoutModalOpen(false)}
+                                    className="flex-1 border border-slate-200 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+
+                                <Link
+                                    href="/admin/logout"
+                                    method="post"
+                                    as="button"
+                                    className="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/20"
+                                >
+                                    Log Out
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

@@ -21,8 +21,11 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
     }>().props;
     const userName = auth?.user?.name || 'Student';
     const userCourse = auth?.user?.course || 'Student';
+    
     const [isOpen, setIsOpen] = useState(false);
     const [isHoveredExpanded, setIsHoveredExpanded] = useState(isClientSidebarHovered);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    
     const collapseTimeout = useRef<number | null>(null);
     const sidebarRef = useRef<HTMLElement>(null);
     const isExpanded = isOpen || isHoveredExpanded;
@@ -67,6 +70,14 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
 
     return (
         <>
+            {/* Styles for Modal Animation */}
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+                .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+                .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            `}</style>
+
             {!isOpen && (
                 <button
                     type="button"
@@ -212,11 +223,10 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                         </div>
                     </div>
 
-                    <Link
-                        href="/logout"
-                        method="post"
-                        as="button"
-                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-400 transition-colors hover:bg-red-600 hover:text-white"
+                    <button
+                        type="button"
+                        onClick={() => setIsLogoutModalOpen(true)}
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                         title={!isExpanded ? 'Log Out' : undefined}
                     >
                         <i
@@ -226,7 +236,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                         <span className={`min-w-0 whitespace-nowrap transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'w-0 overflow-hidden opacity-0'}`}>
                             Log Out
                         </span>
-                    </Link>
+                    </button>
                 </div>
             </aside>
 
@@ -237,6 +247,45 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                     className="animate-fade-in fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-sm md:hidden"
                     onClick={() => setIsOpen(false)}
                 />
+            )}
+
+            {/* LOGOUT CONFIRMATION MODAL (Blended Colors) */}
+            {isLogoutModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-scale-in text-center relative overflow-hidden">
+                        {/* Decorative top border using brand slate color */}
+                        <div className="absolute top-0 left-0 w-full h-2 bg-slate-800"></div>
+
+                        {/* Icon using brand colors instead of harsh red */}
+                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mx-auto mb-5 border border-slate-200">
+                            <i className="fa-solid fa-arrow-right-from-bracket text-slate-700 text-2xl"></i>
+                        </div>
+                        
+                        <h3 className="text-2xl font-extrabold text-slate-900 mb-2">Log Out?</h3>
+                        <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+                            Are you sure you want to log out of Cotify? You will need to sign in again to access your portal.
+                        </p>
+                        
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsLogoutModalOpen(false)} 
+                                className="flex-1 border border-slate-200 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            
+                            {/* Changed button color to brand dark slate/navy to match website theme */}
+                            <Link
+                                href="/logout"
+                                method="post"
+                                as="button"
+                                className="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/20"
+                            >
+                                Log Out
+                            </Link>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

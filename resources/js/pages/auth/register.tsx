@@ -43,8 +43,9 @@ export default function Register() {
         setStrength(calculateStrength(val));
     };
 
+    // CHANGED: limit to 7 digits
     const handleStudentIdChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+        const val = e.target.value.replace(/\D/g, '').slice(0, 7);
         setFormData(prev => ({ ...prev, studentId: val }));
     };
 
@@ -57,7 +58,8 @@ export default function Register() {
     // Validation Logic
     const passwordsMatch = password === confirmPassword;
     const isPasswordValid = password.length >= 8 && strength >= 3; 
-    const isStudentIdValid = formData.studentId.length === 6;
+    // CHANGED: check for 7 digits
+    const isStudentIdValid = formData.studentId.length === 7;
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
     
     const isFormValid = 
@@ -318,11 +320,11 @@ export default function Register() {
                                                         id="studentId" 
                                                         type="text" 
                                                         name="studentId" 
-                                                        placeholder="323145" 
+                                                        placeholder="3230404" // CHANGED: placeholder example
                                                         value={formData.studentId}
                                                         onChange={handleStudentIdChange}
                                                         inputMode="numeric"
-                                                        maxLength={6}
+                                                        maxLength={7} // CHANGED: max length
                                                         className={`w-full pl-11 pr-4 py-3.5 bg-slate-900/60 rounded-xl border text-white focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-sm font-medium ${
                                                             formData.studentId.length > 0 && !isStudentIdValid ? 'border-red-500/50' : 'border-slate-600/50'
                                                         }`}
@@ -332,9 +334,9 @@ export default function Register() {
                                                 {errors.studentId ? (
                                                     <p className="mt-1.5 text-xs font-bold text-red-400">{errors.studentId}</p>
                                                 ) : formData.studentId.length > 0 && !isStudentIdValid ? (
-                                                    <p className="mt-1.5 text-xs font-bold text-red-400">Must be exactly 6 digits</p>
+                                                    <p className="mt-1.5 text-xs font-bold text-red-400">Must be exactly 7 digits</p>
                                                 ) : (
-                                                    <p className="mt-1.5 text-[10px] font-semibold text-slate-400">Student ID (e.g., 323145)</p>
+                                                    <p className="mt-1.5 text-[10px] font-semibold text-slate-400">Student ID (e.g., 3230404)</p>
                                                 )}
                                             </div>
                                         </div>
