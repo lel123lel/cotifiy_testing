@@ -158,6 +158,7 @@ class AnnouncementController extends Controller
                     : 'Past',
                 'start_time' => $announcement->start_time ?? '',
                 'end_time' => $announcement->end_time ?? '',
+                'is_mine' => $announcement->author_staff_id === $request->user('staff')->id,
             ]);
 
         return Inertia::render('admin/adminEvent', [
@@ -183,7 +184,7 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    public function events(): Response
+    public function events(Request $request): Response
     {
         $events = Announcement::query()
             ->where('status', '!=', 'Draft')
@@ -212,6 +213,7 @@ class AnnouncementController extends Controller
                     : 'Past',
                 'start_time' => $announcement->start_time ?? '',
                 'end_time' => $announcement->end_time ?? '',
+                'is_mine' => $announcement->author_admin_id === $request->user('admin')->id,
             ]);
 
         return Inertia::render('admin/adminEvent', [

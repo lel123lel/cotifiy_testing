@@ -28,6 +28,7 @@ export default function ClientProfile({ user }: ClientProfileProps) {
     // Profile Form
     const profileForm = useForm({
         name: user.name,
+        email: user.email,
         course: user.course || 'BSIT',
         year_level: user.year_level || '3rd Year',
         section: user.section || '',
@@ -105,6 +106,17 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                 .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
                 .clip-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
             `}</style>
+
+            {profileForm.recentlySuccessful && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="animate-fade-in fixed left-1/2 top-5 z-[110] flex -translate-x-1/2 items-center gap-3 rounded-xl border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-800 shadow-xl"
+                >
+                    <i className="fa-solid fa-circle-check text-emerald-600" aria-hidden="true" />
+                    Changes saved successfully.
+                </div>
+            )}
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
                 

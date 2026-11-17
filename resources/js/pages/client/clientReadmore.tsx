@@ -251,6 +251,14 @@ export default function ClientReadMore({
                     <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
                         <div className="max-w-[1400px] mx-auto animate-slide-up">
                             
+                            <Link
+                                href="/client/announcements"
+                                className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <i className="fa-solid fa-arrow-left text-xs" aria-hidden="true" />
+                                Back to announcements
+                            </Link>
+
                             {/* BREADCRUMB */}
                             <nav className="mb-6 flex items-center gap-2 text-xs font-bold text-slate-500">
                                 <Link href="/client" className="hover:text-ctu-lightblue transition-colors rounded">

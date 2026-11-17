@@ -16,6 +16,7 @@ type AdminEvent = {
     status: 'Upcoming' | 'Past';
     start_time: string;
     end_time: string;
+    is_mine: boolean;
     body: string;
     posted_by: string;
     image_url: string | null;
@@ -158,6 +159,7 @@ export default function AdminEvents({
         return new Date(today.getFullYear(), today.getMonth(), 1);
     });
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [showMyEventsOnly, setShowMyEventsOnly] = useState(false);
     const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
     const [isEventEditorOpen, setIsEventEditorOpen] = useState(false);
     const [eventToDelete, setEventToDelete] = useState<AdminEvent | null>(null);
@@ -251,7 +253,9 @@ export default function AdminEvents({
         date.setDate(calendarStart.getDate() + index);
         return date;
     });
-    const eventsByDate = events.reduce<Record<string, AdminEvent[]>>((groupedEvents, event) => {
+    const myEvents = events.filter((event) => event.is_mine);
+    const visibleEvents = showMyEventsOnly ? myEvents : events;
+    const eventsByDate = visibleEvents.reduce<Record<string, AdminEvent[]>>((groupedEvents, event) => {
         const eventEndDate = event.end_date || event.date;
         for (const date of calendarDays) {
             const dateKey = toDateKey(date);
@@ -496,9 +500,27 @@ export default function AdminEvents({
                                 <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
                                         <h3 className="text-lg font-extrabold text-slate-900">Events calendar</h3>
-                                        <p className="text-xs font-medium text-slate-500 mt-1">{events.length} events</p>
+                                        <p className="text-xs font-medium text-slate-500 mt-1">{visibleEvents.length} events</p>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMyEventsOnly((current) => !current)}
+                                            aria-pressed={showMyEventsOnly}
+                                            className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                                                showMyEventsOnly
+                                                    ? 'border-blue-600 bg-blue-600 text-white'
+                                                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <i className="fa-solid fa-user" aria-hidden="true" />
+                                            My Events
+                                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                                                showMyEventsOnly ? 'bg-white/20' : 'bg-slate-100'
+                                            }`}>
+                                                {myEvents.length}
+                                            </span>
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))}
@@ -515,16 +537,6 @@ export default function AdminEvents({
                                             className="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center shrink-0"
                                         >
                                             <i className="fa-solid fa-chevron-right"></i>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const today = new Date();
-                                                setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
-                                            }}
-                                            className="ml-1 px-3 h-9 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shrink-0"
-                                        >
-                                            Today
                                         </button>
                                     </div>
                                 </div>

@@ -170,7 +170,12 @@ export default function StaffDashboard({
                                         {recentAnnouncements.length === 0 ? (
                                             <p className="py-8 text-center text-sm font-medium text-slate-500">No announcements yet.</p>
                                         ) : recentAnnouncements.map((announcement) => (
-                                            <div key={announcement.id} className="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 py-4 transition-colors hover:bg-slate-50 sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-3">
+                                            <Link
+                                                key={announcement.id}
+                                                href={`/staff/announcements?announcement=${announcement.id}`}
+                                                aria-label={`View announcement: ${announcement.title}`}
+                                                className="group grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 py-4 transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-3"
+                                            >
                                                 <div className="row-span-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 sm:row-span-1">
                                                     {announcement.image_url ? (
                                                         <img src={announcement.image_url} alt="" className="h-full w-full object-cover" />
@@ -194,7 +199,7 @@ export default function StaffDashboard({
                                                         <span className="max-w-full whitespace-normal break-words text-slate-500 sm:text-right">Posted by {announcement.posted_by}</span>
                                                     )}
                                                 </div>
-                                            </div>
+                                            </Link>
                                         ))}
                                     </div>
                                 </div>

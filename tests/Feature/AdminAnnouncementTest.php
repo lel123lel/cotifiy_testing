@@ -187,7 +187,8 @@ test('staff can manage announcements and events through the staff panel', functi
             ->component('admin/adminEvent')
             ->where('staffMode', true)
             ->where('staffName', 'Campus Staff')
-            ->where('events.0.title', 'Staff event'));
+            ->where('events.0.title', 'Staff event')
+            ->where('events.0.is_mine', true));
 
     $this->delete(route('staff.announcements.destroy', $announcement))
         ->assertRedirect();
@@ -651,6 +652,7 @@ test('an admin can publish an event announcement with a future schedule', functi
 });
 
 test('an admin can publish a multi-day event with an inclusive end date', function () {
+    Notification::fake();
     $admin = AdminUser::create([
         'name' => 'Site Admin',
         'email' => 'admin@example.com',
@@ -677,11 +679,31 @@ test('an admin can publish a multi-day event with an inclusive end date', functi
     expect($event->event_date->toDateString())->toBe($startDate)
         ->and($event->event_end_date->toDateString())->toBe($endDate);
 
-    $this->get(route('admin.events'))
+    $otherAdmin = AdminUser::create([
+        'name' => 'Other Admin',
+        'email' => 'other-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($otherAdmin, 'admin')
+        ->post(route('admin.announcements.store'), [
+            'title' => 'Another event',
+            'category' => 'Event',
+            'posted_by' => 'Student Affairs',
+            'body' => 'Created by another account.',
+            'event_date' => now()->addDays(1)->toDateString(),
+            'location' => 'Main Hall',
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin.events'))
         ->assertInertia(fn ($page) => $page
             ->component('admin/adminEvent')
             ->where('events.0.date', $startDate)
-            ->where('events.0.end_date', $endDate));
+            ->where('events.0.end_date', $endDate)
+            ->where('events.0.is_mine', true)
+            ->where('events.1.is_mine', false));
 });
 
 test('an event end date cannot be earlier than its start date', function () {
