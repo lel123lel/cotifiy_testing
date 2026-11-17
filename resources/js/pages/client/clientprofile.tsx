@@ -153,7 +153,7 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                             <div className="flex flex-col md:flex-row gap-8">
                                 
                                 {/* SETTINGS INNER TABS */}
-                                <aside className="w-full md:w-64 shrink-0">
+                                <aside className="w-full md:w-64 shrink-0 md:sticky md:top-8 md:h-fit">
                                     <nav className="flex flex-col gap-1">
                                         <button
                                             onClick={() => setActiveTab('profile')}
