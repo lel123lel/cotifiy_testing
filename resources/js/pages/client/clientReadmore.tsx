@@ -61,6 +61,10 @@ export default function ClientReadMore({
     const [isSaved, setIsSaved] = useState(announcement.is_saved ?? false);
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const commentsRef = useRef<HTMLDivElement>(null);
+    
+    // Modals state
+    const [isImageZoomed, setIsImageZoomed] = useState(false);
+    const [previewFile, setPreviewFile] = useState<{ name: string; url: string; size: string } | null>(null);
 
     // Polling for new answers
     useEffect(() => {
@@ -88,6 +92,18 @@ export default function ClientReadMore({
         window.addEventListener('scroll', onScroll);
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
+
+    // Lock body scroll when modals are open
+    useEffect(() => {
+        if (isImageZoomed || previewFile) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isImageZoomed, previewFile]);
 
     const handleSubmitQuestion = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -180,7 +196,7 @@ export default function ClientReadMore({
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+                @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.05); } 100% { transform: scale(1); } }
                 
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
@@ -309,14 +325,24 @@ export default function ClientReadMore({
                                             </div>
                                         </div>
 
-                                        {/* FIXED IMAGE CONTAINER */}
-                                        <div className="relative mb-10 flex w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4">
+                                        {/* FIXED IMAGE CONTAINER WITH ZOOM */}
+                                        <div 
+                                            className="group relative mb-10 flex w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
+                                            onClick={() => announcement.image && setIsImageZoomed(true)}
+                                        >
                                             {announcement.image ? (
-                                                <img 
-                                                    src={announcement.image} 
-                                                    alt={announcement.title} 
-                                                    className="max-h-[600px] w-full object-contain" 
-                                                />
+                                                <>
+                                                    <img 
+                                                        src={announcement.image} 
+                                                        alt={announcement.title} 
+                                                        className="max-h-[600px] w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]" 
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
+                                                        <div className="rounded-full bg-white/90 p-3 shadow-lg backdrop-blur-sm">
+                                                            <i className="fa-solid fa-magnifying-glass-plus text-xl text-slate-700"></i>
+                                                        </div>
+                                                    </div>
+                                                </>
                                             ) : (
                                                 <div className="flex h-64 w-full flex-col items-center justify-center text-slate-400 sm:h-80">
                                                     <i className={`mb-3 text-5xl ${
@@ -347,20 +373,23 @@ export default function ClientReadMore({
                                                     </h4>
                                                     <div className="flex flex-wrap gap-3">
                                                         {announcement.attachments.map((file, idx) => (
-                                                            <a
+                                                            <button
                                                                 key={idx}
-                                                                href={file.url}
-                                                                download={file.name}
-                                                                className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm"
+                                                                onClick={() => setPreviewFile(file)}
+                                                                className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm text-left"
                                                             >
-                                                                <i className="fa-solid fa-file-pdf text-rose-500"></i>
+                                                                <i className={`fa-solid ${
+                                                                    file.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
+                                                                    file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
+                                                                    'fa-file-lines text-slate-500'
+                                                                }`}></i>
                                                                 <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
                                                                     {file.name}
                                                                 </span>
                                                                 <span className="text-xs text-slate-400">
                                                                     {file.size}
                                                                 </span>
-                                                            </a>
+                                                            </button>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -641,6 +670,131 @@ export default function ClientReadMore({
                     >
                         <i className="fa-solid fa-arrow-up"></i>
                     </button>
+                )}
+
+                {/* IMAGE ZOOM MODAL */}
+                {isImageZoomed && announcement.image && (
+                    <div 
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md animate-fade-in cursor-zoom-out"
+                        onClick={() => setIsImageZoomed(false)}
+                    >
+                        <button 
+                            className="absolute top-6 right-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-110 z-10"
+                            onClick={() => setIsImageZoomed(false)}
+                            aria-label="Close image"
+                        >
+                            <i className="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                        
+                        <img
+                            src={announcement.image}
+                            alt={announcement.title}
+                            className="max-h-[90vh] max-w-full rounded-lg object-contain animate-pop-in cursor-default shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
+                {/* FILE PREVIEW MODAL */}
+                {previewFile && (
+                    <div 
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md animate-fade-in"
+                        onClick={() => setPreviewFile(null)}
+                    >
+                        <div 
+                            className="relative flex h-full max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-pop-in"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Viewer Header */}
+                            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                                        <i className={`fa-solid ${
+                                            previewFile.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
+                                            previewFile.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
+                                            'fa-file-lines text-slate-500'
+                                        }`}></i>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-bold text-slate-900">{previewFile.name}</p>
+                                        <p className="text-xs text-slate-500">{previewFile.size}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <a
+                                        href={previewFile.url}
+                                        download={previewFile.name}
+                                        className="hidden sm:flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                                    >
+                                        <i className="fa-solid fa-download"></i>
+                                        Download
+                                    </a>
+                                    <a
+                                        href={previewFile.url}
+                                        download={previewFile.name}
+                                        className="flex sm:hidden h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700 transition-colors hover:bg-blue-100"
+                                        aria-label="Download file"
+                                    >
+                                        <i className="fa-solid fa-download"></i>
+                                    </a>
+                                    <button
+                                        onClick={() => setPreviewFile(null)}
+                                        className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                                    >
+                                        <i className="fa-solid fa-xmark text-xl"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Viewer Body */}
+                            <div className="flex-1 overflow-auto bg-slate-100 p-4 sm:p-6 flex items-center justify-center">
+                                {previewFile.name.toLowerCase().endsWith('.pdf') ? (
+                                    <iframe
+                                        src={`${previewFile.url}#toolbar=0`}
+                                        className="h-full w-full rounded-lg border border-slate-300 bg-white shadow-sm"
+                                        title={previewFile.name}
+                                    />
+                                ) : previewFile.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                    <img 
+                                        src={previewFile.url} 
+                                        alt={previewFile.name} 
+                                        className="max-h-full max-w-full rounded-lg object-contain shadow-sm bg-white"
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center rounded-xl bg-white p-8 text-center shadow-sm border border-slate-200 w-full max-w-md">
+                                        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 text-slate-400">
+                                            <i className="fa-solid fa-file-circle-question text-3xl"></i>
+                                        </div>
+                                        <h3 className="text-lg font-extrabold text-slate-900 mb-2">Preview not available</h3>
+                                        <p className="text-sm text-slate-500 mb-6">
+                                            This file type cannot be previewed directly in the browser. You can download it to view its contents.
+                                        </p>
+                                        <a
+                                            href={previewFile.url}
+                                            download={previewFile.name}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 w-full justify-center"
+                                        >
+                                            <i className="fa-solid fa-download"></i>
+                                            Download File
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Mobile Download Footer */}
+                            <div className="border-t border-slate-200 bg-white p-4 sm:hidden">
+                                <a
+                                    href={previewFile.url}
+                                    download={previewFile.name}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                >
+                                    <i className="fa-solid fa-download"></i>
+                                    Download {previewFile.name}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </>
