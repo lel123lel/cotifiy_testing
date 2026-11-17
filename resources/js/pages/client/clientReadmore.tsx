@@ -269,7 +269,7 @@ export default function ClientReadMore({
                                                     )}
                                                 </div>
                                                 
-                                                <h1 className="text-3xl leading-tight font-extrabold text-slate-900">
+                                                <h1 className="text-3xl leading-tight font-extrabold text-slate-900 sm:text-4xl">
                                                     {announcement.title}
                                                 </h1>
 
@@ -309,11 +309,16 @@ export default function ClientReadMore({
                                             </div>
                                         </div>
 
-                                        <div className="relative mb-8 flex h-64 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 sm:h-80">
+                                        {/* FIXED IMAGE CONTAINER */}
+                                        <div className="relative mb-10 flex w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4">
                                             {announcement.image ? (
-                                                <img src={announcement.image} alt={announcement.title} className="h-full w-full object-cover" />
+                                                <img 
+                                                    src={announcement.image} 
+                                                    alt={announcement.title} 
+                                                    className="max-h-[600px] w-full object-contain" 
+                                                />
                                             ) : (
-                                                <div className="flex flex-col items-center text-slate-400">
+                                                <div className="flex h-64 w-full flex-col items-center justify-center text-slate-400 sm:h-80">
                                                     <i className={`mb-3 text-5xl ${
                                                             announcement.category === 'Academic' ? 'fa-solid fa-graduation-cap'
                                                             : announcement.category === 'Event' ? 'fa-regular fa-calendar'
@@ -328,50 +333,53 @@ export default function ClientReadMore({
                                             )}
                                         </div>
 
-                                        <div
-                                            dangerouslySetInnerHTML={{ __html: announcement.content_html }}
-                                            className="mb-10 break-words text-base leading-relaxed text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_li]:my-1 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-100 [&_pre]:p-4 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6"
-                                        />
+                                        {/* TEXT CONTENT - CONSTRAINED WIDTH AND BETTER TYPOGRAPHY */}
+                                        <div className="mx-auto max-w-3xl">
+                                            <div
+                                                dangerouslySetInnerHTML={{ __html: announcement.content_html }}
+                                                className="mb-12 whitespace-pre-wrap break-words text-[17px] leading-[1.8] text-slate-700 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-300 [&_a]:decoration-2 [&_a]:underline-offset-2 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:bg-slate-50 [&_blockquote]:py-2 [&_blockquote]:pl-6 [&_blockquote]:pr-4 [&_blockquote]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:text-slate-900 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-6 [&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-5 [&_pre]:text-slate-100 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
+                                            />
 
-                                        {announcement.attachments && announcement.attachments.length > 0 && (
-                                            <div className="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                                <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
-                                                    Attachments
-                                                </h4>
-                                                <div className="flex flex-wrap gap-3">
-                                                    {announcement.attachments.map((file, idx) => (
-                                                        <a
-                                                            key={idx}
-                                                            href={file.url}
-                                                            download={file.name}
-                                                            className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm"
-                                                        >
-                                                            <i className="fa-solid fa-file-pdf text-rose-500"></i>
-                                                            <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
-                                                                {file.name}
-                                                            </span>
-                                                            <span className="text-xs text-slate-400">
-                                                                {file.size}
-                                                            </span>
-                                                        </a>
-                                                    ))}
+                                            {announcement.attachments && announcement.attachments.length > 0 && (
+                                                <div className="mb-12 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                                    <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                                                        Attachments
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {announcement.attachments.map((file, idx) => (
+                                                            <a
+                                                                key={idx}
+                                                                href={file.url}
+                                                                download={file.name}
+                                                                className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm"
+                                                            >
+                                                                <i className="fa-solid fa-file-pdf text-rose-500"></i>
+                                                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
+                                                                    {file.name}
+                                                                </span>
+                                                                <span className="text-xs text-slate-400">
+                                                                    {file.size}
+                                                                </span>
+                                                            </a>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
 
                                         {/* ANNOUNCEMENT DISCUSSION */}
-                                        <div ref={commentsRef} className="mt-10 border-t border-slate-200 pt-8">
-                                            <div className="mb-6">
-                                                <h3 className="text-xl font-extrabold text-slate-900">
+                                        <div ref={commentsRef} className="mx-auto max-w-3xl mt-12 border-t border-slate-200 pt-10">
+                                            <div className="mb-8">
+                                                <h3 className="text-2xl font-extrabold text-slate-900">
                                                     Comments & discussion
                                                 </h3>
-                                                <p className="mt-1 text-sm font-medium text-slate-500">
+                                                <p className="mt-2 text-base font-medium text-slate-500">
                                                     Ask a question or join the discussion about this announcement.
                                                 </p>
                                             </div>
 
                                             {isLoggedIn ? (
-                                                <form onSubmit={handleSubmitQuestion} className="mb-8">
+                                                <form onSubmit={handleSubmitQuestion} className="mb-10">
                                                     <textarea
                                                         value={data.content}
                                                         onChange={(e) => setData('content', e.target.value)}

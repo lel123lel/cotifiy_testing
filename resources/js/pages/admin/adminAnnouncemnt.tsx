@@ -706,7 +706,7 @@ export default function AdminAnnouncements({
                                                         defaultValue={editingAnnouncement?.body ?? ''}
                                                         required
                                                         rows={8}
-                                                        className="w-full p-4 text-sm focus:outline-none resize-none bg-white"
+                                                        className="w-full p-4 text-sm focus:outline-none resize-none bg-white whitespace-pre-wrap"
                                                         placeholder="Write the announcement details..."
                                                     />
                                                 </div>
@@ -719,7 +719,7 @@ export default function AdminAnnouncements({
                                                     {selectedImageName ? (
                                                         <p className="p-4 text-sm font-bold text-slate-700 text-center break-all">{selectedImageName}</p>
                                                     ) : editingAnnouncement?.image_url ? (
-                                                        <img src={editingAnnouncement.image_url} alt="Announcement cover" className="w-full h-full object-cover" />
+                                                        <img src={editingAnnouncement.image_url} alt="Announcement cover" className="w-full h-full object-contain" />
                                                     ) : (
                                                         <div className="text-center p-4">
                                                             <p className="text-sm font-bold text-slate-700 mb-1">Choose an image</p>
