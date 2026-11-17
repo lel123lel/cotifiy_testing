@@ -240,7 +240,6 @@ export default function ClientReadMore({
                     {/* TOP BAR */}
                     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
                         <div className="flex items-center gap-4">
-
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Announcement</h2>
                         </div>
                         
@@ -325,26 +324,30 @@ export default function ClientReadMore({
                                             </div>
                                         </div>
 
-                                        {/* FIXED IMAGE CONTAINER WITH ZOOM */}
-                                        <div 
-                                            className="group relative mb-10 flex w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
-                                            onClick={() => announcement.image && setIsImageZoomed(true)}
-                                        >
-                                            {announcement.image ? (
-                                                <>
+                                        {/* CONTENT WRAPPER TO ALIGN IMAGE AND TEXT */}
+                                        <div className="mx-auto max-w-4xl">
+                                            {/* AUTO-RESIZING IMAGE CONTAINER WITH ZOOM */}
+                                            {announcement.image && (
+                                                <div 
+                                                    className="group relative mx-auto mb-10 inline-flex max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
+                                                    onClick={() => setIsImageZoomed(true)}
+                                                >
                                                     <img 
                                                         src={announcement.image} 
                                                         alt={announcement.title} 
-                                                        className="max-h-[600px] w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]" 
+                                                        className="h-auto w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]" 
                                                     />
                                                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
                                                         <div className="rounded-full bg-white/90 p-3 shadow-lg backdrop-blur-sm">
                                                             <i className="fa-solid fa-magnifying-glass-plus text-xl text-slate-700"></i>
                                                         </div>
                                                     </div>
-                                                </>
-                                            ) : (
-                                                <div className="flex h-64 w-full flex-col items-center justify-center text-slate-400 sm:h-80">
+                                                </div>
+                                            )}
+
+                                            {/* Fallback placeholder if no image */}
+                                            {!announcement.image && (
+                                                <div className="mb-10 flex h-64 w-full flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400 sm:h-80">
                                                     <i className={`mb-3 text-5xl ${
                                                             announcement.category === 'Academic' ? 'fa-solid fa-graduation-cap'
                                                             : announcement.category === 'Event' ? 'fa-regular fa-calendar'
@@ -357,253 +360,253 @@ export default function ClientReadMore({
                                                     </span>
                                                 </div>
                                             )}
-                                        </div>
 
-                                        {/* TEXT CONTENT - CONSTRAINED WIDTH AND BETTER TYPOGRAPHY */}
-                                        <div className="mx-auto max-w-3xl">
-                                            <div
-                                                dangerouslySetInnerHTML={{ __html: announcement.content_html }}
-                                                className="mb-12 whitespace-pre-wrap break-words text-[17px] leading-[1.8] text-slate-700 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-300 [&_a]:decoration-2 [&_a]:underline-offset-2 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:bg-slate-50 [&_blockquote]:py-2 [&_blockquote]:pl-6 [&_blockquote]:pr-4 [&_blockquote]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:text-slate-900 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-6 [&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-5 [&_pre]:text-slate-100 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
-                                            />
+                                            {/* TEXT CONTENT - CONSTRAINED WIDTH AND BETTER TYPOGRAPHY */}
+                                            <div>
+                                                <div
+                                                    dangerouslySetInnerHTML={{ __html: announcement.content_html }}
+                                                    className="mb-12 whitespace-pre-wrap break-words text-[17px] leading-[1.8] text-slate-700 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-300 [&_a]:decoration-2 [&_a]:underline-offset-2 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:bg-slate-50 [&_blockquote]:py-2 [&_blockquote]:pl-6 [&_blockquote]:pr-4 [&_blockquote]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:text-slate-900 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-6 [&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-5 [&_pre]:text-slate-100 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
+                                                />
 
-                                            {announcement.attachments && announcement.attachments.length > 0 && (
-                                                <div className="mb-12 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                                    <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
-                                                        Attachments
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {announcement.attachments.map((file, idx) => (
-                                                            <button
-                                                                key={idx}
-                                                                onClick={() => setPreviewFile(file)}
-                                                                className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm text-left"
-                                                            >
-                                                                <i className={`fa-solid ${
-                                                                    file.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
-                                                                    file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
-                                                                    'fa-file-lines text-slate-500'
-                                                                }`}></i>
-                                                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
-                                                                    {file.name}
-                                                                </span>
-                                                                <span className="text-xs text-slate-400">
-                                                                    {file.size}
-                                                                </span>
-                                                            </button>
-                                                        ))}
+                                                {announcement.attachments && announcement.attachments.length > 0 && (
+                                                    <div className="mb-12 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                                        <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                                                            Attachments
+                                                        </h4>
+                                                        <div className="flex flex-wrap gap-3">
+                                                            {announcement.attachments.map((file, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => setPreviewFile(file)}
+                                                                    className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm text-left"
+                                                                >
+                                                                    <i className={`fa-solid ${
+                                                                        file.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
+                                                                        file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
+                                                                        'fa-file-lines text-slate-500'
+                                                                    }`}></i>
+                                                                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
+                                                                        {file.name}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-400">
+                                                                        {file.size}
+                                                                    </span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* ANNOUNCEMENT DISCUSSION */}
-                                        <div ref={commentsRef} className="mx-auto max-w-3xl mt-12 border-t border-slate-200 pt-10">
-                                            <div className="mb-8">
-                                                <h3 className="text-2xl font-extrabold text-slate-900">
-                                                    Comments & discussion
-                                                </h3>
-                                                <p className="mt-2 text-base font-medium text-slate-500">
-                                                    Ask a question or join the discussion about this announcement.
-                                                </p>
+                                                )}
                                             </div>
 
-                                            {isLoggedIn ? (
-                                                <form onSubmit={handleSubmitQuestion} className="mb-10">
-                                                    <textarea
-                                                        value={data.content}
-                                                        onChange={(e) => setData('content', e.target.value)}
-                                                        placeholder="Write a comment..."
-                                                        rows={3}
-                                                        maxLength={5000}
-                                                        className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-base font-medium shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                                                    />
-                                                    {errors.content && (
-                                                        <p className="mt-1.5 text-sm font-bold text-red-600">{errors.content}</p>
-                                                    )}
-                                                    
-                                                    <div className="mt-3 flex items-center justify-between">
-                                                        <span className="text-xs font-semibold text-slate-400">
-                                                            {data.content.length} / 5000
-                                                        </span>
-                                                        <div className="flex items-center gap-4">
-                                                            {!data.content.trim() && (
-                                                                <span className="text-xs font-semibold text-slate-400">
-                                                                    Write something first
-                                                                </span>
-                                                            )}
-                                                            <button
-                                                                type="submit"
-                                                                disabled={!data.content.trim() || processing}
-                                                                className={`rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                                                    !data.content.trim() || processing
-                                                                        ? 'cursor-not-allowed bg-slate-100 text-slate-400'
-                                                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                                                }`}
-                                                            >
-                                                                {processing ? 'Posting...' : 'Post comment'}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            ) : (
-                                                <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
-                                                    <p className="mb-3 text-base font-bold text-slate-700">
-                                                        Log in to join the discussion.
+                                            {/* ANNOUNCEMENT DISCUSSION */}
+                                            <div ref={commentsRef} className="mt-12 border-t border-slate-200 pt-10">
+                                                <div className="mb-8">
+                                                    <h3 className="text-2xl font-extrabold text-slate-900">
+                                                        Comments & discussion
+                                                    </h3>
+                                                    <p className="mt-2 text-base font-medium text-slate-500">
+                                                        Ask a question or join the discussion about this announcement.
                                                     </p>
-                                                    <Link
-                                                        href="/auth/login"
-                                                        className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
-                                                    >
-                                                        Log In
-                                                    </Link>
                                                 </div>
-                                            )}
 
-                                            <div className="space-y-4" aria-live="polite">
-                                                {messages.length === 0 ? (
-                                                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
-                                                        <i className="fa-regular fa-comments mb-3 text-3xl text-slate-400" aria-hidden="true"></i>
-                                                        <p className="text-base font-semibold text-slate-600">No comments yet</p>
-                                                        <p className="mt-1 text-sm text-slate-500">Be the first to start the discussion.</p>
-                                                    </div>
-                                                ) : (
-                                                    messages.map((message) => {
-                                                        const parentMessage = message.parent_message_id
-                                                            ? messages.find((candidate) => candidate.id === message.parent_message_id)
-                                                            : null;
-                                                        let messageDepth = 0;
-                                                        let ancestorId = message.parent_message_id;
-                                                        const visitedIds = new Set([message.id]);
-
-                                                        while (ancestorId !== null && !visitedIds.has(ancestorId)) {
-                                                            const ancestor = messages.find((candidate) => candidate.id === ancestorId);
-                                                            if (!ancestor) break;
-
-                                                            visitedIds.add(ancestor.id);
-                                                            messageDepth += 1;
-                                                            ancestorId = ancestor.parent_message_id;
-                                                        }
-
-                                                        return (
-                                                        <div
-                                                            key={message.id}
-                                                            style={parentMessage ? { marginLeft: `${messageDepth * 16}px` } : undefined}
-                                                        >
-                                                            {parentMessage && (
-                                                                <a
-                                                                    href={`#comment-${parentMessage.id}`}
-                                                                    className="relative mb-1 flex min-h-6 items-center gap-2 pl-4 text-xs text-slate-500 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-blue-200 after:absolute after:bottom-1 after:left-0 after:w-3 after:border-t-2 after:border-blue-200 hover:text-blue-700"
-                                                                >
-                                                                    <i className="fa-solid fa-reply text-blue-400" aria-hidden="true"></i>
-                                                                    <span className="shrink-0">Replying to <strong className="font-bold text-slate-700">{parentMessage.author}</strong>:</span>
-                                                                    <span className="min-w-0 truncate">{parentMessage.content}</span>
-                                                                </a>
-                                                            )}
-                                                            <article
-                                                            id={`comment-${message.id}`}
-                                                            className={`scroll-mt-24 rounded-xl border p-5 ${
-                                                                message.role !== 'Client'
-                                                                    ? 'border-blue-200 bg-blue-50/50'
-                                                                    : 'border-slate-200 bg-white'
-                                                            }`}
-                                                            >
-                                                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                                                                {message.author_photo_url ? (
-                                                                    <img
-                                                                        src={message.author_photo_url}
-                                                                        alt=""
-                                                                        className="h-8 w-8 shrink-0 rounded-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
-                                                                        {message.author.charAt(0).toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <span className="text-sm font-bold text-slate-900">
-                                                                    {message.author}
-                                                                </span>
-                                                                <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                                                                        message.role !== 'Client'
-                                                                            ? 'bg-blue-100 text-blue-700'
-                                                                            : 'bg-slate-100 text-slate-600'
-                                                                    }`}
-                                                                >
-                                                                    {message.role === 'Admin' ? announcement.posted_by : message.role}
-                                                                </span>
-                                                                {message.is_announcement_wide && (
-                                                                    <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                                                                        All clients
+                                                {isLoggedIn ? (
+                                                    <form onSubmit={handleSubmitQuestion} className="mb-10">
+                                                        <textarea
+                                                            value={data.content}
+                                                            onChange={(e) => setData('content', e.target.value)}
+                                                            placeholder="Write a comment..."
+                                                            rows={3}
+                                                            maxLength={5000}
+                                                            className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-base font-medium shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                                        />
+                                                        {errors.content && (
+                                                            <p className="mt-1.5 text-sm font-bold text-red-600">{errors.content}</p>
+                                                        )}
+                                                        
+                                                        <div className="mt-3 flex items-center justify-between">
+                                                            <span className="text-xs font-semibold text-slate-400">
+                                                                {data.content.length} / 5000
+                                                            </span>
+                                                            <div className="flex items-center gap-4">
+                                                                {!data.content.trim() && (
+                                                                    <span className="text-xs font-semibold text-slate-400">
+                                                                        Write something first
                                                                     </span>
                                                                 )}
-                                                                {message.is_mine && (
-                                                                    <span className="text-xs font-semibold text-slate-400">You</span>
-                                                                )}
-                                                                {message.sent_at && (
-                                                                    <time className="ml-auto text-xs font-medium text-slate-400" dateTime={message.sent_at}>
-                                                                        {new Date(message.sent_at).toLocaleString()}
-                                                                    </time>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-base leading-relaxed break-words whitespace-pre-wrap text-slate-700">
-                                                                {message.content}
-                                                            </p>
-                                                            
-                                                            {isLoggedIn && (
                                                                 <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (replyingTo === message.id) {
-                                                                            setReplyingTo(null);
-                                                                            replyForm.reset();
-                                                                            replyForm.clearErrors();
-                                                                            return;
-                                                                        }
-                                                                        setReplyingTo(message.id);
-                                                                        replyForm.setData({
-                                                                            content: '',
-                                                                            parent_message_id: message.id,
-                                                                        });
-                                                                        replyForm.clearErrors();
-                                                                    }}
-                                                                    className="mt-3 rounded text-sm font-bold text-blue-600 transition hover:text-blue-800"
+                                                                    type="submit"
+                                                                    disabled={!data.content.trim() || processing}
+                                                                    className={`rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                                                        !data.content.trim() || processing
+                                                                            ? 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                                    }`}
                                                                 >
-                                                                    {replyingTo === message.id ? 'Cancel reply' : 'Reply'}
+                                                                    {processing ? 'Posting...' : 'Post comment'}
                                                                 </button>
-                                                            )}
-                                                            
-                                                            {replyingTo === message.id && (
-                                                                <form onSubmit={handleSubmitReply} className="mt-4 border-t border-slate-200/60 pt-4">
-                                                                    <label className="sr-only" htmlFor={`reply-${message.id}`}>
-                                                                        Reply to {message.author}
-                                                                    </label>
-                                                                    <textarea
-                                                                        id={`reply-${message.id}`}
-                                                                        value={replyForm.data.content}
-                                                                        onChange={(event) => replyForm.setData('content', event.target.value)}
-                                                                        placeholder={`Reply to ${message.author}...`}
-                                                                        rows={2}
-                                                                        maxLength={5000}
-                                                                        className="w-full resize-none rounded-lg border border-slate-300 bg-white p-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                                                                    />
-                                                                    {replyForm.errors.content && (
-                                                                        <p className="mt-1.5 text-xs font-bold text-red-600">{replyForm.errors.content}</p>
-                                                                    )}
-                                                                    <div className="mt-3 flex justify-end">
-                                                                        <button
-                                                                            type="submit"
-                                                                            disabled={!replyForm.data.content.trim() || replyForm.processing}
-                                                                            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-                                                                        >
-                                                                            {replyForm.processing ? 'Posting...' : 'Post reply'}
-                                                                        </button>
-                                                                    </div>
-                                                                </form>
-                                                            )}
-                                                            </article>
+                                                            </div>
                                                         </div>
-                                                        );
-                                                    })
+                                                    </form>
+                                                ) : (
+                                                    <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
+                                                        <p className="mb-3 text-base font-bold text-slate-700">
+                                                            Log in to join the discussion.
+                                                        </p>
+                                                        <Link
+                                                            href="/auth/login"
+                                                            className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                                        >
+                                                            Log In
+                                                        </Link>
+                                                    </div>
                                                 )}
+
+                                                <div className="space-y-4" aria-live="polite">
+                                                    {messages.length === 0 ? (
+                                                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
+                                                            <i className="fa-regular fa-comments mb-3 text-3xl text-slate-400" aria-hidden="true"></i>
+                                                            <p className="text-base font-semibold text-slate-600">No comments yet</p>
+                                                            <p className="mt-1 text-sm text-slate-500">Be the first to start the discussion.</p>
+                                                        </div>
+                                                    ) : (
+                                                        messages.map((message) => {
+                                                            const parentMessage = message.parent_message_id
+                                                                ? messages.find((candidate) => candidate.id === message.parent_message_id)
+                                                                : null;
+                                                            let messageDepth = 0;
+                                                            let ancestorId = message.parent_message_id;
+                                                            const visitedIds = new Set([message.id]);
+
+                                                            while (ancestorId !== null && !visitedIds.has(ancestorId)) {
+                                                                const ancestor = messages.find((candidate) => candidate.id === ancestorId);
+                                                                if (!ancestor) break;
+
+                                                                visitedIds.add(ancestor.id);
+                                                                messageDepth += 1;
+                                                                ancestorId = ancestor.parent_message_id;
+                                                            }
+
+                                                            return (
+                                                            <div
+                                                                key={message.id}
+                                                                style={parentMessage ? { marginLeft: `${messageDepth * 16}px` } : undefined}
+                                                            >
+                                                                {parentMessage && (
+                                                                    <a
+                                                                        href={`#comment-${parentMessage.id}`}
+                                                                        className="relative mb-1 flex min-h-6 items-center gap-2 pl-4 text-xs text-slate-500 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-blue-200 after:absolute after:bottom-1 after:left-0 after:w-3 after:border-t-2 after:border-blue-200 hover:text-blue-700"
+                                                                    >
+                                                                        <i className="fa-solid fa-reply text-blue-400" aria-hidden="true"></i>
+                                                                        <span className="shrink-0">Replying to <strong className="font-bold text-slate-700">{parentMessage.author}</strong>:</span>
+                                                                        <span className="min-w-0 truncate">{parentMessage.content}</span>
+                                                                    </a>
+                                                                )}
+                                                                <article
+                                                                id={`comment-${message.id}`}
+                                                                className={`scroll-mt-24 rounded-xl border p-5 ${
+                                                                    message.role !== 'Client'
+                                                                        ? 'border-blue-200 bg-blue-50/50'
+                                                                        : 'border-slate-200 bg-white'
+                                                                }`}
+                                                                >
+                                                                <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                                    {message.author_photo_url ? (
+                                                                        <img
+                                                                            src={message.author_photo_url}
+                                                                            alt=""
+                                                                            className="h-8 w-8 shrink-0 rounded-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
+                                                                            {message.author.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                    )}
+                                                                    <span className="text-sm font-bold text-slate-900">
+                                                                        {message.author}
+                                                                    </span>
+                                                                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                                                                            message.role !== 'Client'
+                                                                                ? 'bg-blue-100 text-blue-700'
+                                                                                : 'bg-slate-100 text-slate-600'
+                                                                        }`}
+                                                                    >
+                                                                        {message.role === 'Admin' ? announcement.posted_by : message.role}
+                                                                    </span>
+                                                                    {message.is_announcement_wide && (
+                                                                        <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                                                                            All clients
+                                                                        </span>
+                                                                    )}
+                                                                    {message.is_mine && (
+                                                                        <span className="text-xs font-semibold text-slate-400">You</span>
+                                                                    )}
+                                                                    {message.sent_at && (
+                                                                        <time className="ml-auto text-xs font-medium text-slate-400" dateTime={message.sent_at}>
+                                                                            {new Date(message.sent_at).toLocaleString()}
+                                                                        </time>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-base leading-relaxed break-words whitespace-pre-wrap text-slate-700">
+                                                                    {message.content}
+                                                                </p>
+                                                                
+                                                                {isLoggedIn && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (replyingTo === message.id) {
+                                                                                setReplyingTo(null);
+                                                                                replyForm.reset();
+                                                                                replyForm.clearErrors();
+                                                                                return;
+                                                                            }
+                                                                            setReplyingTo(message.id);
+                                                                            replyForm.setData({
+                                                                                content: '',
+                                                                                parent_message_id: message.id,
+                                                                            });
+                                                                            replyForm.clearErrors();
+                                                                        }}
+                                                                        className="mt-3 rounded text-sm font-bold text-blue-600 transition hover:text-blue-800"
+                                                                    >
+                                                                        {replyingTo === message.id ? 'Cancel reply' : 'Reply'}
+                                                                    </button>
+                                                                )}
+                                                                
+                                                                {replyingTo === message.id && (
+                                                                    <form onSubmit={handleSubmitReply} className="mt-4 border-t border-slate-200/60 pt-4">
+                                                                        <label className="sr-only" htmlFor={`reply-${message.id}`}>
+                                                                            Reply to {message.author}
+                                                                        </label>
+                                                                        <textarea
+                                                                            id={`reply-${message.id}`}
+                                                                            value={replyForm.data.content}
+                                                                            onChange={(event) => replyForm.setData('content', event.target.value)}
+                                                                            placeholder={`Reply to ${message.author}...`}
+                                                                            rows={2}
+                                                                            maxLength={5000}
+                                                                            className="w-full resize-none rounded-lg border border-slate-300 bg-white p-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                                                        />
+                                                                        {replyForm.errors.content && (
+                                                                            <p className="mt-1.5 text-xs font-bold text-red-600">{replyForm.errors.content}</p>
+                                                                        )}
+                                                                        <div className="mt-3 flex justify-end">
+                                                                            <button
+                                                                                type="submit"
+                                                                                disabled={!replyForm.data.content.trim() || replyForm.processing}
+                                                                                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                                                                            >
+                                                                                {replyForm.processing ? 'Posting...' : 'Post reply'}
+                                                                            </button>
+                                                                        </div>
+                                                                    </form>
+                                                                )}
+                                                                </article>
+                                                            </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </article>
