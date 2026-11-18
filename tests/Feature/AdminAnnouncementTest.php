@@ -177,8 +177,7 @@ test('staff can manage announcements and events through the staff panel', functi
     $this->get(route('staff.announcements.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('admin/adminAnnouncemnt')
-            ->where('staffMode', true)
+        ->component('staff/staffannouncement')
             ->where('staffName', 'Campus Staff')
             ->where('announcements.0.title', 'Staff event'));
 
@@ -198,7 +197,7 @@ test('staff can manage announcements and events through the staff panel', functi
     $this->assertDatabaseHas('announcement', ['id' => $event->id, 'category' => 'Event']);
 });
 
-test('staff announcement pages show all announcements and provide the signed-in author id for My Posts filtering', function () {
+test('staff announcement pages render the dedicated staff page with all announcements', function () {
     Notification::fake();
     $staff = StaffUser::create([
         'name' => 'Test One',
@@ -243,6 +242,7 @@ test('staff announcement pages show all announcements and provide the signed-in 
         ->get(route('staff.announcements.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
+            ->component('staff/staffannouncement')
             ->where('staffName', 'Test One')
             ->where('staffId', $staff->id)
             ->has('announcements', 3)

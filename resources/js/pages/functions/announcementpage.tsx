@@ -22,7 +22,7 @@ export type Announcement = {
     location: string | null;
 };
 
-type AnnouncementPageProps = {
+export type AnnouncementPageProps = {
     announcement?: Announcement;
     discussions?: Discussion[];
     announcementComments?: DiscussionMessage[];

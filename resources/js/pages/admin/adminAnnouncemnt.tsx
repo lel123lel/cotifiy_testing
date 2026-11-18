@@ -1,10 +1,8 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import AnnouncementPage, { type Announcement } from '../announcementpage';
-import AdminNotificationDropdown from './AdminNotificationDropdown';
-import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
-import StaffSidebar from '../staff/StaffSidebar';
-import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
+import AnnouncementPage, { type Announcement } from '../functions/announcementpage';
+import AdminNotificationDropdown from '../admin/AdminNotificationDropdown';
+import AdminSidebar, { useAdminSidebarOpen } from '../admin/AdminSidebar';
 
 type DiscussionMessage = {
     id: number;
@@ -28,39 +26,35 @@ type AnnouncementComment = {
     messages: DiscussionMessage[];
 };
 
+type AnnouncementTab = 'My Posts' | 'All' | 'Drafts' | 'Archived';
+
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
 });
 
+export type AdminAnnouncementsProps = {
+    announcements: Announcement[];
+    discussions: Discussion[];
+    announcementComments: AnnouncementComment[];
+    adminId: number;
+    openAnnouncementId?: number | null;
+    openAnnouncementSection?: 'comments' | null;
+    initialTab?: 'My Posts' | null;
+    initialCategoryFilter?: 'Event' | null;
+};
+
 export default function AdminAnnouncements({
     announcements = [],
     discussions = [],
     announcementComments = [],
-    staffMode = false,
-    staffName = '',
-    staffDepartment = null,
-    staffId,
     adminId,
     openAnnouncementId = null,
     openAnnouncementSection = null,
     initialTab = null,
     initialCategoryFilter = null,
-}: {
-    announcements: Announcement[];
-    discussions: Discussion[];
-    announcementComments: AnnouncementComment[];
-    staffMode?: boolean;
-    staffName?: string;
-    staffDepartment?: string | null;
-    staffId?: number;
-    adminId?: number;
-    openAnnouncementId?: number | null;
-    openAnnouncementSection?: 'comments' | null;
-    initialTab?: 'My Posts' | null;
-    initialCategoryFilter?: 'Event' | null;
-}) {
+}: AdminAnnouncementsProps) {
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
     const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
@@ -77,14 +71,14 @@ export default function AdminAnnouncements({
     const [selectedCategory, setSelectedCategory] = useState('Academic');
 
     // Table & Sidebar State
-    const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen(!staffMode);
+    const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen(true);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState(initialTab ?? 'My Posts');
+    const [activeTab, setActiveTab] = useState<AnnouncementTab>(initialTab ?? 'My Posts');
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter ?? 'All');
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-    const panelBase = staffMode ? '/staff' : '/admin';
+    const panelBase = '/admin';
     const statusInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -97,37 +91,24 @@ export default function AdminAnnouncements({
     const closeAnnouncement = () => {
         setSelectedAnnouncement(null);
 
-        if (staffMode && openAnnouncementId !== null) {
-            router.get('/staff/announcements', {}, {
-                replace: true,
-                preserveScroll: true,
-                preserveState: true,
-            });
-        }
     };
 
-    const tabs = [
-        ...(staffMode ? [{
-            label: 'My Posts',
-            count: announcements.filter((announcement) => announcement.author_staff_id === staffId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
-        }] : []),
-        ...(!staffMode ? [{
+    const tabs: { label: AnnouncementTab; count: number }[] = [
+        {
             label: 'My Posts',
             count: announcements.filter((announcement) => announcement.author_admin_id === adminId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
-        }] : []),
+        },
         { label: 'All', count: announcements.filter((announcement) => announcement.status !== 'Draft' && announcement.status !== 'Archived').length },
-        { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft' && (!staffMode || announcement.author_staff_id === staffId)).length },
+        { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft').length },
         { label: 'Archived', count: announcements.filter((announcement) => announcement.status === 'Archived').length },
     ];
 
     // Filtering Logic
     const filteredAnnouncements = announcements.filter((ann) => {
         const matchesTab = activeTab === 'My Posts'
-            ? staffMode
-                ? ann.author_staff_id === staffId && ann.status !== 'Draft' && ann.status !== 'Archived'
-                : ann.author_admin_id === adminId && ann.status !== 'Draft' && ann.status !== 'Archived'
+            ? ann.author_admin_id === adminId && ann.status !== 'Draft' && ann.status !== 'Archived'
             : activeTab === 'Drafts'
-                ? ann.status === 'Draft' && (!staffMode || ann.author_staff_id === staffId)
+                ? ann.status === 'Draft'
                 : activeTab === 'Archived'
                     ? ann.status === 'Archived'
                     : activeTab === 'All'
@@ -239,7 +220,7 @@ export default function AdminAnnouncements({
 
     return (
         <>
-            <Head title={`Announcements | Cotify ${staffMode ? 'Staff' : 'Admin'}`} />
+            <Head title="Announcements | Cotify Admin" />
 
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -287,21 +268,12 @@ export default function AdminAnnouncements({
                 </div>
 
                 {/* SIDEBAR */}
-                {staffMode ? (
-                    <StaffSidebar
-                        activePage="announcements"
-                        isOpen={isSidebarOpen}
-                        onClose={() => setIsSidebarOpen(false)}
-                        userName={staffName}
-                    />
-                ) : (
-                    <AdminSidebar
-                        activePage="announcements"
-                        isOpen={isSidebarOpen}
-                        onClose={() => setIsSidebarOpen(false)}
-                        onLogout={() => setIsLogoutModalOpen(true)}
-                    />
-                )}
+                <AdminSidebar
+                    activePage="announcements"
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                    onLogout={() => setIsLogoutModalOpen(true)}
+                />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10 min-w-0">
@@ -316,11 +288,7 @@ export default function AdminAnnouncements({
                         </div>
 
                         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                            {staffMode ? (
-                                <StaffNotificationDropdown />
-                            ) : (
-                                <AdminNotificationDropdown />
-                            )}
+                            <AdminNotificationDropdown />
                         </div>
                     </header>
 
@@ -438,74 +406,9 @@ export default function AdminAnnouncements({
                                                     </td>
                                                     <td className="whitespace-nowrap px-4 py-5 text-xs">{formatDate(announcement.date)}</td>
                                                     <td className="px-4 py-5 text-right" onClick={(event) => event.stopPropagation()}>
-                                                        {!staffMode && (
-                                                            activeTab === 'All' ||
-                                                            (activeTab === 'My Posts' && announcement.author_admin_id === adminId)
-                                                        ) ? renderAdminActions(announcement) : !staffMode && activeTab === 'Archived' ? renderAdminActions(announcement, true) : staffMode && activeTab === 'My Posts' && announcement.author_staff_id === staffId ? (
-                                                            <div className="flex justify-end gap-1.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setSelectedAnnouncement(announcement)}
-                                                                    title="View announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
-                                                                >
-                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openEditor(announcement)}
-                                                                    title="Edit announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-2 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-100"
-                                                                >
-                                                                    <i className="fa-solid fa-pen" aria-hidden="true"></i> Edit
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setAnnouncementToDelete(announcement)}
-                                                                    title="Delete announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-2 text-[10px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
-                                                                >
-                                                                    <i className="fa-solid fa-trash" aria-hidden="true"></i> Delete
-                                                                </button>
-                                                            </div>
-                                                        ) : staffMode && activeTab === 'All' ? (
-                                                            <div className="flex justify-end gap-1.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setSelectedAnnouncement(announcement)}
-                                                                    title="View announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
-                                                                >
-                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
-                                                                </button>
-                                                            </div>
-                                                        ) : staffMode ? (
-                                                            announcement.status === 'Draft' && announcement.author_staff_id === staffId ? (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openEditor(announcement)}
-                                                                        className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-2 text-[11px] font-bold text-blue-700 transition-colors hover:bg-blue-100"
-                                                                    >
-                                                                        <i className="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                                                                        Continue
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setAnnouncementToDelete(announcement)}
-                                                                        className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2 py-2 text-[11px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
-                                                                    >
-                                                                        <i className="fa-solid fa-trash" aria-hidden="true"></i>
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
-                                                            ) : null
-                                                        ) : (
-                                                            <div className="flex justify-end gap-2">
-                                                                <button onClick={() => openEditor(announcement)} className="px-3 py-2.5 border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Edit</button>
-                                                                <button onClick={() => setAnnouncementToDelete(announcement)} className="h-9 w-9 flex items-center justify-center rounded border border-slate-300 hover:bg-rose-50 text-rose-600"><i className="fa-solid fa-trash"></i></button>
-                                                            </div>
-                                                        )}
+                                                        {activeTab === 'Archived'
+                                                            ? renderAdminActions(announcement, true)
+                                                            : renderAdminActions(announcement)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -525,7 +428,7 @@ export default function AdminAnnouncements({
                         announcementComments={announcementComments
                             .filter((comment) => comment.announcement_id === selectedAnnouncement.id)
                             .flatMap((comment) => comment.messages)}
-                        staffMode={staffMode}
+                        staffMode={false}
                         initialTab={openAnnouncementSection ?? 'announcement'}
                         onClose={closeAnnouncement}
                     />
@@ -719,7 +622,7 @@ export default function AdminAnnouncements({
                                                 >
                                                     <option value="Academic">Academic</option>
                                                     <option value="General">General</option>
-                                                    {(staffMode || editingAnnouncement?.category === 'Event') && <option value="Event">Event</option>}
+                                                    {editingAnnouncement?.category === 'Event' && <option value="Event">Event</option>}
                                                     <option value="Service">Service</option>
                                                 </select>
                                                 {errors.category && <p className="mb-3 text-xs font-bold text-red-600">{errors.category}</p>}
@@ -731,8 +634,7 @@ export default function AdminAnnouncements({
                                                     id="posted_by"
                                                     type="text"
                                                     name="posted_by"
-                                                    defaultValue={staffDepartment ?? editingAnnouncement?.posted_by ?? (staffMode ? "Registrar's Office" : 'Admin')}
-                                                    readOnly={staffMode && staffDepartment !== null}
+                                                    defaultValue={editingAnnouncement?.posted_by ?? 'Admin'}
                                                     required
                                                     maxLength={255}
                                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-ctu-lightblue"

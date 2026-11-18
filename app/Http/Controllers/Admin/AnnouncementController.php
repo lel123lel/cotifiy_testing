@@ -128,13 +128,12 @@ class AnnouncementController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        return Inertia::render('admin/adminAnnouncemnt', [
+        return Inertia::render('staff/staffannouncement', [
             'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'discussions' => $this->discussionData(),
             'announcementComments' => $this->announcementCommentData(),
             'openAnnouncementId' => $request->integer('announcement') ?: null,
             'openAnnouncementSection' => $request->query('section') === 'comments' ? 'comments' : null,
-            'staffMode' => true,
             'staffName' => $request->user('staff')->name,
             'staffId' => $request->user('staff')->id,
             'staffDepartment' => $request->user('staff')->office?->name,

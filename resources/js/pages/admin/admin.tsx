@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import AnnouncementPage, { type Announcement } from '../announcementpage';
+import AnnouncementPage, { type Announcement } from '../functions/announcementpage';
 import { summarizeAnnouncement } from '../announcementUtils';
 import AdminNotificationDropdown from './AdminNotificationDropdown';
 import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
