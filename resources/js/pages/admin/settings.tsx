@@ -1,5 +1,6 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import AdminNotificationDropdown from './AdminNotificationDropdown';
 import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
 import StaffSidebar from '../staff/StaffSidebar';
 import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
@@ -24,6 +25,8 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
     const [isSavingOffice, setIsSavingOffice] = useState(false);
     const [officeErrors, setOfficeErrors] = useState<Record<string, string>>({});
     const [editingOffice, setEditingOffice] = useState<Office | null>(null);
+    const [officeToRemove, setOfficeToRemove] = useState<Office | null>(null);
+    const [isRemovingOffice, setIsRemovingOffice] = useState(false);
     const [officeName, setOfficeName] = useState('');
     const [staffAccountIds, setStaffAccountIds] = useState<number[]>([]);
     const [staffAccountSearch, setStaffAccountSearch] = useState('');
@@ -58,6 +61,16 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
         } else {
             router.post('/admin/offices', data, options);
         }
+    };
+
+    const removeOffice = () => {
+        if (!officeToRemove) return;
+
+        setIsRemovingOffice(true);
+        router.delete(`/admin/offices/${officeToRemove.id}`, {
+            onSuccess: () => setOfficeToRemove(null),
+            onFinish: () => setIsRemovingOffice(false),
+        });
     };
 
     const filteredStaffAccounts = staffAccounts.filter((account) => {
@@ -146,10 +159,7 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                             {staffMode ? (
                                 <StaffNotificationDropdown />
                             ) : (
-                                <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                    <i className="fa-regular fa-bell text-lg"></i>
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                                </button>
+                                <AdminNotificationDropdown />
                             )}
                         </div>
                     </header>
@@ -255,7 +265,16 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                                             <span className="font-bold text-slate-800">{office.name}</span>
                                                             {linkedAccounts.length > 0 && <p className="mt-1 text-xs text-slate-500 break-words">Linked accounts ({linkedAccounts.length}/5): {linkedAccounts.map((account) => account.name).join(', ')}</p>}
                                                         </div>
-                                                        <button type="button" onClick={() => openOfficeModal(office)} className="shrink-0 text-xs font-bold text-slate-500 hover:text-slate-900 self-end sm:self-auto">Edit</button>
+                                                        <div className="flex shrink-0 items-center gap-4 self-end sm:self-auto">
+                                                            <button type="button" onClick={() => openOfficeModal(office)} className="text-xs font-bold text-slate-500 hover:text-slate-900">Edit</button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setOfficeToRemove(office)}
+                                                                className="text-xs font-bold text-red-600 hover:text-red-700"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -364,6 +383,38 @@ export default function Settings({ staffMode = false, staffName = '', offices = 
                                 </button>
                             </div>
                         </form>
+                    </div>
+                )}
+
+                {officeToRemove && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="removeOfficeTitle">
+                        <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-8 animate-scale-in">
+                            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-red-100 bg-red-50">
+                                <i className="fa-solid fa-triangle-exclamation text-2xl text-red-500" aria-hidden="true"></i>
+                            </div>
+                            <h3 id="removeOfficeTitle" className="mb-2 text-xl font-extrabold text-slate-900">Remove Office</h3>
+                            <p className="mb-8 text-sm font-medium leading-relaxed text-slate-500">
+                                Remove <strong className="text-slate-800">&ldquo;{officeToRemove.name}&rdquo;</strong>? Staff linked to this office will become unassigned. This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setOfficeToRemove(null)}
+                                    disabled={isRemovingOffice}
+                                    className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={removeOffice}
+                                    disabled={isRemovingOffice}
+                                    className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                                >
+                                    {isRemovingOffice ? 'Removing...' : 'Remove'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

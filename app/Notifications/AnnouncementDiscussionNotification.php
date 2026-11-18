@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\User;
 use Illuminate\Notifications\Notification;
@@ -28,12 +29,15 @@ class AnnouncementDiscussionNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         $action = $this->isReply ? 'replied to a comment on' : 'commented on';
+        $route = $notifiable instanceof AdminUser
+            ? 'admin.announcements.index'
+            : 'staff.announcements.index';
 
         return [
             'title' => $this->isReply ? 'New reply on an announcement' : 'New comment on an announcement',
             'message' => $this->commenter->name.' '.$action.' '.$this->announcement->title.'.',
             'office' => $this->announcement->posted_by,
-            'link' => route('staff.announcements.index', [
+            'link' => route($route, [
                 'announcement' => $this->announcement->id,
                 'section' => 'comments',
             ]),

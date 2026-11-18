@@ -1,6 +1,7 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AnnouncementPage, { type Announcement } from '../announcementpage';
+import AdminNotificationDropdown from './AdminNotificationDropdown';
 import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
 import StaffSidebar from '../staff/StaffSidebar';
 import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
@@ -108,11 +109,11 @@ export default function AdminAnnouncements({
     const tabs = [
         ...(staffMode ? [{
             label: 'My Posts',
-            count: announcements.filter((announcement) => announcement.author_staff_id === staffId && announcement.status !== 'Draft').length,
+            count: announcements.filter((announcement) => announcement.author_staff_id === staffId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
         }] : []),
         ...(!staffMode ? [{
             label: 'My Posts',
-            count: announcements.filter((announcement) => announcement.author_admin_id === adminId && announcement.status !== 'Draft').length,
+            count: announcements.filter((announcement) => announcement.author_admin_id === adminId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
         }] : []),
         { label: 'All', count: announcements.filter((announcement) => announcement.status !== 'Draft' && announcement.status !== 'Archived').length },
         { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft' && (!staffMode || announcement.author_staff_id === staffId)).length },
@@ -123,8 +124,8 @@ export default function AdminAnnouncements({
     const filteredAnnouncements = announcements.filter((ann) => {
         const matchesTab = activeTab === 'My Posts'
             ? staffMode
-                ? ann.author_staff_id === staffId && ann.status !== 'Draft'
-                : ann.author_admin_id === adminId && ann.status !== 'Draft'
+                ? ann.author_staff_id === staffId && ann.status !== 'Draft' && ann.status !== 'Archived'
+                : ann.author_admin_id === adminId && ann.status !== 'Draft' && ann.status !== 'Archived'
             : activeTab === 'Drafts'
                 ? ann.status === 'Draft' && (!staffMode || ann.author_staff_id === staffId)
                 : activeTab === 'Archived'
@@ -150,6 +151,48 @@ export default function AdminAnnouncements({
             prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
         );
     };
+
+    const archiveAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/archive`, {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const restoreAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/restore`, {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const renderAdminActions = (announcement: Announcement, isArchived = false) => (
+        <div className="flex justify-end gap-1.5">
+            <button
+                type="button"
+                onClick={() => isArchived ? restoreAnnouncement(announcement) : archiveAnnouncement(announcement)}
+                title={isArchived ? 'Unarchive announcement' : 'Archive announcement'}
+                className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-2 text-[10px] font-bold text-amber-700 transition-colors hover:bg-amber-100"
+            >
+                <i className={`fa-solid ${isArchived ? 'fa-box-open' : 'fa-box-archive'}`} aria-hidden="true"></i>
+                {isArchived ? 'Unarchive' : 'Archive'}
+            </button>
+            <button
+                type="button"
+                onClick={() => openEditor(announcement)}
+                title="Edit announcement"
+                className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-2 text-[10px] font-bold text-blue-700 transition-colors hover:bg-blue-100"
+            >
+                <i className="fa-solid fa-pen" aria-hidden="true"></i> Edit
+            </button>
+            <button
+                type="button"
+                onClick={() => setAnnouncementToDelete(announcement)}
+                title="Delete announcement"
+                className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-2 text-[10px] font-bold text-rose-700 transition-colors hover:bg-rose-100"
+            >
+                <i className="fa-solid fa-trash" aria-hidden="true"></i> Delete
+            </button>
+        </div>
+    );
 
     const openEditor = (announcement: Announcement | null = null) => {
         setEditingAnnouncement(announcement);
@@ -276,10 +319,7 @@ export default function AdminAnnouncements({
                             {staffMode ? (
                                 <StaffNotificationDropdown />
                             ) : (
-                                <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                    <i className="fa-regular fa-bell text-lg"></i>
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                                </button>
+                                <AdminNotificationDropdown />
                             )}
                         </div>
                     </header>
@@ -374,12 +414,16 @@ export default function AdminAnnouncements({
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {filteredAnnouncements.map((announcement: any) => (
-                                                <tr key={announcement.id} className="text-sm text-slate-700 hover:bg-slate-50 transition-colors group">
-                                                    <td className="px-4 py-5">
+                                                <tr
+                                                    key={announcement.id}
+                                                    onClick={() => setSelectedAnnouncement(announcement)}
+                                                    className="cursor-pointer text-sm text-slate-700 hover:bg-slate-50 transition-colors group"
+                                                >
+                                                    <td className="px-4 py-5" onClick={(event) => event.stopPropagation()}>
                                                         <input type="checkbox" checked={selectedRows.includes(announcement.id)} onChange={() => handleSelectRow(announcement.id)} className="rounded border-slate-300 cursor-pointer" />
                                                     </td>
                                                     <td className="px-4 py-5">
-                                                        <span className="line-clamp-1 font-bold text-slate-900">
+                                                        <span className="line-clamp-1 font-bold text-slate-900 transition-colors group-hover:text-ctu-lightblue">
                                                             {announcement.title}
                                                         </span>
                                                     </td>
@@ -393,10 +437,11 @@ export default function AdminAnnouncements({
                                                         </span>
                                                     </td>
                                                     <td className="whitespace-nowrap px-4 py-5 text-xs">{formatDate(announcement.date)}</td>
-                                                    <td className="px-4 py-5 text-right">
-                                                        {activeTab === 'My Posts' && (staffMode
-                                                            ? announcement.author_staff_id === staffId
-                                                            : announcement.author_admin_id === adminId) ? (
+                                                    <td className="px-4 py-5 text-right" onClick={(event) => event.stopPropagation()}>
+                                                        {!staffMode && (
+                                                            activeTab === 'All' ||
+                                                            (activeTab === 'My Posts' && announcement.author_admin_id === adminId)
+                                                        ) ? renderAdminActions(announcement) : !staffMode && activeTab === 'Archived' ? renderAdminActions(announcement, true) : staffMode && activeTab === 'My Posts' && announcement.author_staff_id === staffId ? (
                                                             <div className="flex justify-end gap-1.5">
                                                                 <button
                                                                     type="button"
@@ -423,7 +468,7 @@ export default function AdminAnnouncements({
                                                                     <i className="fa-solid fa-trash" aria-hidden="true"></i> Delete
                                                                 </button>
                                                             </div>
-                                                        ) : activeTab === 'All' ? (
+                                                        ) : staffMode && activeTab === 'All' ? (
                                                             <div className="flex justify-end gap-1.5">
                                                                 <button
                                                                     type="button"
@@ -433,12 +478,6 @@ export default function AdminAnnouncements({
                                                                 >
                                                                     <i className="fa-regular fa-eye" aria-hidden="true"></i> View
                                                                 </button>
-                                                                {!staffMode && (
-                                                                    <>
-                                                                        <button onClick={() => openEditor(announcement)} className="px-2 py-2 border border-slate-300 rounded-md text-[10px] font-bold hover:bg-slate-50">Edit</button>
-                                                                        <button onClick={() => setAnnouncementToDelete(announcement)} title="Delete announcement" className="h-9 w-9 flex items-center justify-center rounded-md border border-slate-300 hover:bg-rose-50 text-rose-600"><i className="fa-solid fa-trash" aria-hidden="true"></i></button>
-                                                                    </>
-                                                                )}
                                                             </div>
                                                         ) : staffMode ? (
                                                             announcement.status === 'Draft' && announcement.author_staff_id === staffId ? (

@@ -496,7 +496,7 @@ test('discussion messages must contain non-empty text', function () {
     expect(Conversation::query()->count())->toBe(0);
 });
 
-test('client comments and replies notify accounts linked to the announcement office', function () {
+test('client comments notify the staff author and all admins, but not other staff', function () {
     $announcement = createDiscussionAnnouncement();
     $office = Office::create(['name' => 'Student Affairs']);
     $otherOffice = Office::create(['name' => 'Library']);
@@ -513,12 +513,26 @@ test('client comments and replies notify accounts linked to the announcement off
         ]),
     ]);
     $staffAccounts->each(fn (StaffUser $staff) => $staff->forceFill(['office_id' => $office->id])->save());
+    $staffAuthor = $staffAccounts->first();
+    $announcement->update(['author_staff_id' => $staffAuthor->id]);
     $unrelatedStaff = StaffUser::create([
         'name' => 'Library Staff',
         'email' => 'library@example.com',
         'password' => 'secret-password',
     ]);
     $unrelatedStaff->forceFill(['office_id' => $otherOffice->id])->save();
+    $admins = collect([
+        AdminUser::create([
+            'name' => 'First Admin',
+            'email' => 'first-admin@example.com',
+            'password' => 'secret-password',
+        ]),
+        AdminUser::create([
+            'name' => 'Second Admin',
+            'email' => 'second-admin@example.com',
+            'password' => 'secret-password',
+        ]),
+    ]);
     $client = User::factory()->create(['name' => 'Taylor Student']);
 
     $this->actingAs($client, 'web')
@@ -531,23 +545,44 @@ test('client comments and replies notify accounts linked to the announcement off
         'parent_message_id' => $parentMessage->id,
     ])->assertRedirect();
 
-    foreach ($staffAccounts as $staff) {
-        $notifications = $staff->notifications()->get();
+    $staffNotifications = $staffAuthor->notifications()->get();
+    expect($staffNotifications)->toHaveCount(2)
+        ->and($staffNotifications->pluck('data.title')->all())->toContain(
+            'New comment on an announcement',
+            'New reply on an announcement',
+        )
+        ->and($staffNotifications->pluck('data.message')->all())->toContain(
+            'Taylor Student commented on Campus event.',
+            'Taylor Student replied to a comment on Campus event.',
+        )
+        ->and($staffNotifications->first()->data['office'])->toBe('Student Affairs')
+        ->and($staffNotifications->first()->announcement_id)->toBe($announcement->id);
 
-        expect($notifications)->toHaveCount(2)
-            ->and($notifications->pluck('data.title')->all())->toContain(
-                'New comment on an announcement',
-                'New reply on an announcement',
-            )
-            ->and($notifications->pluck('data.message')->all())->toContain(
-                'Taylor Student commented on Campus event.',
-                'Taylor Student replied to a comment on Campus event.',
-            )
-            ->and($notifications->first()->data['office'])->toBe('Student Affairs')
-            ->and($notifications->first()->announcement_id)->toBe($announcement->id);
+    expect($staffAccounts->last()->notifications()->count())->toBe(0)
+        ->and($unrelatedStaff->notifications()->count())->toBe(0);
+
+    foreach ($admins as $admin) {
+        expect($admin->notifications()->count())->toBe(2);
     }
 
-    expect($unrelatedStaff->notifications()->count())->toBe(0);
+    $admin = $admins->first();
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin'))
+        ->assertInertia(fn ($page) => $page
+            ->where('adminUnreadCount', 2)
+            ->has('adminRecentNotifications', 2)
+            ->where(
+                'adminRecentNotifications.0.link',
+                route('admin.announcements.index', [
+                    'announcement' => $announcement->id,
+                    'section' => 'comments',
+                ]),
+            ));
+
+    $notification = $admin->notifications()->firstOrFail();
+    $this->post(route('admin.notifications.read', $notification->id))
+        ->assertRedirect();
+    expect($notification->fresh()->read_at)->not->toBeNull();
 });
 
 test('staff can mark their own discussion notifications read', function () {
@@ -559,6 +594,7 @@ test('staff can mark their own discussion notifications read', function () {
         'password' => 'secret-password',
     ]);
     $staff->forceFill(['office_id' => $office->id])->save();
+    $announcement->update(['author_staff_id' => $staff->id]);
     $otherStaff = StaffUser::create([
         'name' => 'Other Staff',
         'email' => 'other@example.com',
@@ -648,5 +684,5 @@ test('staff can mark their own discussion notifications read', function () {
     $this->delete(route('staff.notifications.clear'))
         ->assertRedirect();
     expect($staff->fresh()->notifications()->count())->toBe(0)
-        ->and($otherStaff->fresh()->notifications()->count())->toBe(2);
+        ->and($otherStaff->fresh()->notifications()->count())->toBe(0);
 });

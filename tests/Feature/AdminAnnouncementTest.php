@@ -7,6 +7,8 @@ use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
@@ -78,7 +80,7 @@ test('an admin can publish an announcement', function () {
             ->where('announcements.0.date', now()->toDateString()));
 });
 
-test('admin announcement pages include all announcements and expose ownership for My Posts filtering', function () {
+test('admin announcement pages include all announcements and expose ownership', function () {
     Notification::fake();
     $admin = AdminUser::create([
         'name' => 'Site Admin',
@@ -121,7 +123,6 @@ test('admin announcement pages include all announcements and expose ownership fo
     $this->get(route('admin'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('adminId', $admin->id)
             ->has('recentAnnouncements', 2)
             ->where('recentAnnouncements.0.author_admin_id', $otherAdmin->id)
             ->where('recentAnnouncements.1.author_admin_id', $admin->id));
@@ -334,6 +335,7 @@ test('staff can save an incomplete announcement as a private draft', function ()
         ->assertRedirect();
 
     expect($draft->fresh()->status)->toBe('Published');
+    expect($draft->fresh()->date->toDateString())->toBe(now()->toDateString());
     Notification::assertSentTo($client, AnnouncementPublished::class);
 
     $this->actingAs($client, 'web')
@@ -541,6 +543,49 @@ test('an admin can delete an announcement and its image', function () {
     $this->flushHeaders()->get(route('admin'))->assertOk();
 });
 
+test('an admin can archive an announcement', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Campus closure',
+        'category' => 'General',
+        'posted_by' => 'Office of the Registrar',
+        'date' => now()->toDateString(),
+        'body' => 'The campus will be closed tomorrow.',
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->patch(route('admin.announcements.archive', $announcement))
+        ->assertRedirect();
+
+    expect($announcement->fresh()->status)->toBe('Archived');
+});
+
+test('an admin can remove an announcement from the archive', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Campus closure',
+        'category' => 'General',
+        'posted_by' => 'Office of the Registrar',
+        'date' => now()->toDateString(),
+        'body' => 'The campus will be closed tomorrow.',
+        'status' => 'Archived',
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->patch(route('admin.announcements.restore', $announcement))
+        ->assertRedirect();
+
+    expect($announcement->fresh()->status)->toBe('Published');
+});
+
 test('an admin cannot publish an announcement with an invalid category', function () {
     $admin = AdminUser::create([
         'name' => 'Site Admin',
@@ -618,10 +663,83 @@ test('the admin dashboard shows recent announcements and upcoming events from th
             ->where('recentAnnouncements.1.id', $announcement->id)
             ->where('upcomingEvents.0.id', $upcomingEvent->id)
             ->where('upcomingEvents.0.event_date', now()->addDays(3)->toDateString())
-            ->where('announcementCount', 3)
             ->where('eventCount', 2)
-            ->where('userCount', 2)
+            ->where('activeStudentCount', 0)
             ->missing('upcomingEvents.1'));
+});
+
+test('the admin dashboard compares published announcements with the previous month', function () {
+    $this->travelTo(now()->startOfMonth()->addDays(10));
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $createAnnouncement = function (string $title, string $status, string $date): void {
+        Announcement::create([
+            'title' => $title,
+            'category' => 'General',
+            'posted_by' => 'Registrar',
+            'date' => $date,
+            'body' => 'Announcement body.',
+            'status' => $status,
+        ]);
+    };
+
+    $createAnnouncement('Published this month 1', 'Published', now()->toDateString());
+    $createAnnouncement('Published this month 2', 'Published', now()->toDateString());
+    $createAnnouncement('Published last month 1', 'Published', now()->subMonth()->toDateString());
+    $createAnnouncement('Published last month 2', 'Published', now()->subMonth()->toDateString());
+    $createAnnouncement('Published last month 3', 'Published', now()->subMonth()->toDateString());
+    $createAnnouncement('Draft this month', 'Draft', now()->toDateString());
+    $createAnnouncement('Archived this month', 'Archived', now()->toDateString());
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin'))
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/admin')
+            ->where('publishedThisMonthCount', 2)
+            ->where('publishedChangeFromLastMonth', -1));
+});
+
+test('the admin dashboard counts currently logged-in students only', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $activeStudent = User::factory()->create();
+    $staleStudent = User::factory()->create();
+    $webGuardKey = Auth::guard('web')->getName();
+    $adminGuardKey = Auth::guard('admin')->getName();
+
+    DB::table('sessions')->insert([
+        [
+            'id' => 'active-student',
+            'user_id' => $activeStudent->id,
+            'payload' => base64_encode(json_encode([$webGuardKey => $activeStudent->id])),
+            'last_activity' => now()->timestamp,
+        ],
+        [
+            'id' => 'stale-student',
+            'user_id' => $staleStudent->id,
+            'payload' => base64_encode(json_encode([$webGuardKey => $staleStudent->id])),
+            'last_activity' => now()->subMinutes(config('session.lifetime') + 1)->timestamp,
+        ],
+        [
+            'id' => 'admin-session',
+            'user_id' => $activeStudent->id,
+            'payload' => base64_encode(json_encode([$adminGuardKey => $admin->id])),
+            'last_activity' => now()->timestamp,
+        ],
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin'))
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/admin')
+            ->where('activeStudentCount', 1));
 });
 
 test('an admin can publish an event announcement with a future schedule', function () {
