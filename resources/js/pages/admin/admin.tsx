@@ -1,6 +1,7 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import AnnouncementPage, { type Announcement } from '../announcementpage';
+import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
 
 type UpcomingEvent = {
     id: number;
@@ -60,9 +61,7 @@ export default function admin({
     adminId: number;
 }) {
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-    const [isLogoutHovered, setIsLogoutHovered] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen();
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [announcementTab, setAnnouncementTab] = useState<'All' | 'My Posts'>('All');
 
@@ -78,16 +77,6 @@ export default function admin({
 
         return () => window.clearInterval(interval);
     }, []);
-
-    // Navigation Links
-    const navLinks = [
-        { href: '#dashboard', label: 'Dashboard', icon: 'fa-solid fa-house', active: true },
-        { href: '/admin/announcements', label: 'Announcements', icon: 'fa-solid fa-bullhorn', active: false },
-        { href: '/admin/events', label: 'Events', icon: 'fa-regular fa-calendar', active: false },
-        { href: '/admin/users', label: 'Students', icon: 'fa-solid fa-users', active: false },
-        { href: '/admin/staff', label: 'Staff & Admins', icon: 'fa-solid fa-user-shield', active: false },
-        { href: '/admin/settings', label: 'Settings', icon: 'fa-solid fa-gear', active: false },
-    ];
 
     return (
         <>
@@ -166,127 +155,12 @@ export default function admin({
                     <div className="absolute bottom-[10%] left-[40%] w-16 h-16 bg-indigo-500/5 rotate-12 shape-move-3"></div>
                 </div>
 
-                {/* COLLAPSIBLE SIDEBAR */}
-                <aside
-                    onMouseEnter={() => setIsSidebarExpanded(true)}
-                    onMouseLeave={() => setIsSidebarExpanded(false)}
-                    className={`bg-ctu-dark flex flex-col justify-between shrink-0 absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shadow-2xl
-                    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-                    w-64 ${isSidebarExpanded ? 'md:w-64' : 'md:w-20'}`}
-                >
-                    <div className="flex-1 overflow-y-auto no-scrollbar overflow-x-hidden pt-6">
-
-                        {/* Logo Section */}
-                        <div className="px-4 flex items-center h-20 mb-4">
-                            <Link href="/admin" className="flex items-center shrink-0">
-                                <img 
-                                    src="/images/3rdLogo.png" 
-                                    alt="Cotify Logo" 
-                                    className="w-20 h-20 sm:w-12 sm:h-12 object-contain -ml-2 sm:-ml-1 shrink-0 transition-all duration-300" 
-                                />
-                                <div className={`text-white whitespace-nowrap transition-opacity duration-300 ml-2 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                    <h1 className="font-extrabold text-xl leading-tight tracking-tight">Cotify</h1>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
-                                </div>
-                            </Link>
-                        </div>
-
-                        {/* Main Navigation Links */}
-                        <nav className="space-y-1 px-3">
-                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                Main
-                            </p>
-                            {navLinks.slice(0, 3).map((link) => (
-                                <a
-                                    key={link.href}
-                                    href={link.href}
-                                    className={`flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all group ${
-                                        link.active
-                                            ? 'bg-ctu-lightblue text-white shadow-md'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                                    }`}
-                                    title={!isSidebarExpanded ? link.label : undefined}
-                                >
-                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                        {link.label}
-                                    </span>
-                                </a>
-                            ))}
-
-                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                People
-                            </p>
-                            {navLinks.slice(3, 5).map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-slate-800/50"
-                                    title={!isSidebarExpanded ? link.label : undefined}
-                                >
-                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                        {link.label}
-                                    </span>
-                                </Link>
-                            ))}
-
-                            <p className={`px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4 mb-2 transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                System
-                            </p>
-                            {navLinks.slice(5).map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="flex items-center gap-4 px-3 py-3.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-slate-800/50"
-                                    title={!isSidebarExpanded ? link.label : undefined}
-                                >
-                                    <i className={`${link.icon} w-5 text-center text-lg shrink-0`}></i>
-                                    <span className={`whitespace-nowrap font-bold text-[15px] transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                        {link.label}
-                                    </span>
-                                </Link>
-                            ))}
-                        </nav>
-                    </div>
-
-                    {/* BOTTOM SECTION */}
-                    <div className="p-3">
-                        <div className="flex items-center gap-4 px-3 py-3 mb-1 rounded-xl border border-transparent">
-                            <div className="w-10 h-10 rounded-full bg-ctu-lightblue flex items-center justify-center text-white font-bold text-sm shrink-0 ring-2 ring-transparent">
-                                <i className="fa-solid fa-user"></i>
-                            </div>
-                            <div className={`whitespace-nowrap transition-opacity duration-300 overflow-hidden opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                <p className="text-white text-[15px] font-extrabold truncate">Admin</p>
-                                <p className="text-slate-400 text-xs font-semibold truncate">Registrar's Office</p>
-                            </div>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setIsLogoutModalOpen(true)}
-                            onMouseEnter={() => setIsLogoutHovered(true)}
-                            onMouseLeave={() => setIsLogoutHovered(false)}
-                            className={`flex w-full items-center gap-4 px-3 py-3.5 text-left font-bold text-[15px] rounded-xl transition-all
-                                ${isLogoutHovered ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}
-                            `}
-                            title={!isSidebarExpanded ? "Log Out" : undefined}
-                        >
-                            <i className={`fa-solid fa-arrow-right-from-bracket w-5 text-center text-lg shrink-0 ${isLogoutHovered ? 'text-white' : 'text-slate-400'}`}></i>
-                            <span className={`whitespace-nowrap transition-opacity duration-300 opacity-100 ${isSidebarExpanded ? 'md:opacity-100' : 'md:opacity-0'}`}>
-                                Log Out
-                            </span>
-                        </button>
-                    </div>
-                </aside>
-
-                {/* Overlay for mobile */}
-                {isSidebarOpen && (
-                    <div
-                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden animate-fade-in"
-                        onClick={() => setIsSidebarOpen(false)}
-                    ></div>
-                )}
+                <AdminSidebar
+                    activePage="dashboard"
+                    isOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                    onLogout={() => setIsLogoutModalOpen(true)}
+                />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10 min-w-0">
