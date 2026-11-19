@@ -3,24 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import ClientNotificationDropdown from './ClientNotificationDropdown';
 import ClientNavbar from './ClientNavbar';
 
-interface ReadState {
-    count: number;
-    mine: boolean;
-}
-
-interface ReadPeer {
-    course: string;
-    year_level: string;
-    count: number;
-}
-
-interface ReadData {
-    read: ReadState;
-    peer_total: number;
-    peer_breakdown: ReadPeer[];
-    total_students: number;
-}
-
 interface Announcement {
     id: number;
     title: string;
@@ -41,8 +23,9 @@ interface Announcement {
     reading_time?: string | null;
     has_rsvped?: boolean;
     is_saved?: boolean;
+    is_urgent?: boolean;
+    is_read?: boolean;
     attachments?: { name: string; url: string; size: string }[] | null;
-    read_data?: ReadData | null;
 }
 
 interface DiscussionMessage {
@@ -62,21 +45,12 @@ interface ClientReadMoreProps {
     messages: DiscussionMessage[];
 }
 
-const emptyRead = (): ReadData => ({
-    read: { count: 0, mine: false },
-    peer_total: 0,
-    peer_breakdown: [],
-    total_students: 0,
-});
-
 export default function ClientReadMore({
     announcement,
     messages,
 }: ClientReadMoreProps) {
     const { auth } = usePage<any>().props;
     const isLoggedIn = auth?.user !== undefined;
-    const userCourse = auth?.user?.course || 'BSIT';
-    const userYear = auth?.user?.year_level || '3rd Year';
 
     const { data, setData, post, processing, errors, reset } = useForm({
         content: '',
@@ -95,9 +69,8 @@ export default function ClientReadMore({
     const [readProgress, setReadProgress] = useState(0);
 
     // Mark-as-read state
-    const [readData, setReadData] = useState<ReadData>(announcement.read_data ?? emptyRead());
+    const [hasMarkedRead, setHasMarkedRead] = useState(announcement.is_read ?? false);
     const [readBusy, setReadBusy] = useState(false);
-    const [showReadBreakdown, setShowReadBreakdown] = useState(false);
 
     // Modals
     const [isImageZoomed, setIsImageZoomed] = useState(false);
@@ -144,7 +117,7 @@ export default function ClientReadMore({
 
     // Lock body scroll when modals open
     useEffect(() => {
-        if (isImageZoomed || previewFile || showReadBreakdown) {
+        if (isImageZoomed || previewFile) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -152,43 +125,18 @@ export default function ClientReadMore({
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isImageZoomed, previewFile, showReadBreakdown]);
+    }, [isImageZoomed, previewFile]);
 
-    // ================== MARK AS READ HANDLER ==================
-    const handleToggleRead = () => {
-        if (readBusy || !isLoggedIn) return;
+    const handleMarkRead = () => {
+        if (readBusy || hasMarkedRead || !isLoggedIn) return;
         setReadBusy(true);
-
-        const wasRead = readData.read.mine;
-
-        // Optimistic update
-        setReadData((prev) => {
-            const next: ReadData = {
-                ...prev,
-                read: {
-                    count: Math.max(0, prev.read.count + (wasRead ? -1 : 1)),
-                    mine: !wasRead,
-                },
-                peer_total: Math.max(0, prev.peer_total + (wasRead ? -1 : 1)),
-                total_students: Math.max(0, prev.total_students + (wasRead ? -1 : 1)),
-            };
-            return next;
-        });
 
         router.post(
             `/client/announcements/${announcement.id}/read`,
             {},
             {
                 preserveScroll: true,
-                preserveState: true,
-                only: ['announcement'],
-                onSuccess: (page: any) => {
-                    const fresh = page?.props?.announcement?.read_data;
-                    if (fresh) setReadData(fresh);
-                },
-                onError: () => {
-                    setReadData(announcement.read_data ?? emptyRead());
-                },
+                onSuccess: () => setHasMarkedRead(true),
                 onFinish: () => setReadBusy(false),
             }
         );
@@ -287,12 +235,6 @@ export default function ClientReadMore({
 
     const referenceNo = `COT-${String(announcement.id).padStart(4, '0')}-${new Date(announcement.date).getFullYear()}`;
 
-    // Peer social proof line
-    const peerLabel = readData.peer_total > 0
-        ? `${readData.peer_total} ${userCourse} student${readData.peer_total === 1 ? '' : 's'} have read this`
-        : `Be the first ${userCourse} student to read this`;
-
-
     return (
         <>
             <Head title={`${announcement.title} | COTIFY`} />
@@ -302,8 +244,6 @@ export default function ClientReadMore({
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.05); } 100% { transform: scale(1); } }
-                @keyframes readBounce { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
-                
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-3 { 0% { transform: translate(0, 0) rotate(0deg) scale(1); } 33% { transform: translate(35vw, -40vh) rotate(55deg) scale(1.3); } 66% { transform: translate(-30vw, 25vh) rotate(110deg) scale(0.9); } 100% { transform: translate(0, 0) rotate(0deg) scale(1); } }
@@ -428,6 +368,12 @@ export default function ClientReadMore({
                                                     <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-sm">
                                                         {categoryLabel(announcement.category)}
                                                     </span>
+                                                    {announcement.is_urgent && (
+                                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-600 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-white shadow-lg shadow-red-950/30">
+                                                            <i className="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                                            Urgent announcement
+                                                        </span>
+                                                    )}
                                                     {announcement.is_new && (
                                                         <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-amber-950">
                                                             New
@@ -486,41 +432,23 @@ export default function ClientReadMore({
                                                         {isSaved ? 'Saved' : 'Save'}
                                                     </button>
 
-                                                    {/* MARK AS READ BUTTON */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleToggleRead}
-                                                        disabled={!isLoggedIn || readBusy}
-                                                        aria-pressed={readData.read.mine}
-                                                        className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-60 ${
-                                                            readData.read.mine
-                                                                ? 'bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 animate-read-bounce'
-                                                                : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
-                                                        }`}
-                                                    >
-                                                        {readData.read.mine ? (
-                                                            <>
-                                                                <i className="fa-solid fa-check-double"></i>
-                                                                Read
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <i className="fa-regular fa-eye"></i>
-                                                                {readBusy ? 'Marking…' : 'Mark as Read'}
-                                                            </>
-                                                        )}
-                                                    </button>
+                                                    {announcement.is_urgent && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleMarkRead}
+                                                            disabled={!isLoggedIn || readBusy || hasMarkedRead}
+                                                            aria-pressed={hasMarkedRead}
+                                                            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                                hasMarkedRead
+                                                                    ? 'bg-emerald-500 text-white shadow-lg'
+                                                                    : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                                                            }`}
+                                                        >
+                                                            <i className={`fa-solid ${hasMarkedRead ? 'fa-check-double' : 'fa-eye'}`} aria-hidden="true"></i>
+                                                            {hasMarkedRead ? 'Marked as Read' : readBusy ? 'Marking…' : 'Mark as Read'}
+                                                        </button>
+                                                    )}
                                                 </div>
-
-                                                {/* Peer social proof chip */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowReadBreakdown(true)}
-                                                    className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-white/70 transition-colors hover:text-white underline decoration-dotted underline-offset-4"
-                                                >
-                                                    <i className="fa-solid fa-users text-white/50"></i>
-                                                    {peerLabel} →
-                                                </button>
                                             </div>
                                         </div>
 
@@ -891,104 +819,6 @@ export default function ClientReadMore({
                             className="max-h-[90vh] max-w-full rounded-lg object-contain animate-pop-in cursor-default shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         />
-                    </div>
-                )}
-
-                {/* ============ READ BREAKDOWN MODAL ============ */}
-                {showReadBreakdown && (
-                    <div
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-md animate-fade-in"
-                        onClick={() => setShowReadBreakdown(false)}
-                    >
-                        <div
-                            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl animate-pop-in overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                                <div>
-                                    <h3 className="text-lg font-extrabold text-slate-900">Read breakdown</h3>
-                                    <p className="text-xs font-medium text-slate-500 mt-0.5">
-                                        {readData.peer_total} student{readData.peer_total === 1 ? '' : 's'} in {userCourse} · {userYear} have read this
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowReadBreakdown(false)}
-                                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                                    aria-label="Close"
-                                >
-                                    <i className="fa-solid fa-xmark text-xl"></i>
-                                </button>
-                            </div>
-
-                            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                                {/* Total read count */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
-                                        <div className="flex items-center justify-center gap-1.5 mb-1">
-                                            <i className="fa-solid fa-check-double text-xs text-emerald-600"></i>
-                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Have read</span>
-                                        </div>
-                                        <p className="text-xl font-black text-emerald-900 tabular-nums">{readData.read.count}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                                        <div className="flex items-center justify-center gap-1.5 mb-1">
-                                            <i className="fa-solid fa-users text-xs text-slate-400"></i>
-                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">In your class</span>
-                                        </div>
-                                        <p className="text-xl font-black text-slate-900 tabular-nums">{readData.peer_total}</p>
-                                    </div>
-                                </div>
-
-                                {/* Breakdown by course & year */}
-                                <div>
-                                    <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 mb-3">
-                                        By course & year
-                                    </h4>
-                                    {readData.peer_breakdown.length === 0 ? (
-                                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-                                            <i className="fa-solid fa-users-slash mb-2 text-2xl text-slate-300"></i>
-                                            <p className="text-sm font-semibold text-slate-600">No readers yet</p>
-                                            <p className="text-xs text-slate-400 mt-1">Be the first to mark this as read.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {readData.peer_breakdown
-                                                .slice()
-                                                .sort((a, b) => b.count - a.count)
-                                                .map((peer, idx) => {
-                                                    const max = readData.peer_breakdown.reduce((m, p) => Math.max(m, p.count), 1);
-                                                    const widthPct = (peer.count / max) * 100;
-                                                    return (
-                                                        <div key={`${peer.course}-${peer.year_level}-${idx}`} className="flex items-center gap-3">
-                                                            <span className="w-28 shrink-0 text-xs font-bold text-slate-700 truncate">
-                                                                {peer.course} · {peer.year_level}
-                                                            </span>
-                                                            <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                                                                <div
-                                                                    className={`h-full rounded-full bg-gradient-to-r ${getCategorySpine(announcement.category)}`}
-                                                                    style={{ width: `${widthPct}%` }}
-                                                                />
-                                                            </div>
-                                                            <span className="w-8 shrink-0 text-right text-xs font-extrabold text-slate-900 tabular-nums">
-                                                                {peer.count}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Total campus count */}
-                                <div className="rounded-xl bg-slate-900 text-white p-4">
-                                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/60">Across the whole campus</p>
-                                    <p className="mt-1 text-2xl font-black tabular-nums">
-                                        {readData.total_students}
-                                        <span className="ml-2 text-xs font-bold text-white/60">students have read this</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )}
 

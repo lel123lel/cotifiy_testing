@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Announcement;
+use App\Models\AdminUser;
+use App\Models\StaffUser;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -139,6 +141,46 @@ test('the client home loads a compact recent feed and upcoming events independen
             ->where('upcomingEvents.0.content', Str::limit(str_repeat('Forum details. ', 20), 180)));
 });
 
+test('active urgent announcements stay at the top of client feeds', function () {
+    $user = User::factory()->create();
+
+    foreach (range(1, 11) as $number) {
+        Announcement::create([
+            'title' => "New announcement {$number}",
+            'category' => 'General',
+            'posted_by' => 'Student Affairs',
+            'date' => now()->toDateString(),
+            'body' => 'A newer update.',
+        ]);
+    }
+
+    $urgentAnnouncement = Announcement::create([
+        'title' => 'Older urgent announcement',
+        'category' => 'General',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->subDays(5)->toDateString(),
+        'body' => 'This urgent update remains active.',
+        'is_urgent' => true,
+        'urgent_days' => 3,
+        'urgent_until' => now()->addDay(),
+    ]);
+    expect($urgentAnnouncement->fresh()->is_urgent)->toBeTrue()
+        ->and($urgentAnnouncement->fresh()->status)->toBe('Published');
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.clientpage'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.id', $urgentAnnouncement->id)
+            ->where('announcements.0.is_urgent', true));
+
+    $this->get(route('client.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.id', $urgentAnnouncement->id)
+            ->where('announcements.0.is_urgent', true));
+});
+
 test('the client can browse announcements, events, and saved items from their navigation pages', function () {
     $user = User::factory()->create();
     $announcement = Announcement::create([
@@ -215,6 +257,90 @@ test('the client can open an announcement in the read more page', function () {
             ->where('announcement.content', 'Full announcement details.')
             ->where('announcement.image', '/storage/announcements/event.jpg')
             ->where('announcement.location', 'Main Hall'));
+});
+
+test('opening an announcement increments views but message polling does not', function () {
+    $user = User::factory()->create();
+    $announcement = Announcement::create([
+        'title' => 'Announcement views',
+        'category' => 'General',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'body' => 'View count test.',
+    ]);
+
+    $this->actingAs($user, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertOk();
+
+    $this->withHeaders([
+        'X-Inertia-Partial-Data' => 'messages',
+    ])->get(route('client.announcements.show', $announcement))
+        ->assertOk();
+
+    $this->assertDatabaseHas('announcement', [
+        'id' => $announcement->id,
+        'views_count' => 1,
+    ]);
+});
+
+test('only urgent announcements can be marked read and staff and admins see unique reader counts', function () {
+    $client = User::factory()->create();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'read-count-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'read-count-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $urgentAnnouncement = Announcement::create([
+        'title' => 'Urgent update',
+        'category' => 'General',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'body' => 'Please read this urgent update.',
+        'is_urgent' => true,
+        'urgent_days' => 2,
+        'urgent_until' => now()->addDays(2),
+    ]);
+    $regularAnnouncement = Announcement::create([
+        'title' => 'Regular update',
+        'category' => 'General',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->subDay()->toDateString(),
+        'body' => 'This is not urgent.',
+    ]);
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.announcements.show', $urgentAnnouncement))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcement.is_urgent', true)
+            ->where('announcement.is_read', false));
+
+    $this->post(route('client.announcements.read', $regularAnnouncement))
+        ->assertNotFound();
+
+    $this->post(route('client.announcements.read', $urgentAnnouncement))->assertRedirect();
+    $this->post(route('client.announcements.read', $urgentAnnouncement))->assertRedirect();
+    $this->assertDatabaseCount('announcement_reads', 1);
+
+    $this->actingAs($staff, 'staff')
+        ->get(route('staff.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.id', $urgentAnnouncement->id)
+            ->where('announcements.0.read_count', 1));
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.id', $urgentAnnouncement->id)
+            ->where('announcements.0.read_count', 1));
 });
 
 test('the client can save and remove an announcement from their saved page', function () {

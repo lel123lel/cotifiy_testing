@@ -76,6 +76,9 @@ Route::delete('/client/notifications', [ClientAccountController::class, 'clearNo
 Route::get('/client/announcements/{announcement}', [ClientPageController::class, 'show'])
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.announcements.show');
+Route::post('/client/announcements/{announcement}/read', [ClientPageController::class, 'markAnnouncementRead'])
+    ->middleware(['auth:web', 'private-cache', 'throttle:30,1'])
+    ->name('client.announcements.read');
 Route::post('/client/announcements/{announcement}/messages', [AnnouncementDiscussionController::class, 'store'])
     ->middleware(['auth:web', 'private-cache', 'throttle:10,1'])
     ->name('client.announcements.messages.store');
@@ -103,6 +106,12 @@ Route::post('/staff/announcements', [AnnouncementController::class, 'store'])
 Route::put('/staff/announcements/{announcement}', [AnnouncementController::class, 'update'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.update');
+Route::patch('/staff/announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.announcements.archive');
+Route::patch('/staff/announcements/{announcement}/restore', [AnnouncementController::class, 'restore'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.announcements.restore');
 Route::delete('/staff/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.destroy');

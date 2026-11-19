@@ -17,6 +17,7 @@ interface Announcement {
     end_time: string | null;
     location: string | null;
     is_pinned?: boolean;
+    is_urgent?: boolean;
     is_new?: boolean;
 }
 
@@ -60,6 +61,19 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
 
     const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
     const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (ann.is_urgent) {
+        return {
+            level: 'urgent',
+            label: 'Urgent announcement',
+            bannerColor: 'bg-red-600',
+            badgeBg: 'bg-red-100',
+            badgeText: 'text-red-700',
+            badgeBorder: 'border-red-200',
+            bgTint: 'bg-red-50',
+            pulse: true,
+        };
+    }
 
     // 1. Urgent — Happening today or within 24h
     if (eventStart && diffHours > 0 && diffHours <= 24) {
@@ -209,6 +223,7 @@ export default function ClientHome({
         });
 
         result = result.sort((a, b) => {
+            if (a.is_urgent !== b.is_urgent) return a.is_urgent ? -1 : 1;
             if (sortBy === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
             if (sortBy === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
             if (sortBy === 'az') return a.title.localeCompare(b.title);

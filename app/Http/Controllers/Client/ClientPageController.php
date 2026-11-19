@@ -41,6 +41,8 @@ class ClientPageController extends Controller
 
     public function __invoke(Request $request): Response
     {
+        Announcement::archiveExpiredUrgent();
+
         $newAnnouncementCount = 0;
         if (! $request->headers->has('X-Inertia-Partial-Data')) {
             /** @var User $user */
@@ -69,7 +71,7 @@ class ClientPageController extends Controller
         }
 
         $announcements = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->select([
                 'id',
                 'title',
@@ -83,7 +85,11 @@ class ClientPageController extends Controller
                 'start_time',
                 'end_time',
                 'location',
+                'status',
+                'is_urgent',
+                'urgent_until',
             ])
+            ->orderByDesc('is_urgent')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->limit(10)
@@ -105,6 +111,9 @@ class ClientPageController extends Controller
                 'start_time',
                 'end_time',
                 'location',
+                'status',
+                'is_urgent',
+                'urgent_until',
             ])
             ->where('category', 'Event')
             ->where(function ($query) {
@@ -135,8 +144,11 @@ class ClientPageController extends Controller
 
     public function announcements(): Response
     {
+        Announcement::archiveExpiredUrgent();
+
         $announcements = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
+            ->orderByDesc('is_urgent')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get()
@@ -208,7 +220,14 @@ class ClientPageController extends Controller
 
     public function show(Request $request, Announcement $announcement): Response
     {
+        Announcement::archiveExpiredUrgent();
+        $announcement->refresh();
         abort_if($announcement->status === 'Draft', 404);
+
+        if (! $request->headers->has('X-Inertia-Partial-Data')) {
+            $announcement->increment('views_count');
+            $announcement->refresh();
+        }
 
         /** @var User $user */
         $user = $request->user();
@@ -285,12 +304,36 @@ class ClientPageController extends Controller
             'announcement' => [
                 ...$this->announcementData($announcement),
                 'is_saved' => $user->savedAnnouncements()->whereKey($announcement->id)->exists(),
+                'is_read' => $announcement->readers()->whereKey($user->id)->exists(),
             ],
             'messages' => $announcementComments
                 ->concat($clientMessages)
                 ->sortBy('sent_at')
                 ->values() ?? [],
         ]);
+    }
+
+    public function markAnnouncementRead(Request $request, Announcement $announcement): RedirectResponse
+    {
+        Announcement::archiveExpiredUrgent();
+        $announcement->refresh();
+
+        abort_unless(
+            $announcement->status === 'Published'
+                && $announcement->is_urgent
+                && $announcement->urgent_until?->isFuture(),
+            404,
+        );
+
+        $now = now();
+        DB::table('announcement_reads')->insertOrIgnore([
+            'user_id' => $request->user()->id,
+            'announcement_id' => $announcement->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return back();
     }
 
     /**
@@ -305,6 +348,10 @@ class ClientPageController extends Controller
             'posted_by' => $announcement->posted_by,
             'posted_by_office' => $announcement->posted_by,
             'date' => $announcement->date->toDateString(),
+            'is_urgent' => $announcement->is_urgent
+                && $announcement->status === 'Published'
+                && $announcement->urgent_until?->isFuture(),
+            'urgent_until' => $announcement->urgent_until?->toIso8601String(),
             'content' => $announcement->body,
             'content_html' => $announcement->bodyAsHtml(),
             'image' => $announcement->image
@@ -341,6 +388,9 @@ class ClientPageController extends Controller
             'category' => $announcement->category,
             'posted_by_office' => $announcement->posted_by,
             'date' => $announcement->date->toDateString(),
+            'is_urgent' => $announcement->is_urgent
+                && $announcement->status === 'Published'
+                && $announcement->urgent_until?->isFuture(),
             'content' => Str::limit(strip_tags($announcement->body), 180),
             'content_html' => $announcement->bodyAsHtml(),
             'image' => $announcement->image

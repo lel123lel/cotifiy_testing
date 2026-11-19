@@ -73,6 +73,8 @@ export default function StaffAnnouncements({
 
     // Editor State
     const [selectedCategory, setSelectedCategory] = useState('Academic');
+    const [isUrgent, setIsUrgent] = useState(false);
+    const [urgentDays, setUrgentDays] = useState(1);
 
     // Table & Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -143,9 +145,23 @@ export default function StaffAnnouncements({
         );
     };
 
+    const archiveAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/archive`, {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const restoreAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/restore`, {}, {
+            preserveScroll: true,
+        });
+    };
+
     const openEditor = (announcement: Announcement | null = null) => {
         setEditingAnnouncement(announcement);
         setSelectedCategory(announcement?.category || 'Academic');
+        setIsUrgent(announcement?.is_urgent ?? false);
+        setUrgentDays(announcement?.urgent_days ?? 1);
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
         setRemovedAttachmentPaths([]);
@@ -378,11 +394,11 @@ export default function StaffAnnouncements({
                                                             <div className="flex justify-end gap-1.5">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => setSelectedAnnouncement(announcement)}
-                                                                    title="View announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                                                                    onClick={() => archiveAnnouncement(announcement)}
+                                                                    title="Archive announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-2 text-[10px] font-bold text-amber-700 transition-colors hover:bg-amber-100"
                                                                 >
-                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
+                                                                    <i className="fa-solid fa-box-archive" aria-hidden="true"></i> Archive
                                                                 </button>
                                                                 <button
                                                                     type="button"
@@ -401,15 +417,15 @@ export default function StaffAnnouncements({
                                                                     <i className="fa-solid fa-trash" aria-hidden="true"></i> Delete
                                                                 </button>
                                                             </div>
-                                                        ) : activeTab === 'All' ? (
+                                                        ) : activeTab === 'Archived' && announcement.author_staff_id === staffId ? (
                                                             <div className="flex justify-end gap-1.5">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => setSelectedAnnouncement(announcement)}
-                                                                    title="View announcement"
-                                                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                                                                    onClick={() => restoreAnnouncement(announcement)}
+                                                                    title="Unarchive announcement"
+                                                                    className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-2 text-[10px] font-bold text-amber-700 transition-colors hover:bg-amber-100"
                                                                 >
-                                                                    <i className="fa-regular fa-eye" aria-hidden="true"></i> View
+                                                                    <i className="fa-solid fa-box-open" aria-hidden="true"></i> Unarchive
                                                                 </button>
                                                             </div>
                                                         ) : (
@@ -474,6 +490,7 @@ export default function StaffAnnouncements({
                                     <>
                                     {editingAnnouncement && <input type="hidden" name="_method" value="put" />}
                                     <input ref={statusInputRef} type="hidden" name="status" defaultValue={editingAnnouncement?.status === 'Draft' ? 'Draft' : 'Published'} />
+                                    <input type="hidden" name="is_urgent" value="0" />
 
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200 bg-white shrink-0 gap-3">
                                         <div className="flex items-center gap-4">
@@ -559,6 +576,39 @@ export default function StaffAnnouncements({
                                                     />
                                                 </div>
                                                 {errors.body && <p className="mt-1 text-xs font-bold text-red-600">{errors.body}</p>}
+                                            </div>
+
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                                                <label className="flex items-center gap-3 text-sm font-bold text-red-800">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="is_urgent"
+                                                        value="1"
+                                                        checked={isUrgent}
+                                                        onChange={(event) => setIsUrgent(event.currentTarget.checked)}
+                                                        className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                                    />
+                                                    <span>Mark as URGENT</span>
+                                                </label>
+                                                {isUrgent && (
+                                                    <div className="mt-3">
+                                                        <label htmlFor="urgent_days" className="block text-xs font-semibold text-red-800">
+                                                            Keep urgent for (up to 3 days), then automatically archive
+                                                        </label>
+                                                        <select
+                                                            id="urgent_days"
+                                                            name="urgent_days"
+                                                            value={urgentDays}
+                                                            onChange={(event) => setUrgentDays(Number(event.currentTarget.value))}
+                                                            className="mt-1 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-800"
+                                                        >
+                                                            {[1, 2, 3].map((days) => (
+                                                                <option key={days} value={days}>{days} {days === 1 ? 'day' : 'days'}</option>
+                                                            ))}
+                                                        </select>
+                                                        {errors.urgent_days && <p className="mt-1 text-xs font-bold text-red-600">{errors.urgent_days}</p>}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div>

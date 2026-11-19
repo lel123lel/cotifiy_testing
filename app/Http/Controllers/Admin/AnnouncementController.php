@@ -32,6 +32,11 @@ class AnnouncementController extends Controller
 
         $announcements = Announcement::query()
             ->where('status', '!=', 'Draft')
+            ->withCount([
+                'readers',
+                'savedByUsers as saved_count',
+                'messages as comment_count',
+            ])
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -84,6 +89,11 @@ class AnnouncementController extends Controller
     {
         $announcements = Announcement::query()
             ->where('status', '!=', 'Draft')
+            ->withCount([
+                'readers',
+                'savedByUsers as saved_count',
+                'messages as comment_count',
+            ])
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -123,7 +133,14 @@ class AnnouncementController extends Controller
 
     public function staffAnnouncements(Request $request): Response
     {
+        Announcement::archiveExpiredUrgent();
+
         $announcements = Announcement::query()
+            ->withCount([
+                'readers',
+                'savedByUsers as saved_count',
+                'messages as comment_count',
+            ])
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -185,6 +202,11 @@ class AnnouncementController extends Controller
     public function announcements(Request $request): Response
     {
         $announcements = Announcement::query()
+            ->withCount([
+                'readers',
+                'savedByUsers as saved_count',
+                'messages as comment_count',
+            ])
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
@@ -314,6 +336,7 @@ class AnnouncementController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $isDraft = $request->input('status') === 'Draft';
+        $isUrgent = $request->boolean('is_urgent');
         $staffDepartment = $request->user('staff')?->office?->name;
         $validated = $request->validate([
             'title' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
@@ -321,6 +344,8 @@ class AnnouncementController extends Controller
             'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['nullable', Rule::in(['Draft', 'Published'])],
+            'is_urgent' => ['sometimes', 'boolean'],
+            'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
@@ -337,6 +362,11 @@ class AnnouncementController extends Controller
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
         $validated['status'] = $isDraft ? 'Draft' : 'Published';
+        $validated['is_urgent'] = $isUrgent;
+        $validated['urgent_days'] = $isUrgent ? (int) $validated['urgent_days'] : null;
+        $validated['urgent_until'] = $isUrgent && ! $isDraft
+            ? now()->addDays($validated['urgent_days'])
+            : null;
 
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -372,6 +402,9 @@ class AnnouncementController extends Controller
         $this->ensureStaffOwnsAnnouncement($request, $announcement);
 
         $isDraft = $request->input('status', $announcement->status) === 'Draft';
+        $isUrgent = $request->has('is_urgent')
+            ? $request->boolean('is_urgent')
+            : (bool) $announcement->is_urgent;
         $staffDepartment = $request->user('staff')?->office?->name;
         $validated = $request->validate([
             'title' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
@@ -379,6 +412,8 @@ class AnnouncementController extends Controller
             'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['sometimes', Rule::in(['Draft', 'Published'])],
+            'is_urgent' => ['sometimes', 'boolean'],
+            'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
@@ -397,6 +432,13 @@ class AnnouncementController extends Controller
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
         $validated['status'] = $request->input('status', $announcement->status ?? 'Published');
+        $validated['is_urgent'] = $isUrgent;
+        $validated['urgent_days'] = $isUrgent
+            ? (int) ($validated['urgent_days'] ?? $announcement->urgent_days ?? 1)
+            : null;
+        $validated['urgent_until'] = $isUrgent && $validated['status'] !== 'Draft'
+            ? now()->addDays($validated['urgent_days'])
+            : null;
 
         $oldImage = $announcement->image;
         $imagePath = $oldImage;
@@ -455,7 +497,10 @@ class AnnouncementController extends Controller
 
         $image = $announcement->image;
         $attachments = array_column($announcement->attachments ?? [], 'path');
-        $announcement->delete();
+        DB::transaction(function () use ($announcement): void {
+            $announcement->notifications()->delete();
+            $announcement->delete();
+        });
 
         if ($image !== null && ! Storage::disk('public')->delete($image)) {
             throw new RuntimeException('Failed to remove the deleted announcement image.');
@@ -470,16 +515,28 @@ class AnnouncementController extends Controller
         return back();
     }
 
-    public function archive(Announcement $announcement): RedirectResponse
+    public function archive(Request $request, Announcement $announcement): RedirectResponse
     {
+        $this->ensureStaffOwnsAnnouncement($request, $announcement);
         $announcement->update(['status' => 'Archived']);
 
         return back();
     }
 
-    public function restore(Announcement $announcement): RedirectResponse
+    public function restore(Request $request, Announcement $announcement): RedirectResponse
     {
-        $announcement->update(['status' => 'Published']);
+        $this->ensureStaffOwnsAnnouncement($request, $announcement);
+
+        $updates = ['status' => 'Published'];
+        if ($announcement->is_urgent && $announcement->urgent_until?->isPast()) {
+            $updates += [
+                'is_urgent' => false,
+                'urgent_days' => null,
+                'urgent_until' => null,
+            ];
+        }
+
+        $announcement->update($updates);
 
         return back();
     }
@@ -491,6 +548,13 @@ class AnnouncementController extends Controller
             'author_staff_id' => $announcement->author_staff_id,
             'author_admin_id' => $announcement->author_admin_id,
             'status' => $announcement->status,
+            'is_urgent' => $announcement->is_urgent,
+            'read_count' => $announcement->readers_count ?? $announcement->readers()->count(),
+            'view_count' => $announcement->views_count ?? 0,
+            'saved_count' => $announcement->saved_count ?? $announcement->savedByUsers()->count(),
+            'comment_count' => $announcement->comment_count ?? $announcement->messages()->count(),
+            'urgent_days' => $announcement->urgent_days,
+            'urgent_until' => $announcement->urgent_until?->toIso8601String(),
             'title' => $announcement->title,
             'category' => $announcement->category,
             'posted_by' => $announcement->posted_by,

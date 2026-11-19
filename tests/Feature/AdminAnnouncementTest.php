@@ -3,6 +3,7 @@
 use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 test('announcement bodies render markdown without allowing raw html', function () {
     $announcement = Announcement::create([
@@ -195,6 +197,207 @@ test('staff can manage announcements and events through the staff panel', functi
 
     $this->assertDatabaseMissing('announcement', ['id' => $announcement->id]);
     $this->assertDatabaseHas('announcement', ['id' => $event->id, 'category' => 'Event']);
+});
+
+test('deleting an announcement removes its client notifications', function () {
+    $client = User::factory()->create();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'notification-delete-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Announcement to delete',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'This announcement will be deleted.',
+        'author_staff_id' => $staff->id,
+    ]);
+    $notificationId = (string) Str::uuid();
+    DB::table('notifications')->insert([
+        'id' => $notificationId,
+        'type' => AnnouncementPublished::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $client->id,
+        'announcement_id' => $announcement->id,
+        'data' => json_encode(['title' => $announcement->title], JSON_THROW_ON_ERROR),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->delete(route('staff.announcements.destroy', $announcement))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('notifications', ['id' => $notificationId]);
+    $this->assertDatabaseMissing('announcement', ['id' => $announcement->id]);
+});
+
+test('staff and admins receive announcement engagement analytics', function () {
+    $client = User::factory()->create();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'analytics-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'analytics-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Urgent analytics announcement',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'Announcement analytics test.',
+        'is_urgent' => true,
+        'urgent_days' => 2,
+        'urgent_until' => now()->addDays(2),
+        'author_staff_id' => $staff->id,
+    ]);
+    $client->savedAnnouncements()->attach($announcement->id);
+    $announcement->readers()->attach($client->id);
+    $conversation = Conversation::create([
+        'type' => 'announcement',
+        'name' => $announcement->title,
+        'announcement_id' => $announcement->id,
+        'client_id' => $client->id,
+    ]);
+    Message::create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $client->id,
+        'content' => 'A question about the announcement.',
+    ]);
+    Message::create([
+        'conversation_id' => $conversation->id,
+        'sender_admin_id' => $admin->id,
+        'content' => 'An answer to the question.',
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->get(route('staff.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.view_count', 0)
+            ->where('announcements.0.saved_count', 1)
+            ->where('announcements.0.comment_count', 2)
+            ->where('announcements.0.read_count', 1));
+
+    $this->actingAs($admin, 'admin')
+        ->get(route('admin.announcements.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('announcements.0.saved_count', 1)
+            ->where('announcements.0.comment_count', 2)
+            ->where('announcements.0.read_count', 1));
+});
+
+test('staff can archive and restore only their own announcements', function () {
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'archive-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $otherStaff = StaffUser::create([
+        'name' => 'Other Staff',
+        'email' => 'other-archive-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $ownAnnouncement = Announcement::create([
+        'title' => 'My announcement',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'Created by this staff member.',
+        'author_staff_id' => $staff->id,
+    ]);
+    $otherAnnouncement = Announcement::create([
+        'title' => 'Another staff announcement',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'Created by another staff member.',
+        'author_staff_id' => $otherStaff->id,
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->patch(route('staff.announcements.archive', $ownAnnouncement))
+        ->assertRedirect();
+
+    expect($ownAnnouncement->fresh()->status)->toBe('Archived');
+
+    $this->patch(route('staff.announcements.restore', $ownAnnouncement))
+        ->assertRedirect();
+    expect($ownAnnouncement->fresh()->status)->toBe('Published');
+
+    $this->patch(route('staff.announcements.archive', $otherAnnouncement))
+        ->assertForbidden();
+    expect($otherAnnouncement->fresh()->status)->toBe('Published');
+});
+
+test('staff can publish an urgent announcement for up to three days', function () {
+    Notification::fake();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'urgent-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.store'), [
+            'title' => 'Urgent campus update',
+            'category' => 'General',
+            'posted_by' => 'Student Services',
+            'body' => 'Please read this update.',
+            'is_urgent' => '1',
+            'urgent_days' => '3',
+        ])
+        ->assertRedirect();
+
+    $announcement = Announcement::query()->where('title', 'Urgent campus update')->firstOrFail();
+    expect($announcement->is_urgent)->toBeTrue()
+        ->and($announcement->urgent_days)->toBe(3)
+        ->and($announcement->urgent_until->isFuture())->toBeTrue();
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.store'), [
+            'title' => 'Invalid urgency length',
+            'category' => 'General',
+            'posted_by' => 'Student Services',
+            'body' => 'This should not publish.',
+            'is_urgent' => '1',
+            'urgent_days' => '4',
+        ])
+        ->assertSessionHasErrors('urgent_days');
+});
+
+test('expired urgent announcements are automatically archived', function () {
+    $expiredAnnouncement = Announcement::create([
+        'title' => 'Expired urgent update',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'This update has expired.',
+        'is_urgent' => true,
+        'urgent_days' => 1,
+        'urgent_until' => now()->subSecond(),
+    ]);
+    $activeAnnouncement = Announcement::create([
+        'title' => 'Active urgent update',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'This update is still active.',
+        'is_urgent' => true,
+        'urgent_days' => 2,
+        'urgent_until' => now()->addDays(2),
+    ]);
+
+    expect(Announcement::archiveExpiredUrgent())->toBe(1)
+        ->and($expiredAnnouncement->fresh()->status)->toBe('Archived')
+        ->and($activeAnnouncement->fresh()->status)->toBe('Published');
 });
 
 test('staff announcement pages render the dedicated staff page with all announcements', function () {

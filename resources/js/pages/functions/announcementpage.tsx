@@ -6,6 +6,13 @@ export type Announcement = {
     author_staff_id?: number | null;
     author_admin_id?: number | null;
     is_pinned?: boolean;
+    is_urgent?: boolean;
+    read_count?: number;
+    view_count?: number;
+    saved_count?: number;
+    comment_count?: number;
+    urgent_days?: number | null;
+    urgent_until?: string | null;
     status?: string;
     title: string;
     category: string;
@@ -27,7 +34,7 @@ export type AnnouncementPageProps = {
     discussions?: Discussion[];
     announcementComments?: DiscussionMessage[];
     staffMode?: boolean;
-    initialTab?: 'announcement' | 'comments';
+    initialTab?: 'announcement' | 'comments' | 'analytics';
     onClose?: () => void;
 };
 
@@ -52,6 +59,13 @@ const formatDate = (date: string) =>
         day: 'numeric',
         year: 'numeric',
     });
+
+const categoryBadgeStyles: Record<string, string> = {
+    Academic: 'border-blue-200 bg-blue-50 text-blue-700',
+    Event: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    General: 'border-slate-200 bg-slate-100 text-slate-700',
+    Service: 'border-purple-200 bg-purple-50 text-purple-700',
+};
 
 const formatTime = (time: string | null) => {
     if (!time) return undefined;
@@ -112,7 +126,7 @@ export default function AnnouncementPage({
         };
     }, [isImageZoomed]);
 
-    const [activeTab, setActiveTab] = useState<'announcement' | 'comments'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'announcement' | 'comments' | 'analytics'>(initialTab);
 
     const totalCommentCount =
         discussions.reduce((count, discussion) => count + discussion.messages.length, 0) +
@@ -129,6 +143,24 @@ export default function AnnouncementPage({
             </div>
         );
     }
+
+    const analyticsSlices = [
+        { label: 'Views', value: announcement.view_count ?? 0, color: '#3b82f6' },
+        { label: 'Saved', value: announcement.saved_count ?? 0, color: '#a855f7' },
+        { label: 'Comments', value: announcement.comment_count ?? totalCommentCount, color: '#10b981' },
+        ...(announcement.is_urgent
+            ? [{ label: 'Confirmed reads', value: announcement.read_count ?? 0, color: '#ef4444' }]
+            : []),
+    ];
+    const analyticsTotal = analyticsSlices.reduce((total, slice) => total + slice.value, 0);
+    let analyticsOffset = 0;
+    const analyticsPieBackground = analyticsTotal === 0
+        ? '#e2e8f0'
+        : `conic-gradient(${analyticsSlices.map((slice) => {
+            const start = (analyticsOffset / analyticsTotal) * 100;
+            analyticsOffset += slice.value;
+            return `${slice.color} ${start}% ${(analyticsOffset / analyticsTotal) * 100}%`;
+        }).join(', ')})`;
 
     const getCategorySpine = (cat: string) => {
         switch (cat) {
@@ -204,6 +236,13 @@ export default function AnnouncementPage({
                                     >
                                         Comments <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600">{totalCommentCount}</span>
                                     </button>
+                                    <button
+                                        role="tab"
+                                        onClick={() => setActiveTab('analytics')}
+                                        className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'analytics' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+                                    >
+                                        Analytics
+                                    </button>
                                 </div>
                             )}
                             
@@ -248,7 +287,7 @@ export default function AnnouncementPage({
 
                                                 <div className="relative px-6 pt-12 pb-14 sm:px-10 sm:pt-16 sm:pb-20">
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-sm">
+                                                        <span className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${categoryBadgeStyles[announcement.category] ?? 'border-slate-200 bg-slate-100 text-slate-700'}`}>
                                                             {categoryLabel}
                                                         </span>
                                                         {announcement.is_pinned && (
@@ -256,7 +295,24 @@ export default function AnnouncementPage({
                                                                 Pinned
                                                             </span>
                                                         )}
-                                                        <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-mono font-bold tracking-widest text-white/80 backdrop-blur-sm">
+                                                        {announcement.is_urgent && (
+                                                            <>
+                                                                <span className="rounded-full bg-red-700 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white">
+                                                                    Urgent
+                                                                </span>
+                                                                <span
+                                                                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold text-white/90 backdrop-blur-sm"
+                                                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.12)' }}
+                                                                >
+                                                                    <i className="fa-solid fa-eye" aria-hidden="true"></i>
+                                                                    {announcement.read_count ?? 0} read
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                        <span
+                                                            className="rounded-full px-3 py-1 text-[11px] font-mono font-bold tracking-widest text-white/80 backdrop-blur-sm"
+                                                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.12)' }}
+                                                        >
                                                             {referenceNo}
                                                         </span>
                                                     </div>
@@ -267,12 +323,15 @@ export default function AnnouncementPage({
 
                                                     <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-white/80">
                                                         <div className="flex items-center gap-2.5">
-                                                            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/40 bg-white/20 text-xs font-bold text-white backdrop-blur-sm">
+                                                            <div
+                                                                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/40 text-xs font-bold text-white backdrop-blur-sm"
+                                                                style={{ backgroundColor: 'rgba(255, 255, 255, 0.16)' }}
+                                                            >
                                                                 {announcement.posted_by.charAt(0).toUpperCase()}
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-extrabold text-white">{announcement.posted_by}</p>
-                                                                <p className="text-[11px] font-medium text-white/60">Author / Office</p>
+                                                                <p className="text-[11px] font-medium text-white">Author / Office</p>
                                                             </div>
                                                         </div>
                                                         <div className="h-8 w-px bg-white/20" />
@@ -438,6 +497,41 @@ export default function AnnouncementPage({
                                             ))
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {isModal && activeTab === 'analytics' && (
+                            <div className="mx-auto max-w-4xl animate-slide-up">
+                                <div className="mb-5">
+                                    <h2 className="text-xl font-extrabold text-slate-900">Announcement analytics</h2>
+                                    <p className="mt-1 text-sm text-slate-500">Engagement breakdown by metric.</p>
+                                </div>
+                                <div className="grid grid-cols-1 items-center gap-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                                    <div
+                                        className="mx-auto aspect-square w-full max-w-64 rounded-full border border-slate-100 shadow-inner"
+                                        style={{ background: analyticsPieBackground }}
+                                        role="img"
+                                        aria-label={`Engagement pie chart: ${analyticsSlices.map(({ label, value }) => `${label}, ${value}`).join('; ')}`}
+                                    />
+                                    <ul className="space-y-4">
+                                        {analyticsSlices.map((slice) => (
+                                            <li key={slice.label} className="flex items-center justify-between gap-4">
+                                                <span className="flex min-w-0 items-center gap-3">
+                                                    <span
+                                                        className="h-3.5 w-3.5 shrink-0 rounded-sm"
+                                                        style={{ backgroundColor: slice.color }}
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span className="truncate text-sm font-semibold text-slate-700">{slice.label}</span>
+                                                </span>
+                                                <span className="text-lg font-extrabold tabular-nums text-slate-900">{slice.value}</span>
+                                            </li>
+                                        ))}
+                                        {analyticsTotal === 0 && (
+                                            <li className="pt-2 text-sm text-slate-500">No engagement recorded yet.</li>
+                                        )}
+                                    </ul>
                                 </div>
                             </div>
                         )}

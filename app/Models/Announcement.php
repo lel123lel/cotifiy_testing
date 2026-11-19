@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 use Spatie\LaravelMarkdown\MarkdownRenderer;
 
@@ -14,7 +16,7 @@ use Spatie\LaravelMarkdown\MarkdownRenderer;
  * @property Carbon|null $event_date
  * @property Carbon|null $event_end_date
  */
-#[Fillable(['image', 'title', 'category', 'posted_by', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'author_staff_id', 'author_admin_id', 'status'])]
+#[Fillable(['image', 'title', 'category', 'posted_by', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'author_staff_id', 'author_admin_id', 'status', 'is_urgent', 'urgent_days', 'urgent_until'])]
 class Announcement extends Model
 {
     protected $table = 'announcement';
@@ -39,6 +41,31 @@ class Announcement extends Model
         return $this->hasMany(DatabaseNotification::class);
     }
 
+    /** @return BelongsToMany<User, $this> */
+    public function readers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'announcement_reads')
+            ->withTimestamps();
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function savedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'announcement_user')
+            ->withTimestamps();
+    }
+
+    /** @return HasManyThrough<Message, $this> */
+    public function messages(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Message::class,
+            Conversation::class,
+            'announcement_id',
+            'conversation_id',
+        );
+    }
+
     public function bodyAsHtml(): string
     {
         return app(MarkdownRenderer::class)
@@ -55,6 +82,20 @@ class Announcement extends Model
             'event_date' => 'date',
             'event_end_date' => 'date',
             'attachments' => 'array',
+            'is_urgent' => 'boolean',
+            'urgent_days' => 'integer',
+            'urgent_until' => 'datetime',
+            'views_count' => 'integer',
         ];
+    }
+
+    public static function archiveExpiredUrgent(): int
+    {
+        return static::query()
+            ->where('is_urgent', true)
+            ->where('status', 'Published')
+            ->whereNotNull('urgent_until')
+            ->where('urgent_until', '<=', now())
+            ->update(['status' => 'Archived']);
     }
 }
