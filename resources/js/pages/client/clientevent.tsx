@@ -16,6 +16,7 @@ interface EventAnnouncement {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
+    is_pinned?: boolean;
 }
 
 interface ClientEventsProps {
@@ -23,6 +24,109 @@ interface ClientEventsProps {
     isLoading?: boolean;
     user?: {
         name: string;
+    };
+}
+
+// ============ URGENCY HEATMAP LOGIC ============
+type UrgencyLevel = 'urgent' | 'soon' | 'info' | 'good_news' | 'pinned' | 'default';
+
+interface UrgencyTheme {
+    level: UrgencyLevel;
+    label: string;
+    bannerColor: string;
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+    bgTint: string;
+    dotColor: string;
+    pulse?: boolean;
+}
+
+function getUrgencyTheme(event: EventAnnouncement): UrgencyTheme {
+    const now = new Date();
+    let eventStart: Date | null = null;
+    
+    if (event.event_date) {
+        const timeStr = event.start_time || '00:00';
+        eventStart = new Date(`${event.event_date}T${timeStr}`);
+    }
+
+    const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // 1. Urgent — Happening today or within 24h
+    if (eventStart && diffHours > 0 && diffHours <= 24) {
+        return {
+            level: 'urgent',
+            label: diffHours <= 1 ? 'Deadline in < 1 hr' : `Starting in ${Math.round(diffHours)} hr${Math.round(diffHours) === 1 ? '' : 's'}`,
+            bannerColor: 'bg-red-600',
+            badgeBg: 'bg-red-100',
+            badgeText: 'text-red-700',
+            badgeBorder: 'border-red-200',
+            bgTint: 'bg-red-50/40',
+            dotColor: 'bg-red-500',
+            pulse: true,
+        };
+    }
+
+    // 2. Pinned
+    if (event.is_pinned) {
+        return {
+            level: 'pinned',
+            label: 'Pinned Event',
+            bannerColor: 'bg-indigo-600',
+            badgeBg: 'bg-indigo-100',
+            badgeText: 'text-indigo-700',
+            badgeBorder: 'border-indigo-200',
+            bgTint: 'bg-indigo-50/30',
+            dotColor: 'bg-indigo-500',
+        };
+    }
+
+    // 3. Soon — Happening within 7 days
+    if (eventStart && diffHours > 24 && diffHours <= 168) {
+        const days = Math.ceil(diffHours / 24);
+        return {
+            level: 'soon',
+            label: `Starts in ${days} day${days === 1 ? '' : 's'}`,
+            bannerColor: 'bg-amber-500',
+            badgeBg: 'bg-amber-100',
+            badgeText: 'text-amber-700',
+            badgeBorder: 'border-amber-200',
+            bgTint: 'bg-amber-50/30',
+            dotColor: 'bg-amber-500',
+        };
+    }
+
+    // 4. Good News
+    const titleLower = event.title.toLowerCase();
+    const contentLower = event.content.toLowerCase();
+    const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
+    const isGoodNews = goodNewsKeywords.some(k => titleLower.includes(k) || contentLower.includes(k));
+    
+    if (isGoodNews) {
+        return {
+            level: 'good_news',
+            label: 'Good News',
+            bannerColor: 'bg-emerald-500',
+            badgeBg: 'bg-emerald-100',
+            badgeText: 'text-emerald-700',
+            badgeBorder: 'border-emerald-200',
+            bgTint: 'bg-emerald-50/30',
+            dotColor: 'bg-emerald-500',
+        };
+    }
+
+    // 5. Default Event Info
+    return {
+        level: 'info',
+        label: 'Upcoming Event',
+        bannerColor: 'bg-blue-500',
+        badgeBg: 'bg-blue-100',
+        badgeText: 'text-blue-700',
+        badgeBorder: 'border-blue-200',
+        bgTint: 'bg-blue-50/20',
+        dotColor: 'bg-blue-500',
     };
 }
 
@@ -87,7 +191,6 @@ export default function ClientEvents({
     const formatTime = (time: string | null) => time
         ? new Date(`1970-01-01T${time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
         : '';
-        
 
     return (
         <>
@@ -98,6 +201,10 @@ export default function ClientEvents({
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+                @keyframes pulse-urgent { 
+                    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); } 
+                    50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); } 
+                }
                 
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
@@ -108,6 +215,7 @@ export default function ClientEvents({
                 .animate-slide-up { animation: slideUpText 0.5s ease-out forwards; }
                 .animate-spin-slow { animation: spin-slow 25s linear infinite; }
                 .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-pulse-urgent { animation: pulse-urgent 2.5s ease-in-out infinite; }
                 
                 .shape-move-1 { animation: move-around-1 35s ease-in-out infinite; }
                 .shape-move-2 { animation: move-around-2 45s ease-in-out infinite; }
@@ -142,7 +250,6 @@ export default function ClientEvents({
                     {/* TOP BAR */}
                     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
                         <div className="flex items-center gap-4">
-
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Events</h2>
                         </div>
                         
@@ -170,7 +277,6 @@ export default function ClientEvents({
                                 <div>
                                     <p className="mt-2 text-base text-slate-500">Discover what's happening on campus.</p>
                                 </div>
-                                
                             </div>
 
                             {isLoading ? (
@@ -278,6 +384,16 @@ export default function ClientEvents({
                                                         const isSelected = selectedDate === dateStr;
                                                         const isToday = dateStr === todayStr;
 
+                                                        // Determine highest priority urgency for this day's dot
+                                                        const hasUrgent = dayEvents.some(e => {
+                                                            const u = getUrgencyTheme(e);
+                                                            return u.level === 'urgent';
+                                                        });
+                                                        const hasSoon = dayEvents.some(e => {
+                                                            const u = getUrgencyTheme(e);
+                                                            return u.level === 'soon';
+                                                        });
+
                                                         return (
                                                             <div 
                                                                 key={day} 
@@ -288,11 +404,18 @@ export default function ClientEvents({
                                                                     'border-transparent hover:bg-slate-50'
                                                                 }`}
                                                             >
-                                                                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
-                                                                    isToday ? 'bg-blue-600 text-white' : 'text-slate-700'
-                                                                }`}>
-                                                                    {day}
-                                                                </span>
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
+                                                                        isToday ? 'bg-blue-600 text-white' : 'text-slate-700'
+                                                                    }`}>
+                                                                        {day}
+                                                                    </span>
+                                                                    
+                                                                    {/* Urgency Dot in Calendar Cell */}
+                                                                    {dayEvents.length > 0 && (
+                                                                        <span className={`flex h-2 w-2 rounded-full ${hasUrgent ? 'bg-red-500 animate-pulse' : hasSoon ? 'bg-amber-500' : 'bg-blue-500'}`} title="Event scheduled"></span>
+                                                                    )}
+                                                                </div>
                                                                 
                                                                 {/* Event Pills */}
                                                                 <div className="no-scrollbar mt-1 space-y-1 overflow-y-auto">
@@ -329,39 +452,51 @@ export default function ClientEvents({
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-5">
-                                                            {activeDateEvents.map(event => (
-                                                                <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                                            {activeDateEvents.map(event => {
+                                                                const urgency = getUrgencyTheme(event);
+                                                                return (
+                                                                <div key={event.id} className={`flex flex-col overflow-hidden rounded-xl border border-slate-200 transition-shadow hover:shadow-md ${urgency.bgTint}`}>
                                                                     
-                                                                    {/* Event Poster */}
-                                                                    <div className="mb-4 h-32 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-200">
-                                                                        {event.image ? (
-                                                                            <img src={event.image} alt={event.title} className="h-full w-full object-cover" />
-                                                                        ) : (
-                                                                            <div className="flex h-full w-full items-center justify-center text-slate-400">
-                                                                                <i className="fa-regular fa-image text-3xl"></i>
-                                                                            </div>
-                                                                        )}
+                                                                    {/* Urgency Banner */}
+                                                                    <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
+                                                                    
+                                                                    <div className="p-5">
+                                                                        <div className="mb-2">
+                                                                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                                                {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
+                                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                                                                                </span>}
+                                                                                {urgency.label}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        {/* Event Poster */}
+                                                                        <div className="mb-4 h-32 w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                                                            {event.image ? (
+                                                                                <img src={event.image} alt={event.title} className="h-full w-full object-cover" />
+                                                                            ) : (
+                                                                                <div className="flex h-full w-full items-center justify-center text-slate-400">
+                                                                                    <i className="fa-regular fa-image text-3xl"></i>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        <h4 className="mb-2 text-base leading-tight font-bold text-slate-900">{event.title}</h4>
+                                                                        <p className="mb-4 text-sm font-medium text-slate-500">
+                                                                            {formatTime(event.start_time)} {event.end_time && `– ${formatTime(event.end_time)}`} • {event.location}
+                                                                        </p>
+                                                                        
+                                                                        {/* Rule: Secondary button */}
+                                                                        <Link 
+                                                                            href={`/client/announcements/${event.id}`} 
+                                                                            className="block w-full rounded-lg border border-slate-300 bg-white py-2.5 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                                        >
+                                                                            View event details
+                                                                        </Link>
                                                                     </div>
-                                                                    
-                                                                    <h4 className="mb-2 text-base leading-tight font-bold text-slate-900">{event.title}</h4>
-                                                                    <p className="mb-4 text-sm font-medium text-slate-500">
-                                                                        {formatTime(event.start_time)} {event.end_time && `– ${formatTime(event.end_time)}`} • {event.location}
-                                                                    </p>
-                                                                    
-                                                                    {/* Rule: Secondary button */}
-                                                                    <Link 
-                                                                        href={`/client/announcements/${event.id}`} 
-                                                                        className="block w-full rounded-lg border border-slate-300 bg-white py-2.5 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                                                    >
-                                                                        View event details
-                                                                    </Link>
-                                                                    
-                                                                    {/* Rule: Text link button */}
-                                                                    <button className="mt-3 flex w-full items-center justify-center gap-1 text-sm font-bold text-blue-600 transition-colors hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                                                                        Add to Google Calendar
-                                                                    </button>
                                                                 </div>
-                                                            ))}
+                                                            )})}
                                                         </div>
                                                     )}
                                                 </div>

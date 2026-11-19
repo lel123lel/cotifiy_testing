@@ -18,6 +18,8 @@ interface Announcement {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
+    is_pinned?: boolean;
+    is_new?: boolean;
 }
 
 interface ClientAnnouncementsProps {
@@ -32,14 +34,122 @@ const categories: Array<'All' | AnnouncementCategory> = [
     'Service',
 ];
 
-// Rule: Color has one meaning. Red is for urgent/errors. 
-// Service is now Purple. Academic is Blue. Event is Green. General is Gray.
 const categoryStyles: Record<AnnouncementCategory, string> = {
     Academic: 'bg-blue-50 text-blue-700 border-blue-200',
     Event: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     General: 'bg-slate-100 text-slate-700 border-slate-200',
     Service: 'bg-purple-50 text-purple-700 border-purple-200', 
 };
+
+// ============ URGENCY HEATMAP LOGIC ============
+type UrgencyLevel = 'urgent' | 'soon' | 'info' | 'good_news' | 'pinned' | 'default';
+
+interface UrgencyTheme {
+    level: UrgencyLevel;
+    label: string;
+    bannerColor: string;
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+    bgTint: string;
+    pulse?: boolean;
+}
+
+function getUrgencyTheme(ann: Announcement): UrgencyTheme {
+    const now = new Date();
+    let eventStart: Date | null = null;
+    
+    if (ann.event_date) {
+        const timeStr = ann.start_time || '00:00';
+        eventStart = new Date(`${ann.event_date}T${timeStr}`);
+    }
+
+    const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // 1. Urgent — Happening today or within 24h
+    if (eventStart && diffHours > 0 && diffHours <= 24) {
+        return {
+            level: 'urgent',
+            label: diffHours <= 1 ? 'Deadline in < 1 hr' : `Starting in ${Math.round(diffHours)} hr${Math.round(diffHours) === 1 ? '' : 's'}`,
+            bannerColor: 'bg-red-600',
+            badgeBg: 'bg-red-100',
+            badgeText: 'text-red-700',
+            badgeBorder: 'border-red-200',
+            bgTint: 'bg-red-50', // Solid, non-transparent
+            pulse: true,
+        };
+    }
+
+    // 2. Pinned
+    if (ann.is_pinned) {
+        return {
+            level: 'pinned',
+            label: 'Pinned Notice',
+            bannerColor: 'bg-indigo-600',
+            badgeBg: 'bg-indigo-100',
+            badgeText: 'text-indigo-700',
+            badgeBorder: 'border-indigo-200',
+            bgTint: 'bg-indigo-50', // Solid, non-transparent
+        };
+    }
+
+    // 3. Soon — Happening within 7 days
+    if (eventStart && diffHours > 24 && diffHours <= 168) {
+        const days = Math.ceil(diffHours / 24);
+        return {
+            level: 'soon',
+            label: `Starts in ${days} day${days === 1 ? '' : 's'}`,
+            bannerColor: 'bg-amber-500',
+            badgeBg: 'bg-amber-100',
+            badgeText: 'text-amber-700',
+            badgeBorder: 'border-amber-200',
+            bgTint: 'bg-amber-50', // Solid, non-transparent
+        };
+    }
+
+    // 4. Good News
+    const titleLower = ann.title.toLowerCase();
+    const contentLower = ann.content.toLowerCase();
+    const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
+    const isGoodNews = goodNewsKeywords.some(k => titleLower.includes(k) || contentLower.includes(k));
+    
+    if (isGoodNews) {
+        return {
+            level: 'good_news',
+            label: 'Good News',
+            bannerColor: 'bg-emerald-500',
+            badgeBg: 'bg-emerald-100',
+            badgeText: 'text-emerald-700',
+            badgeBorder: 'border-emerald-200',
+            bgTint: 'bg-emerald-50', // Solid, non-transparent
+        };
+    }
+
+    // 5. Info
+    if (ann.category === 'Event' || ann.category === 'Academic') {
+        return {
+            level: 'info',
+            label: ann.category === 'Event' ? 'Upcoming Event' : 'Academic Info',
+            bannerColor: 'bg-blue-500',
+            badgeBg: 'bg-blue-100',
+            badgeText: 'text-blue-700',
+            badgeBorder: 'border-blue-200',
+            bgTint: 'bg-blue-50', // Solid, non-transparent
+        };
+    }
+
+    // 6. Default
+    return {
+        level: 'default',
+        label: 'Notice',
+        bannerColor: 'bg-slate-400',
+        badgeBg: 'bg-slate-100',
+        badgeText: 'text-slate-700',
+        badgeBorder: 'border-slate-200',
+        bgTint: 'bg-white',
+    };
+}
 
 function formatDate(value: string) {
     return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
@@ -101,6 +211,10 @@ export default function ClientAnnouncements({
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes pulse-urgent { 
+                    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); } 
+                    50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); } 
+                }
                 
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
@@ -110,6 +224,7 @@ export default function ClientAnnouncements({
                 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
                 .animate-slide-up { animation: slideUpText 0.5s ease-out forwards; }
                 .animate-spin-slow { animation: spin-slow 25s linear infinite; }
+                .animate-pulse-urgent { animation: pulse-urgent 2.5s ease-in-out infinite; }
                 
                 .shape-move-1 { animation: move-around-1 35s ease-in-out infinite; }
                 .shape-move-2 { animation: move-around-2 45s ease-in-out infinite; }
@@ -143,7 +258,6 @@ export default function ClientAnnouncements({
                     
                     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
                         <div className="flex items-center gap-4">
-
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Announcements</h2>
                         </div>
                         
@@ -234,13 +348,16 @@ export default function ClientAnnouncements({
                                 </div>
                             ) : (
                                 <div className="animate-fade-in space-y-4">
-                                    {filteredAnnouncements.map((announcement) => (
+                                    {filteredAnnouncements.map((announcement) => {
+                                        const urgency = getUrgencyTheme(announcement);
+
+                                        return (
                                         <article
                                             key={announcement.id}
                                             role="link"
                                             tabIndex={0}
                                             aria-label={`Read announcement: ${announcement.title}`}
-                                            className="group relative flex min-w-0 cursor-pointer gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:bg-slate-50 sm:gap-6 sm:p-5"
+                                            className={`group relative flex flex-col cursor-pointer overflow-hidden rounded-2xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md bg-white ${urgency.bgTint}`}
                                             onClick={(event) => {
                                                 if (event.target instanceof Element && event.target.closest('a, button')) {
                                                     return;
@@ -255,52 +372,68 @@ export default function ClientAnnouncements({
                                                 }
                                             }}
                                         >
-                                            {announcement.image ? (
-                                                <img
-                                                    src={announcement.image}
-                                                    alt=""
-                                                    loading="lazy"
-                                                    className="mt-1 h-16 w-16 shrink-0 rounded-lg bg-slate-100 object-cover sm:h-20 sm:w-20"
-                                                />
-                                            ) : (
-                                                <div className="mt-1 flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400 sm:h-20 sm:w-20">
-                                                    <i className="fa-regular fa-newspaper text-2xl" aria-hidden="true"></i>
-                                                </div>
-                                            )}
+                                            {/* ============ URGENCY HEATMAP BANNER ============ */}
+                                            <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
 
-                                            <div className="min-w-0 flex-1">
-                                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                                    <span className={`rounded border px-2.5 py-1 text-[12px] font-bold tracking-wider uppercase ${categoryStyles[announcement.category]}`}>
-                                                        {announcement.category === 'Event' ? 'Events' : announcement.category === 'Service' ? 'Services' : announcement.category}
-                                                    </span>
-                                                    <span className="text-xs font-medium text-slate-500 sm:text-sm">
-                                                        {formatDate(announcement.date)}
-                                                    </span>
-                                                </div>
-                                                
-                                                <h3 className="mb-1 text-base leading-snug font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-lg">
-                                                    {announcement.title}
-                                                </h3>
-                                                
-                                                <div
-                                                    dangerouslySetInnerHTML={{ __html: announcement.content_html }}
-                                                    className="line-clamp-2 text-sm leading-relaxed text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0 sm:text-base"
-                                                />
-                                                
-                                                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                                                    <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-500">
-                                                        <i className="fa-solid fa-building text-slate-400" aria-hidden="true"></i>
-                                                        <span className="truncate">
-                                                            {announcement.posted_by}
+                                            <div className="flex min-w-0 gap-4 p-4 sm:gap-6 sm:p-5">
+                                                {announcement.image ? (
+                                                    <img
+                                                        src={announcement.image}
+                                                        alt=""
+                                                        loading="lazy"
+                                                        className="mt-1 h-16 w-16 shrink-0 rounded-lg bg-white object-cover sm:h-20 sm:w-20"
+                                                    />
+                                                ) : (
+                                                    <div className="mt-1 flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white/60 text-slate-400 sm:h-20 sm:w-20 border border-slate-100">
+                                                        <i className="fa-regular fa-newspaper text-2xl" aria-hidden="true"></i>
+                                                    </div>
+                                                )}
+
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                        {/* Urgency Status Pill */}
+                                                        <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                            {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
+                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                                                            </span>}
+                                                            {urgency.label}
                                                         </span>
-                                                    </span>
+
+                                                        {/* Standard Category Pill */}
+                                                        <span className={`rounded border px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${categoryStyles[announcement.category]}`}>
+                                                            {announcement.category === 'Event' ? 'Events' : announcement.category === 'Service' ? 'Services' : announcement.category}
+                                                        </span>
+                                                        
+                                                        <span className="text-xs font-medium text-slate-500 sm:text-sm">
+                                                            {formatDate(announcement.date)}
+                                                        </span>
+                                                    </div>
                                                     
-                                                    <Link
-                                                        href={`/client/announcements/${announcement.id}`}
-                                                        className="inline-flex shrink-0 items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
-                                                    >
-                                                        Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
-                                                    </Link>
+                                                    <h3 className="mb-1 text-base leading-snug font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-lg">
+                                                        {announcement.title}
+                                                    </h3>
+                                                    
+                                                    <div
+                                                        dangerouslySetInnerHTML={{ __html: announcement.content_html }}
+                                                        className="line-clamp-2 text-sm leading-relaxed text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0 sm:text-base"
+                                                    />
+                                                    
+                                                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                                        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-500">
+                                                            <i className="fa-solid fa-building text-slate-400" aria-hidden="true"></i>
+                                                            <span className="truncate">
+                                                                {announcement.posted_by}
+                                                            </span>
+                                                        </span>
+                                                        
+                                                        <Link
+                                                            href={`/client/announcements/${announcement.id}`}
+                                                            className="inline-flex shrink-0 items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
+                                                        >
+                                                            Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+                                                        </Link>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <Link
@@ -311,7 +444,7 @@ export default function ClientAnnouncements({
                                                 Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
                                             </Link>
                                         </article>
-                                    ))}
+                                    )})}
                                 </div>
                             )}
                         </div>

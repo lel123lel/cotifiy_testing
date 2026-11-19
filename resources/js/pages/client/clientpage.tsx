@@ -41,12 +41,12 @@ type UrgencyLevel = 'urgent' | 'soon' | 'info' | 'good_news' | 'pinned' | 'defau
 interface UrgencyTheme {
     level: UrgencyLevel;
     label: string;
-    bannerColor: string;      // The top solid bar
-    badgeBg: string;          // The category label bg
-    badgeText: string;        // The category label text
-    badgeBorder: string;      // The category label border
-    bgTint: string;           // The card background tint
-    pulse?: boolean;          // Should it pulse?
+    bannerColor: string;
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+    bgTint: string;
+    pulse?: boolean;
 }
 
 function getUrgencyTheme(ann: Announcement): UrgencyTheme {
@@ -61,7 +61,7 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
     const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
     const diffHours = diffMs / (1000 * 60 * 60);
 
-    // 1. Urgent — Event/Deadline happening today or within 24h
+    // 1. Urgent — Happening today or within 24h
     if (eventStart && diffHours > 0 && diffHours <= 24) {
         return {
             level: 'urgent',
@@ -70,12 +70,12 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-red-100',
             badgeText: 'text-red-700',
             badgeBorder: 'border-red-200',
-            bgTint: 'bg-red-50/40',
+            bgTint: 'bg-red-50', // Solid, non-transparent
             pulse: true,
         };
     }
 
-    // 2. Pinned — Admin wanted it at the top regardless of category
+    // 2. Pinned
     if (ann.is_pinned) {
         return {
             level: 'pinned',
@@ -84,11 +84,11 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-indigo-100',
             badgeText: 'text-indigo-700',
             badgeBorder: 'border-indigo-200',
-            bgTint: 'bg-indigo-50/30',
+            bgTint: 'bg-indigo-50', // Solid, non-transparent
         };
     }
 
-    // 3. Soon — Events/Academics happening within 7 days
+    // 3. Soon — Happening within 7 days
     if (eventStart && diffHours > 24 && diffHours <= 168) {
         const days = Math.ceil(diffHours / 24);
         return {
@@ -98,11 +98,11 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-amber-100',
             badgeText: 'text-amber-700',
             badgeBorder: 'border-amber-200',
-            bgTint: 'bg-amber-50/30',
+            bgTint: 'bg-amber-50', // Solid, non-transparent
         };
     }
 
-    // 4. Good News — General/Academic with positive framing (Dean's List, achievements)
+    // 4. Good News
     const titleLower = ann.title.toLowerCase();
     const contentLower = ann.content.toLowerCase();
     const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
@@ -116,11 +116,11 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-emerald-100',
             badgeText: 'text-emerald-700',
             badgeBorder: 'border-emerald-200',
-            bgTint: 'bg-emerald-50/30',
+            bgTint: 'bg-emerald-50', // Solid, non-transparent
         };
     }
 
-    // 5. Info (default for Academic/Event/General)
+    // 5. Info
     if (ann.category === 'Event' || ann.category === 'Academic') {
         return {
             level: 'info',
@@ -129,7 +129,7 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-blue-100',
             badgeText: 'text-blue-700',
             badgeBorder: 'border-blue-200',
-            bgTint: 'bg-blue-50/20',
+            bgTint: 'bg-blue-50', // Solid, non-transparent
         };
     }
 
@@ -308,12 +308,12 @@ export default function ClientHome({
                         </div>
                     </header>
 
-                    <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-                        <div className="mb-8 animate-slide-up max-w-[1400px] mx-auto">
-                            <h1 className="text-3xl font-extrabold text-slate-900">
+                    <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                        <div className="mb-6 sm:mb-8 animate-slide-up max-w-[1400px] mx-auto">
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
                                 {greeting}, {userName.split(' ')[0]}
                             </h1>
-                            <p className="mt-2 text-base text-slate-500 leading-relaxed">
+                            <p className="mt-2 text-sm sm:text-base text-slate-500 leading-relaxed">
                                 {user.course || 'Course not set'} · {user.year_level || 'Year level not set'} ·{' '}
                                 <span className="text-blue-600 font-bold">
                                     {newAnnouncementCount} new announcements
@@ -322,7 +322,7 @@ export default function ClientHome({
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 max-w-[1400px] mx-auto">
+                        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 max-w-[1400px] mx-auto">
                             <div className="space-y-6 lg:col-span-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                                 
                                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -331,7 +331,7 @@ export default function ClientHome({
                                             <button
                                                 key={tab}
                                                 onClick={() => setActiveFilter(tab as any)}
-                                                className={`rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                                className={`rounded-full border px-3 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                                     activeFilter === tab
                                                         ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -342,7 +342,7 @@ export default function ClientHome({
                                         ))}
                                     </div>
 
-                                    <div className="relative shrink-0 sort-dropdown-container">
+                                    <div className="relative shrink-0 sort-dropdown-container self-end sm:self-auto">
                                         <button 
                                             onClick={() => setIsSortOpen(!isSortOpen)}
                                             className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
@@ -366,7 +366,7 @@ export default function ClientHome({
                                 {isLoading && (
                                     <div className="animate-pulse space-y-4">
                                         {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+                                            <div key={i} className="flex flex-col sm:flex-row gap-4 rounded-2xl border border-slate-200 bg-white p-5">
                                                 <div className="h-16 w-16 shrink-0 rounded-xl bg-slate-200"></div>
                                                 <div className="flex-1 space-y-3 py-1">
                                                     <div className="h-4 w-1/4 rounded bg-slate-200"></div>
@@ -396,7 +396,7 @@ export default function ClientHome({
                                                 role="link"
                                                 tabIndex={0}
                                                 aria-label={`Read announcement: ${ann.title}`}
-                                                className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md ${urgency.bgTint}`}
+                                                className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md bg-white ${urgency.bgTint}`}
                                                 onClick={(event) => {
                                                     if (event.target instanceof Element && event.target.closest('a, button')) {
                                                         return;
@@ -413,8 +413,11 @@ export default function ClientHome({
                                                 {/* ============ URGENCY HEATMAP BANNER ============ */}
                                                 <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
 
-                                                <div className="flex gap-5 p-5">
-                                                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+                                                {/* Fixed Mobile Padding & Flex Direction */}
+                                                <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
+                                                    
+                                                    {/* Fixed Image Sizing on Mobile */}
+                                                    <div className="flex h-16 w-16 sm:h-24 sm:w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
                                                         {ann.image ? (
                                                             <img src={ann.image} alt={`Thumbnail for ${ann.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                                         ) : (
@@ -424,9 +427,9 @@ export default function ClientHome({
 
                                                     <div className="flex min-w-0 flex-1 flex-col justify-between">
                                                         <div>
-                                                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                                                                {/* Urgency Status Pill */}
-                                                                <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                            {/* Fixed Tag Wrapping for Mobile */}
+                                                            <div className="mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                                                <span className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 sm:px-2.5 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
                                                                     {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
                                                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                                                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
@@ -434,32 +437,34 @@ export default function ClientHome({
                                                                     {urgency.label}
                                                                 </span>
                                                                 
-                                                                {/* Category Pill */}
-                                                                <span className={`rounded px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase border ${getCategoryColor(ann.category)}`}>
+                                                                <span className={`rounded px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase border ${getCategoryColor(ann.category)}`}>
                                                                     {ann.category === 'Event' ? 'Events' : ann.category === 'Academic' ? 'Academic' : ann.category === 'Service' ? 'Services' : 'General'}
                                                                 </span>
                                                                 
-                                                                <span className="text-xs font-semibold text-slate-500">{formatDate(ann.date)}</span>
+                                                                <span className="text-[11px] sm:text-xs font-semibold text-slate-500">{formatDate(ann.date)}</span>
                                                             </div>
 
-                                                            <h3 className="text-lg font-bold text-slate-900 leading-snug mb-1">
+                                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug mb-1">
                                                                 <Link href={`/client/announcements/${ann.id}`} className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
                                                                     {ann.title}
                                                                 </Link>
                                                             </h3>
-                                                            <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="line-clamp-1 text-sm text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0" />
+                                                            
+                                                            {/* Description truncated for mobile */}
+                                                            <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="line-clamp-2 text-xs sm:text-sm text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0" />
                                                         </div>
 
-                                                        <div className="mt-4 flex items-center justify-between">
-                                                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200/80 text-[10px] text-slate-500">
+                                                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 sm:mt-4 sm:gap-3">
+                                                            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-slate-500">
+                                                                <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-slate-200/80 text-[9px] sm:text-[10px] text-slate-500">
                                                                     <i className="fa-solid fa-building" aria-hidden="true"></i>
                                                                 </div>
-                                                                {ann.posted_by_office}
+                                                                <span className="truncate max-w-[120px] sm:max-w-none">{ann.posted_by_office}</span>
                                                             </div>
+                                                            
                                                             <Link
                                                                 href={`/client/announcements/${ann.id}`}
-                                                                className="text-xs font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
+                                                                className="text-[11px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
                                                             >
                                                                 Read more
                                                             </Link>
@@ -467,6 +472,7 @@ export default function ClientHome({
                                                     </div>
                                                 </div>
 
+                                                {/* Hover Link for Desktop */}
                                                 <Link
                                                     href={`/client/announcements/${ann.id}`}
                                                     aria-label={`Read more: ${ann.title}`}
