@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
+use App\Notifications\AnnouncementReminder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -539,6 +540,38 @@ class AnnouncementController extends Controller
         $announcement->update($updates);
 
         return back();
+    }
+
+    public function remindUnreadClients(Request $request, Announcement $announcement): RedirectResponse
+    {
+        $this->ensureStaffOwnsAnnouncement($request, $announcement);
+
+        Announcement::archiveExpiredUrgent();
+        $announcement->refresh();
+
+        abort_unless(
+            $announcement->status === 'Published'
+                && $announcement->is_urgent
+                && $announcement->urgent_until?->isFuture(),
+            404,
+        );
+
+        $unreadClients = User::query()
+            ->whereDoesntHave('readAnnouncements', fn ($query) => $query->whereKey($announcement->getKey()));
+        $recipientCount = $unreadClients->count();
+
+        if ($recipientCount === 0) {
+            return back()->with('status', 'All clients have already read this urgent announcement.');
+        }
+
+        $unreadClients->chunkById(100, function ($users) use ($announcement): void {
+            Notification::send($users, new AnnouncementReminder($announcement));
+        });
+
+        return back()->with(
+            'status',
+            "Urgent reminder sent to {$recipientCount} unread client(s) by in-app notification and email.",
+        );
     }
 
     private function announcementData(Announcement $announcement): array

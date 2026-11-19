@@ -112,6 +112,9 @@ Route::patch('/staff/announcements/{announcement}/archive', [AnnouncementControl
 Route::patch('/staff/announcements/{announcement}/restore', [AnnouncementController::class, 'restore'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.restore');
+Route::post('/staff/announcements/{announcement}/remind-unread-clients', [AnnouncementController::class, 'remindUnreadClients'])
+    ->middleware(['auth:staff', 'private-cache', 'throttle:6,1'])
+    ->name('staff.announcements.remind-unread-clients');
 Route::delete('/staff/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.destroy');
@@ -196,6 +199,9 @@ Route::patch('/admin/announcements/{announcement}/archive', [AnnouncementControl
 Route::patch('/admin/announcements/{announcement}/restore', [AnnouncementController::class, 'restore'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.restore');
+Route::post('/admin/announcements/{announcement}/remind-unread-clients', [AnnouncementController::class, 'remindUnreadClients'])
+    ->middleware(['auth:admin', 'private-cache', 'throttle:6,1'])
+    ->name('admin.announcements.remind-unread-clients');
 Route::delete('/admin/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.destroy');

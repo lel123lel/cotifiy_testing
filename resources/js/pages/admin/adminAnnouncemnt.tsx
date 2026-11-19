@@ -424,6 +424,7 @@ export default function AdminAnnouncements({
                     <AnnouncementPage
                         key={`${selectedAnnouncement.id}-${openAnnouncementSection ?? 'announcement'}`}
                         announcement={selectedAnnouncement}
+                        canSendReminder
                         discussions={discussions.filter((discussion) => discussion.announcement_id === selectedAnnouncement.id)}
                         announcementComments={announcementComments
                             .filter((comment) => comment.announcement_id === selectedAnnouncement.id)

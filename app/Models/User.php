@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Notifications\AccountPasswordReset;
 use App\Notifications\AnnouncementPublished;
+use App\Notifications\AnnouncementReminder;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -55,12 +56,19 @@ class User extends Authenticatable implements MustVerifyEmail
             ->withTimestamps();
     }
 
+    /** @return BelongsToMany<Announcement, $this> */
+    public function readAnnouncements(): BelongsToMany
+    {
+        return $this->belongsToMany(Announcement::class, 'announcement_reads')
+            ->withTimestamps();
+    }
+
     /** @return MorphMany<DatabaseNotification, $this> */
     public function routeNotificationForDatabase(?BaseNotification $notification = null): MorphMany
     {
         $notifications = $this->notifications();
 
-        if ($notification instanceof AnnouncementPublished) {
+        if ($notification instanceof AnnouncementPublished || $notification instanceof AnnouncementReminder) {
             $notifications->getQuery()->withAttributes([
                 'announcement_id' => $notification->announcement->getKey(),
             ]);

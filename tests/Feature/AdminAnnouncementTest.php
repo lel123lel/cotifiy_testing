@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
+use App\Notifications\AnnouncementReminder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -371,6 +372,76 @@ test('staff can publish an urgent announcement for up to three days', function (
             'urgent_days' => '4',
         ])
         ->assertSessionHasErrors('urgent_days');
+});
+
+test('staff can remind only clients who have not read an active urgent announcement', function () {
+    Notification::fake();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'urgent-reminder-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $unreadClient = User::factory()->create();
+    $readClient = User::factory()->create();
+    $announcement = Announcement::create([
+        'title' => 'Urgent campus update',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'Please review this time-sensitive update.',
+        'is_urgent' => true,
+        'urgent_until' => now()->addDay(),
+        'author_staff_id' => $staff->id,
+    ]);
+    $announcement->readers()->attach($readClient);
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.remind-unread-clients', $announcement))
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Urgent reminder sent to 1 unread client(s) by in-app notification and email.');
+
+    Notification::assertSentTo($unreadClient, AnnouncementReminder::class, function (AnnouncementReminder $notification) use ($announcement, $unreadClient): bool {
+        $mail = $notification->toMail($unreadClient);
+        $database = $notification->toDatabase($unreadClient);
+
+        return $notification->announcement->is($announcement)
+            && $mail->subject === 'Reminder: Please review urgent announcement - Urgent campus update'
+            && $mail->actionText === 'Review urgent announcement'
+            && str_contains($mail->introLines[0], 'have not yet opened')
+            && $database['type'] === 'urgent'
+            && $database['link'] === route('client.announcements.show', $announcement);
+    });
+    Notification::assertNotSentTo($readClient, AnnouncementReminder::class);
+});
+
+test('staff cannot send urgent reminders for another staff member announcement', function () {
+    Notification::fake();
+    $staff = StaffUser::create([
+        'name' => 'Campus Staff',
+        'email' => 'urgent-reminder-owner@example.com',
+        'password' => 'secret-password',
+    ]);
+    $otherStaff = StaffUser::create([
+        'name' => 'Other Staff',
+        'email' => 'urgent-reminder-other@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Urgent campus update',
+        'category' => 'General',
+        'posted_by' => 'Student Services',
+        'date' => now()->toDateString(),
+        'body' => 'Please review this time-sensitive update.',
+        'is_urgent' => true,
+        'urgent_until' => now()->addDay(),
+        'author_staff_id' => $otherStaff->id,
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.remind-unread-clients', $announcement))
+        ->assertForbidden();
+
+    Notification::assertNothingSent();
 });
 
 test('expired urgent announcements are automatically archived', function () {

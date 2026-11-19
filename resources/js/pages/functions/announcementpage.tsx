@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 export type Announcement = {
@@ -34,6 +34,7 @@ export type AnnouncementPageProps = {
     discussions?: Discussion[];
     announcementComments?: DiscussionMessage[];
     staffMode?: boolean;
+    canSendReminder?: boolean;
     initialTab?: 'announcement' | 'comments' | 'analytics';
     onClose?: () => void;
 };
@@ -82,11 +83,15 @@ export default function AnnouncementPage({
     discussions = [],
     announcementComments = [],
     staffMode = false,
+    canSendReminder = false,
     initialTab = 'announcement',
     onClose,
 }: AnnouncementPageProps) {
     const panelBase = staffMode ? '/staff' : '/admin';
     const isModal = Boolean(onClose);
+    const reminderForm = useForm({});
+    const { flash } = usePage<{ flash: { status?: string } }>().props;
+    const [showReminderStatus, setShowReminderStatus] = useState(false);
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const articleRef = useRef<HTMLElement>(null);
     
@@ -344,6 +349,38 @@ export default function AnnouncementPage({
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {canSendReminder && announcement.is_urgent && announcement.status === 'Published' && (
+                                                <div className="flex flex-col gap-3 border-b border-red-100 bg-red-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+                                                    <div className="flex items-start gap-3">
+                                                        <i className="fa-solid fa-bell mt-1 text-red-600" aria-hidden="true"></i>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-slate-900">Follow up with clients who have not read this urgent post</p>
+                                                            <p className="mt-1 text-xs text-slate-600">They will receive a professional reminder by email and in-app notification.</p>
+                                                            {showReminderStatus && (
+                                                                <p className="mt-2 text-xs font-semibold text-slate-700" role="status">
+                                                                    {flash.status ?? 'The reminder request has been completed.'}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        disabled={reminderForm.processing}
+                                                        onClick={() => {
+                                                            setShowReminderStatus(false);
+                                                            reminderForm.post(`${panelBase}/announcements/${announcement.id}/remind-unread-clients`, {
+                                                                preserveScroll: true,
+                                                                onSuccess: () => setShowReminderStatus(true),
+                                                            });
+                                                        }}
+                                                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        <i className={`fa-solid ${reminderForm.processing ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`} aria-hidden="true"></i>
+                                                        {reminderForm.processing ? 'Sending reminder...' : 'Remind unread clients'}
+                                                    </button>
+                                                </div>
+                                            )}
 
                                             {/* BODY CONTENT */}
                                             <div className="px-6 py-10 sm:px-10">
