@@ -13,6 +13,8 @@ use App\Notifications\AnnouncementPublished;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -22,13 +24,25 @@ use RuntimeException;
 
 class AnnouncementController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(): Response
     {
+        $monthStart = now()->startOfMonth();
+        $nextMonthStart = $monthStart->copy()->addMonth();
+        $lastMonthStart = $monthStart->copy()->subMonth();
+
         $announcements = Announcement::query()
             ->where('status', '!=', 'Draft')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->get();
+        $publishedThisMonthCount = Announcement::query()
+            ->where('status', 'Published')
+            ->whereBetween('date', [$monthStart->toDateString(), $nextMonthStart->copy()->subDay()->toDateString()])
+            ->count();
+        $publishedLastMonthCount = Announcement::query()
+            ->where('status', 'Published')
+            ->whereBetween('date', [$lastMonthStart->toDateString(), $monthStart->copy()->subDay()->toDateString()])
+            ->count();
 
         return Inertia::render('admin/admin', [
             'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
@@ -57,10 +71,10 @@ class AnnouncementController extends Controller
                     'end_time' => $announcement->end_time,
                     'location' => $announcement->location,
                 ]),
-            'announcementCount' => $announcements->count(),
+            'publishedThisMonthCount' => $publishedThisMonthCount,
+            'publishedChangeFromLastMonth' => $publishedThisMonthCount - $publishedLastMonthCount,
             'eventCount' => Announcement::query()->where('status', '!=', 'Draft')->where('category', 'Event')->count(),
-            'userCount' => User::query()->count(),
-            'adminId' => $request->user('admin')->id,
+            'activeStudentCount' => $this->activeStudentCount(),
             'discussions' => $this->discussionData(),
             'announcementComments' => $this->announcementCommentData(),
         ]);
@@ -409,6 +423,9 @@ class AnnouncementController extends Controller
         $wasDraft = $announcement->status === 'Draft';
         $announcement->update([
             ...$validated,
+            'date' => $wasDraft && $validated['status'] === 'Published'
+                ? now()->toDateString()
+                : $announcement->date->toDateString(),
             'image' => $imagePath,
             'attachments' => $attachments,
             ...$this->eventFields($validated),
@@ -454,6 +471,20 @@ class AnnouncementController extends Controller
         return back();
     }
 
+    public function archive(Announcement $announcement): RedirectResponse
+    {
+        $announcement->update(['status' => 'Archived']);
+
+        return back();
+    }
+
+    public function restore(Announcement $announcement): RedirectResponse
+    {
+        $announcement->update(['status' => 'Published']);
+
+        return back();
+    }
+
     private function announcementData(Announcement $announcement): array
     {
         return [
@@ -477,6 +508,35 @@ class AnnouncementController extends Controller
             'end_time' => $announcement->end_time,
             'location' => $announcement->location,
         ];
+    }
+
+    private function activeStudentCount(): int
+    {
+        $webGuardKey = Auth::guard('web')->getName();
+        $activeSince = now()->subMinutes((int) config('session.lifetime', 120))->timestamp;
+        $activeUserIds = [];
+
+        $sessions = DB::table(config('session.table', 'sessions'))
+            ->whereIn('user_id', User::query()->select('id'))
+            ->where('last_activity', '>=', $activeSince)
+            ->get(['user_id', 'payload']);
+
+        foreach ($sessions as $session) {
+            $serializedPayload = base64_decode($session->payload, true);
+            $sessionData = $serializedPayload === false
+                ? null
+                : json_decode($serializedPayload, true);
+
+            if (
+                is_array($sessionData)
+                && isset($sessionData[$webGuardKey])
+                && (string) $sessionData[$webGuardKey] === (string) $session->user_id
+            ) {
+                $activeUserIds[(string) $session->user_id] = true;
+            }
+        }
+
+        return count($activeUserIds);
     }
 
     private function storeAttachments(array $files): array

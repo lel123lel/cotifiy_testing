@@ -35,6 +35,28 @@ test('an admin can save staff account links to an office', function () {
             ->where('staffAccounts.0.office_id', $office->id));
 });
 
+test('an admin can remove an office and unassign its staff accounts', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $office = Office::create(['name' => 'Office To Remove']);
+    $staff = StaffUser::create([
+        'name' => 'Registrar Staff',
+        'email' => 'staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $staff->forceFill(['office_id' => $office->id])->save();
+
+    $this->actingAs($admin, 'admin')
+        ->delete(route('admin.offices.destroy', $office))
+        ->assertRedirect();
+
+    expect(Office::query()->whereKey($office->id)->exists())->toBeFalse();
+    expect($staff->fresh()->office_id)->toBeNull();
+});
+
 test('a linked staff account can only publish and edit posts under its office', function () {
     Notification::fake();
 

@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\Office;
-use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementDiscussionNotification;
 use Illuminate\Database\Query\Builder;
@@ -71,7 +70,7 @@ class AnnouncementDiscussionController extends Controller
         ]);
 
         $conversation->touch();
-        $this->notifyLinkedStaffAccounts(
+        $this->notifyAnnouncementComment(
             $announcement,
             $client,
             isset($validated['parent_message_id']),
@@ -80,28 +79,11 @@ class AnnouncementDiscussionController extends Controller
         return back();
     }
 
-    private function notifyLinkedStaffAccounts(Announcement $announcement, User $commenter, bool $isReply): void
+    private function notifyAnnouncementComment(Announcement $announcement, User $commenter, bool $isReply): void
     {
-        $officeIds = Office::query()
-            ->where('name', $announcement->posted_by)
-            ->pluck('id');
-
-        $authorOfficeId = $announcement->staffAuthor?->office_id;
-        if ($authorOfficeId !== null) {
-            $officeIds->push($authorOfficeId);
-        }
-
-        $staffAccountIds = StaffUser::query()
-            ->whereIn('office_id', $officeIds->unique())
-            ->pluck('id');
-
-        if ($announcement->author_staff_id !== null) {
-            $staffAccountIds->push($announcement->author_staff_id);
-        }
-
-        $recipients = StaffUser::query()
-            ->whereKey($staffAccountIds->unique())
-            ->get();
+        $recipients = collect([$announcement->staffAuthor])
+            ->filter()
+            ->concat(AdminUser::query()->get());
 
         Notification::send(
             $recipients,

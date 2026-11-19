@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import AnnouncementPage, { type Announcement } from '../announcementpage';
+import { summarizeAnnouncement } from '../announcementUtils';
+import AdminNotificationDropdown from './AdminNotificationDropdown';
 import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
 
 type UpcomingEvent = {
@@ -46,33 +48,36 @@ export default function admin({
     upcomingEvents,
     discussions,
     announcementComments,
-    announcementCount,
+    publishedThisMonthCount,
+    publishedChangeFromLastMonth,
     eventCount,
-    userCount,
-    adminId,
+    activeStudentCount,
 }: {
     recentAnnouncements: Announcement[];
     upcomingEvents: UpcomingEvent[];
     discussions: Discussion[];
     announcementComments: AnnouncementComment[];
-    announcementCount: number;
+    publishedThisMonthCount: number;
+    publishedChangeFromLastMonth: number;
     eventCount: number;
-    userCount: number;
-    adminId: number;
+    activeStudentCount: number;
 }) {
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen();
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [announcementTab, setAnnouncementTab] = useState<'All' | 'My Posts'>('All');
-
-    const visibleAnnouncements = announcementTab === 'All'
-        ? recentAnnouncements
-        : recentAnnouncements.filter((announcement) => announcement.author_admin_id === adminId);
-
     // Polling for new discussions if needed
     useEffect(() => {
         const interval = window.setInterval(() => {
-            router.reload({ only: ['discussions'] });
+            router.reload({
+                only: [
+                    'discussions',
+                    'activeStudentCount',
+                    'publishedThisMonthCount',
+                    'publishedChangeFromLastMonth',
+                    'adminRecentNotifications',
+                    'adminUnreadCount',
+                ],
+            });
         }, 5000);
 
         return () => window.clearInterval(interval);
@@ -179,10 +184,7 @@ export default function admin({
                         </div>
 
                         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                            <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                <i className="fa-regular fa-bell text-lg"></i>
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            </button>
+                            <AdminNotificationDropdown />
                         </div>
                     </header>
 
@@ -190,29 +192,15 @@ export default function admin({
 
                         <section className="mb-6 sm:mb-8 animate-fade-up">
 
-                            {/* NEEDS ATTENTION */}
-                            <div className="mb-6 sm:mb-8">
-                                <h3 className="text-sm font-bold text-slate-500 mb-3">Needs attention</h3>
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                    <button className="px-3 sm:px-4 py-1.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[11px] sm:text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm">
-                                        2 drafts
-                                    </button>
-                                    <button className="px-3 sm:px-4 py-1.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[11px] sm:text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm">
-                                        1 scheduled for tomorrow
-                                    </button>
-                                    <button className="px-3 sm:px-4 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-700 text-[11px] sm:text-xs font-bold hover:bg-red-100 transition-colors shadow-sm">
-                                        4 students not verified
-                                    </button>
-                                </div>
-                            </div>
-
                             {/* STATS ROW */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
                                     <p className="text-xs sm:text-sm font-semibold text-slate-500 mb-1">Published this month</p>
                                     <div className="flex items-end justify-between">
-                                        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{announcementCount}</h3>
-                                        <span className="text-[10px] sm:text-xs font-bold text-emerald-600 mb-1">+4 vs last month</span>
+                                        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{publishedThisMonthCount}</h3>
+                                        <span className={`text-[10px] sm:text-xs font-bold mb-1 ${publishedChangeFromLastMonth > 0 ? 'text-emerald-600' : publishedChangeFromLastMonth < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                            {publishedChangeFromLastMonth > 0 ? '+' : ''}{publishedChangeFromLastMonth} vs last month
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -224,108 +212,85 @@ export default function admin({
                                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
                                     <p className="text-xs sm:text-sm font-semibold text-slate-500 mb-1">Active students</p>
                                     <div className="flex items-end justify-between">
-                                        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{userCount}</h3>
-                                        <span className="text-[10px] sm:text-xs font-bold text-emerald-600 mb-1">+18 this week</span>
+                                        <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{activeStudentCount}</h3>
+                                        <span className="text-[10px] sm:text-xs font-bold text-emerald-600 mb-1">currently logged in</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* TWO PANEL LAYOUT */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-
-                                {/* RECENT ANNOUNCEMENTS */}
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-w-0">
-                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 flex items-center justify-between gap-2">
-                                        <h4 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Recent announcements</h4>
-                                        <Link href="/admin/announcements" className="text-xs font-bold text-slate-500 hover:text-ctu-lightblue transition-colors shrink-0">View all</Link>
+                            {/* RECENT ANNOUNCEMENTS AND UPCOMING EVENTS */}
+                            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-8">
+                                <div className="min-w-0 space-y-6 lg:col-span-2">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Recent Announcements from All Departments</h3>
+                                            <p className="mt-1 text-sm text-slate-500">Latest updates shared by departments across campus.</p>
+                                        </div>
+                                        <Link href="/admin/announcements" className="shrink-0 text-sm font-bold text-blue-600 transition-colors hover:text-blue-700 hover:underline">View all</Link>
                                     </div>
-                                    <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 pt-3 overflow-x-auto no-scrollbar">
-                                        {([
-                                            { label: 'All', count: recentAnnouncements.length },
-                                            { label: 'My Posts', count: recentAnnouncements.filter((announcement) => announcement.author_admin_id === adminId).length },
-                                        ] as const).map((tab) => (
+
+                                    <div className="divide-y divide-slate-200 border-y border-slate-200 bg-white/90">
+                                        {recentAnnouncements.length === 0 ? (
+                                            <p className="py-8 text-center text-sm font-medium text-slate-500">No announcements yet.</p>
+                                        ) : recentAnnouncements.map((announcement) => (
                                             <button
-                                                key={tab.label}
+                                                key={announcement.id}
                                                 type="button"
-                                                onClick={() => setAnnouncementTab(tab.label)}
-                                                className={`border-b-2 pb-2 text-xs font-bold transition-colors whitespace-nowrap ${
-                                                    announcementTab === tab.label
-                                                        ? 'border-ctu-lightblue text-ctu-lightblue'
-                                                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                                                }`}
+                                                onClick={() => setSelectedAnnouncement(announcement)}
+                                                aria-label={`View announcement: ${announcement.title}`}
+                                                className="group grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ctu-lightblue sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-3"
                                             >
-                                                {tab.label} <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px]">{tab.count}</span>
+                                                <div className="row-span-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 sm:row-span-1">
+                                                    {announcement.image_url ? (
+                                                        <img src={announcement.image_url} alt="" className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <i className="fa-regular fa-newspaper text-xl text-slate-400" aria-hidden="true"></i>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h5 className="line-clamp-1 text-sm font-bold leading-snug text-slate-900 transition-colors group-hover:text-ctu-lightblue sm:text-base">
+                                                        {announcement.title}
+                                                    </h5>
+                                                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">{summarizeAnnouncement(announcement.body)}</p>
+                                                </div>
+                                                <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:col-start-3 sm:flex-col sm:items-end sm:gap-1">
+                                                    <span className="font-bold uppercase text-ctu-lightblue">{announcement.category || 'General'}</span>
+                                                    <span className="font-medium text-slate-500">{formatDate(announcement.date)}</span>
+                                                    {announcement.posted_by && (
+                                                        <span className="max-w-full whitespace-normal break-words text-slate-500 sm:text-right">Posted by {announcement.posted_by}</span>
+                                                    )}
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
-
-                                    <div className="flex-1 overflow-x-auto mobile-scroll-x">
-                                        <table className="w-full min-w-[420px] text-left border-collapse">
-                                            <thead>
-                                                <tr className="text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100">
-                                                    <th className="px-4 sm:px-6 py-2">Title</th>
-                                                    <th className="px-2 sm:px-4 py-2">Status</th>
-                                                    <th className="px-4 sm:px-6 py-2 w-24 sm:w-32">Read</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-50">
-                                                {visibleAnnouncements.map((announcement) => (
-                                                    <tr key={announcement.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                        <td className="px-4 sm:px-6 py-3">
-                                                            <div className="flex items-start gap-2">
-                                                                {announcement.is_pinned && <i className="fa-solid fa-thumbtack text-[10px] text-rose-500 mt-1 shrink-0"></i>}
-                                                                <div className="min-w-0">
-                                                                    <button
-                                                                        onClick={() => setSelectedAnnouncement(announcement)}
-                                                                        className="text-left font-bold text-slate-800 hover:text-ctu-lightblue transition-colors text-xs sm:text-sm line-clamp-1"
-                                                                    >
-                                                                        {announcement.title}
-                                                                    </button>
-                                                                    <p className="text-[10px] sm:text-xs font-semibold text-slate-500 mt-0.5">{formatDate(announcement.date)}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-2 sm:px-4 py-3">
-                                                            <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded border border-slate-200 bg-white text-[10px] font-bold text-slate-600 whitespace-nowrap">
-                                                                Published
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 sm:px-6 py-3">
-                                                            <div className="w-full bg-slate-100 rounded-full h-2">
-                                                                <div className="bg-slate-400 h-2 rounded-full" style={{ width: `${Math.random() * 60 + 40}%` }}></div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
                                 </div>
 
-                                {/* UPCOMING EVENTS */}
-                                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-w-0">
-                                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 flex items-center justify-between gap-2">
-                                        <h4 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">Upcoming events</h4>
-                                        <Link href="/admin/events" className="text-xs font-bold text-slate-500 hover:text-ctu-lightblue transition-colors shrink-0">+ New event</Link>
+                                <div className="min-w-0 space-y-6">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Upcoming Events</h3>
+                                        <Link href="/admin/events" className="shrink-0 text-sm font-bold text-violet-600 transition-colors hover:text-violet-700">+ New</Link>
                                     </div>
 
-                                    <div className="p-3 sm:p-4 space-y-2 sm:space-y-4 flex-1">
-                                        {upcomingEvents.length === 0 ? (
-                                            <p className="p-4 text-sm font-medium text-slate-500 text-center">No upcoming events scheduled.</p>
-                                        ) : upcomingEvents.map((event) => (
-                                            <div key={event.id} className="flex items-start gap-3 sm:gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
-                                                <div className="bg-slate-100 rounded-lg p-2 text-center min-w-[44px] sm:min-w-[50px] shrink-0 h-fit">
-                                                    <p className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</p>
-                                                    <p className="text-lg sm:text-xl font-black leading-none mt-0.5 text-slate-800">{new Date(`${event.event_date}T00:00:00`).getDate()}</p>
+                                    {upcomingEvents.length === 0 ? (
+                                        <div className="flex min-h-[88px] items-center justify-center rounded-2xl border border-dashed border-blue-200 bg-white/70 p-4 text-center">
+                                            <p className="text-sm font-medium text-slate-500">No upcoming events scheduled.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-slate-200 border-y border-slate-200 bg-white/90">
+                                            {upcomingEvents.map((event) => (
+                                                <div key={event.id} className="group flex items-start gap-3 px-3 py-4 transition-colors hover:bg-slate-50 sm:gap-4">
+                                                    <div className="h-fit min-w-[44px] shrink-0 rounded-lg bg-slate-100 p-2 text-center sm:min-w-[50px]">
+                                                        <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-500 sm:text-[10px]">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</p>
+                                                        <p className="mt-0.5 text-lg font-black leading-none text-slate-800 sm:text-xl">{new Date(`${event.event_date}T00:00:00`).getDate()}</p>
+                                                    </div>
+                                                    <div className="min-w-0 pt-1">
+                                                        <p className="mb-1 line-clamp-1 text-xs font-bold text-slate-900 transition-colors group-hover:text-ctu-lightblue sm:text-sm">{event.title}</p>
+                                                        {event.location && <p className="line-clamp-1 text-xs text-slate-500">{event.location}</p>}
+                                                    </div>
                                                 </div>
-                                                <div className="pt-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-bold text-slate-900 mb-1 group-hover:text-ctu-lightblue transition-colors line-clamp-1">{event.title}</p>
-                                                    <p className="text-[10px] sm:text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </section>

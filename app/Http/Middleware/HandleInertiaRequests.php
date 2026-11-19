@@ -55,6 +55,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'unreadCount' => fn () => $request->user('web')?->unreadNotifications()->count() ?? 0,
             'staffUnreadCount' => fn () => $request->user('staff')?->unreadNotifications()->count() ?? 0,
+            'adminUnreadCount' => fn () => $request->user('admin')?->unreadNotifications()->count() ?? 0,
             'staffDepartment' => fn () => $request->user('staff')?->office?->name,
             'recentNotifications' => function () use ($request): array {
                 $user = $request->user('web');
@@ -106,6 +107,39 @@ class HandleInertiaRequests extends Middleware
                                     'section' => 'comments',
                                 ])
                                 : ($notification->data['link'] ?? route('staff.announcements.index')),
+                            'created_at' => $notification->created_at?->toIso8601String(),
+                        ];
+                    })
+                    ->all();
+            },
+            'adminRecentNotifications' => function () use ($request): array {
+                $admin = $request->user('admin');
+
+                if ($admin === null) {
+                    return [];
+                }
+
+                return $admin->notifications()
+                    ->latest()
+                    ->limit(5)
+                    ->get()
+                    ->map(function ($notification): array {
+                        $announcementId = $notification->data['announcement_id'] ?? null;
+                        $isDiscussionNotification = ($notification->data['type'] ?? null) === 'comment'
+                            && is_numeric($announcementId);
+
+                        return [
+                            'id' => $notification->id,
+                            'title' => $notification->data['title'] ?? 'Notification',
+                            'message' => $notification->data['message'] ?? '',
+                            'office' => $notification->data['office'] ?? '',
+                            'is_read' => $notification->read_at !== null,
+                            'link' => $isDiscussionNotification
+                                ? route('admin.announcements.index', [
+                                    'announcement' => (int) $announcementId,
+                                    'section' => 'comments',
+                                ])
+                                : ($notification->data['link'] ?? route('admin.announcements.index')),
                             'created_at' => $notification->created_at?->toIso8601String(),
                         ];
                     })

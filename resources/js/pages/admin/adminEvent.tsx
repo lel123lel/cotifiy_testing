@@ -1,5 +1,6 @@
 import { Head, Link, router, useForm, Form } from '@inertiajs/react';
 import { useState } from 'react';
+import AdminNotificationDropdown from './AdminNotificationDropdown';
 import AdminSidebar, { useAdminSidebarOpen } from './AdminSidebar';
 import StaffSidebar from '../staff/StaffSidebar';
 import StaffNotificationDropdown from '../staff/StaffNotificationDropdown';
@@ -362,10 +363,7 @@ export default function AdminEvents({
                             {staffMode ? (
                                 <StaffNotificationDropdown />
                             ) : (
-                                <button aria-label="View notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-ctu-lightblue hover:bg-slate-50 transition-colors shadow-sm">
-                                    <i className="fa-regular fa-bell text-lg"></i>
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                                </button>
+                                <AdminNotificationDropdown />
                             )}
 
                         </div>

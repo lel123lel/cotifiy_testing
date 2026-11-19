@@ -44,6 +44,13 @@ class SettingsController extends Controller
         return back();
     }
 
+    public function destroyOffice(Office $office): RedirectResponse
+    {
+        $office->delete();
+
+        return back();
+    }
+
     public function staffIndex(Request $request): Response
     {
         return Inertia::render('admin/settings', [

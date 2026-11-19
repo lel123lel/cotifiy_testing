@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
+import { summarizeAnnouncement } from '../announcementUtils';
 import StaffSidebar from './StaffSidebar';
 import StaffNotificationDropdown from './StaffNotificationDropdown';
 
@@ -23,18 +24,6 @@ type Announcement = {
     posted_by?: string;
     image_url?: string | null;
     body?: string;
-};
-
-const summarizeAnnouncement = (body = '') => {
-    const text = body
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/[`*_~>#]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    if (!text) return 'No summary available.';
-    return text.length > 180 ? `${text.slice(0, 177).trimEnd()}...` : text;
 };
 
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {

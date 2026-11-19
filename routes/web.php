@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementDiscussionController as AdminAnnouncementDiscussionController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -129,6 +130,12 @@ Route::get('/admin/announcements', [AnnouncementController::class, 'announcement
 Route::get('/admin/events', [AnnouncementController::class, 'events'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.events');
+Route::post('/admin/notifications/{notification}/read', [AdminNotificationController::class, 'markRead'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.notifications.read');
+Route::post('/admin/notifications/mark-all-read', [AdminNotificationController::class, 'markAllRead'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.notifications.mark-all-read');
 Route::post('/admin/announcements/{announcement}/comments', [AdminAnnouncementDiscussionController::class, 'storeAnnouncementComment'])
     ->middleware(['auth:admin', 'private-cache', 'throttle:20,1'])
     ->name('admin.announcements.comments.store');
@@ -153,6 +160,9 @@ Route::post('/admin/offices', [SettingsController::class, 'storeOffice'])
 Route::put('/admin/offices/{office}', [SettingsController::class, 'updateOffice'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.offices.update');
+Route::delete('/admin/offices/{office}', [SettingsController::class, 'destroyOffice'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.offices.destroy');
 Route::post('/admin/users/admins', [UserController::class, 'storeAdmin'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.admins.store');
@@ -171,6 +181,12 @@ Route::post('/admin/announcements', [AnnouncementController::class, 'store'])
 Route::put('/admin/announcements/{announcement}', [AnnouncementController::class, 'update'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.update');
+Route::patch('/admin/announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.announcements.archive');
+Route::patch('/admin/announcements/{announcement}/restore', [AnnouncementController::class, 'restore'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.announcements.restore');
 Route::delete('/admin/announcements/{announcement}', [AnnouncementController::class, 'destroy'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.destroy');
