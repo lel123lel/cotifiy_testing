@@ -53,7 +53,6 @@ interface UrgencyTheme {
     badgeBg: string;
     badgeText: string;
     badgeBorder: string;
-    bgTint: string;
     calendarBg: string;
     calendarText: string;
     pulse?: boolean;
@@ -80,7 +79,6 @@ function getEventUrgencyTheme(event: UpcomingEvent): UrgencyTheme {
             badgeBg: 'bg-red-100',
             badgeText: 'text-red-700',
             badgeBorder: 'border-red-200',
-            bgTint: 'bg-red-50', 
             calendarBg: 'bg-red-100',
             calendarText: 'text-red-800',
             pulse: true,
@@ -96,7 +94,6 @@ function getEventUrgencyTheme(event: UpcomingEvent): UrgencyTheme {
             badgeBg: 'bg-amber-100',
             badgeText: 'text-amber-700',
             badgeBorder: 'border-amber-200',
-            bgTint: 'bg-amber-50', 
             calendarBg: 'bg-amber-100',
             calendarText: 'text-amber-800',
         };
@@ -109,7 +106,6 @@ function getEventUrgencyTheme(event: UpcomingEvent): UrgencyTheme {
         badgeBg: 'bg-purple-100',
         badgeText: 'text-purple-700',
         badgeBorder: 'border-purple-200',
-        bgTint: 'bg-white',
         calendarBg: 'bg-purple-50',
         calendarText: 'text-purple-800',
     };
@@ -131,7 +127,6 @@ function getAnnouncementUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-emerald-100',
             badgeText: 'text-emerald-700',
             badgeBorder: 'border-emerald-200',
-            bgTint: 'bg-emerald-50',
             calendarBg: '',
             calendarText: '',
         };
@@ -145,7 +140,6 @@ function getAnnouncementUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-blue-100',
             badgeText: 'text-blue-700',
             badgeBorder: 'border-blue-200',
-            bgTint: 'bg-blue-50',
             calendarBg: '',
             calendarText: '',
         };
@@ -158,7 +152,6 @@ function getAnnouncementUrgencyTheme(ann: Announcement): UrgencyTheme {
         badgeBg: 'bg-slate-100',
         badgeText: 'text-slate-700',
         badgeBorder: 'border-slate-200',
-        bgTint: 'bg-white',
         calendarBg: '',
         calendarText: '',
     };
@@ -292,7 +285,7 @@ export default function StaffDashboard({
                                         </Link>
                                     </div>
 
-                                    {/* Announcement List with Heatmap */}
+                                    {/* Solid Announcement List with Heatmap */}
                                     <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                                         {recentAnnouncements.length === 0 ? (
                                             <p className="py-8 text-center text-sm font-medium text-slate-500">No announcements yet.</p>
@@ -300,14 +293,14 @@ export default function StaffDashboard({
                                             const urgency = getAnnouncementUrgencyTheme(announcement);
                                             
                                             return (
-                                            <div key={announcement.id} className="group relative">
+                                            <div key={announcement.id} className="group relative bg-white">
                                                 {/* Left Spine */}
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${urgency.spineColor}`} />
                                                 
                                                 <Link
                                                     href={`/staff/announcements?announcement=${announcement.id}`}
                                                     aria-label={`View announcement: ${announcement.title}`}
-                                                    className={`grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 p-4 transition-colors border-b border-slate-100 last:border-0 hover:bg-slate-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-5 ${urgency.bgTint}`}
+                                                    className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2 p-4 transition-colors border-b border-slate-100 last:border-0 hover:bg-slate-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:grid-cols-[3.5rem_minmax(0,1fr)_9rem] sm:gap-y-0 sm:px-5"
                                                 >
                                                     <div className="row-span-2 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white border border-slate-200 sm:row-span-1">
                                                         {announcement.image_url ? (
@@ -340,7 +333,7 @@ export default function StaffDashboard({
                                     </div>
                                 </div>
 
-                                {/* UPCOMING EVENTS */}
+                                {/* UPCOMING EVENTS (Sidebar style cards) */}
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Upcoming Events</h3>
@@ -360,7 +353,7 @@ export default function StaffDashboard({
                                             return (
                                             <div 
                                                 key={event.id} 
-                                                className={`group relative flex items-start gap-4 overflow-hidden rounded-2xl border border-slate-200 p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer bg-white ${urgency.bgTint}`}
+                                                className="group relative flex items-start gap-4 overflow-hidden rounded-2xl border border-slate-200 p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer bg-white"
                                             >
                                                 {/* Left Spine */}
                                                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${urgency.spineColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />

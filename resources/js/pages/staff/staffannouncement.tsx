@@ -266,7 +266,7 @@ export default function StaffAnnouncements({
 
                             {/* PAGE TITLE & TABS */}
                             <div className="mb-6">
-                                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-6">Announcements</h1>
+
 
                                 <div className="flex items-center gap-6 border-b border-slate-200 overflow-x-auto no-scrollbar">
                                     {tabs.map((tab) => (
