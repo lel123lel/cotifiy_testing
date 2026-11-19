@@ -16,6 +16,8 @@ interface Announcement {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
+    is_pinned?: boolean;
+    is_new?: boolean;
 }
 
 interface ClientHomeProps {
@@ -28,6 +30,118 @@ interface ClientHomeProps {
         name: string;
         course: string;
         year_level: string;
+    };
+}
+
+type SortOption = 'newest' | 'oldest' | 'az';
+
+// ============ URGENCY HEATMAP LOGIC ============
+type UrgencyLevel = 'urgent' | 'soon' | 'info' | 'good_news' | 'pinned' | 'default';
+
+interface UrgencyTheme {
+    level: UrgencyLevel;
+    label: string;
+    bannerColor: string;      // The top solid bar
+    badgeBg: string;          // The category label bg
+    badgeText: string;        // The category label text
+    badgeBorder: string;      // The category label border
+    bgTint: string;           // The card background tint
+    pulse?: boolean;          // Should it pulse?
+}
+
+function getUrgencyTheme(ann: Announcement): UrgencyTheme {
+    const now = new Date();
+    let eventStart: Date | null = null;
+    
+    if (ann.event_date) {
+        const timeStr = ann.start_time || '00:00';
+        eventStart = new Date(`${ann.event_date}T${timeStr}`);
+    }
+
+    const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // 1. Urgent — Event/Deadline happening today or within 24h
+    if (eventStart && diffHours > 0 && diffHours <= 24) {
+        return {
+            level: 'urgent',
+            label: diffHours <= 1 ? 'Deadline in < 1 hr' : `Starting in ${Math.round(diffHours)} hr${Math.round(diffHours) === 1 ? '' : 's'}`,
+            bannerColor: 'bg-red-600',
+            badgeBg: 'bg-red-100',
+            badgeText: 'text-red-700',
+            badgeBorder: 'border-red-200',
+            bgTint: 'bg-red-50/40',
+            pulse: true,
+        };
+    }
+
+    // 2. Pinned — Admin wanted it at the top regardless of category
+    if (ann.is_pinned) {
+        return {
+            level: 'pinned',
+            label: 'Pinned Notice',
+            bannerColor: 'bg-indigo-600',
+            badgeBg: 'bg-indigo-100',
+            badgeText: 'text-indigo-700',
+            badgeBorder: 'border-indigo-200',
+            bgTint: 'bg-indigo-50/30',
+        };
+    }
+
+    // 3. Soon — Events/Academics happening within 7 days
+    if (eventStart && diffHours > 24 && diffHours <= 168) {
+        const days = Math.ceil(diffHours / 24);
+        return {
+            level: 'soon',
+            label: `Starts in ${days} day${days === 1 ? '' : 's'}`,
+            bannerColor: 'bg-amber-500',
+            badgeBg: 'bg-amber-100',
+            badgeText: 'text-amber-700',
+            badgeBorder: 'border-amber-200',
+            bgTint: 'bg-amber-50/30',
+        };
+    }
+
+    // 4. Good News — General/Academic with positive framing (Dean's List, achievements)
+    const titleLower = ann.title.toLowerCase();
+    const contentLower = ann.content.toLowerCase();
+    const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
+    const isGoodNews = goodNewsKeywords.some(k => titleLower.includes(k) || contentLower.includes(k));
+    
+    if (isGoodNews) {
+        return {
+            level: 'good_news',
+            label: 'Good News',
+            bannerColor: 'bg-emerald-500',
+            badgeBg: 'bg-emerald-100',
+            badgeText: 'text-emerald-700',
+            badgeBorder: 'border-emerald-200',
+            bgTint: 'bg-emerald-50/30',
+        };
+    }
+
+    // 5. Info (default for Academic/Event/General)
+    if (ann.category === 'Event' || ann.category === 'Academic') {
+        return {
+            level: 'info',
+            label: ann.category === 'Event' ? 'Upcoming Event' : 'Academic Info',
+            bannerColor: 'bg-blue-500',
+            badgeBg: 'bg-blue-100',
+            badgeText: 'text-blue-700',
+            badgeBorder: 'border-blue-200',
+            bgTint: 'bg-blue-50/20',
+        };
+    }
+
+    // 6. Default
+    return {
+        level: 'default',
+        label: 'Notice',
+        bannerColor: 'bg-slate-400',
+        badgeBg: 'bg-slate-100',
+        badgeText: 'text-slate-700',
+        badgeBorder: 'border-slate-200',
+        bgTint: 'bg-white',
     };
 }
 
@@ -49,9 +163,11 @@ export default function ClientHome({
         'all' | 'Academic' | 'Event' | 'General' | 'Service'
     >('all');
 
+    const [sortBy, setSortBy] = useState<SortOption>('newest');
+    const [isSortOpen, setIsSortOpen] = useState(false);
+
     useEffect(() => {
         const intervalId = window.setInterval(() => setCurrentTime(new Date()), 60_000);
-
         return () => window.clearInterval(intervalId);
     }, []);
 
@@ -75,15 +191,32 @@ export default function ClientHome({
             window.removeEventListener('focus', pollForAnnouncements);
         };
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.sort-dropdown-container')) {
+                setIsSortOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
     
     const filteredAnnouncements = useMemo(() => {
-        return announcements.filter((announcement) => {
-            const matchesFilter =
-                activeFilter === 'all' ||
-                announcement.category === activeFilter;
-            return matchesFilter;
+        let result = announcements.filter((announcement) => {
+            return activeFilter === 'all' || announcement.category === activeFilter;
         });
-    }, [activeFilter, announcements]);
+
+        result = result.sort((a, b) => {
+            if (sortBy === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (sortBy === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
+            if (sortBy === 'az') return a.title.localeCompare(b.title);
+            return 0;
+        });
+
+        return result;
+    }, [activeFilter, announcements, sortBy]);
 
     const formatDate = (date: string) =>
         new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
@@ -113,7 +246,6 @@ export default function ClientHome({
         }
     };
 
-
     return (
         <>
             <Head title="Home | COTIFY" />
@@ -123,6 +255,10 @@ export default function ClientHome({
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+                @keyframes pulse-urgent { 
+                    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); } 
+                    50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); } 
+                }
                 
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
@@ -133,6 +269,7 @@ export default function ClientHome({
                 .animate-slide-up { animation: slideUpText 0.5s ease-out forwards; }
                 .animate-spin-slow { animation: spin-slow 25s linear infinite; }
                 .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-pulse-urgent { animation: pulse-urgent 2.5s ease-in-out infinite; }
                 
                 .shape-move-1 { animation: move-around-1 35s ease-in-out infinite; }
                 .shape-move-2 { animation: move-around-2 45s ease-in-out infinite; }
@@ -145,7 +282,6 @@ export default function ClientHome({
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
                 
-                {/* BACKGROUND SHAPES */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute top-[5%] left-[5%] w-[30rem] h-[30rem] bg-blue-500/15 rounded-full blur-3xl shape-move-1"></div>
                     <div className="absolute bottom-[5%] right-[5%] w-[35rem] h-[35rem] bg-purple-500/15 rounded-full blur-3xl shape-move-2"></div>
@@ -160,18 +296,14 @@ export default function ClientHome({
 
                 <ClientNavbar activePage="home" />
 
-                {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
                     
-                    {/* TOP BAR */}
                     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
                         <div className="flex items-center gap-4">
-
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Home</h2>
                         </div>
                         
                         <div className="flex items-center gap-3 sm:gap-4">
-                            
                             <ClientNotificationDropdown variant="light" />
                         </div>
                     </header>
@@ -193,7 +325,6 @@ export default function ClientHome({
                         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 max-w-[1400px] mx-auto">
                             <div className="space-y-6 lg:col-span-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                                 
-                                {/* FILTERS ONLY */}
                                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                                     <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-2">
                                         {['all', 'Academic', 'Event', 'General', 'Service'].map((tab) => (
@@ -210,8 +341,25 @@ export default function ClientHome({
                                             </button>
                                         ))}
                                     </div>
-                                    <div className="shrink-0 text-xs font-semibold text-slate-500">
-                                        Sort: Newest <i className="fa-solid fa-chevron-down ml-1 text-[10px]" aria-hidden="true"></i>
+
+                                    <div className="relative shrink-0 sort-dropdown-container">
+                                        <button 
+                                            onClick={() => setIsSortOpen(!isSortOpen)}
+                                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+                                        >
+                                            Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : 'A-Z'} 
+                                            <i className={`fa-solid fa-chevron-down ml-1 text-[10px] transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} aria-hidden="true"></i>
+                                        </button>
+
+                                        {isSortOpen && (
+                                            <div className="absolute right-0 top-full mt-2 w-32 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-fade-in z-30">
+                                                <div className="py-1">
+                                                    <button onClick={() => { setSortBy('newest'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'newest' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Newest First</button>
+                                                    <button onClick={() => { setSortBy('oldest'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'oldest' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Oldest First</button>
+                                                    <button onClick={() => { setSortBy('az'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'az' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Title (A-Z)</button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -239,18 +387,20 @@ export default function ClientHome({
 
                                 {!isLoading && !hasError && (
                                     <div className="space-y-4">
-                                        {filteredAnnouncements.map((ann) => (
+                                        {filteredAnnouncements.map((ann) => {
+                                            const urgency = getUrgencyTheme(ann);
+                                            
+                                            return (
                                             <div
                                                 key={ann.id}
                                                 role="link"
                                                 tabIndex={0}
                                                 aria-label={`Read announcement: ${ann.title}`}
-                                                className="group relative flex cursor-pointer gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                                                className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md ${urgency.bgTint}`}
                                                 onClick={(event) => {
                                                     if (event.target instanceof Element && event.target.closest('a, button')) {
                                                         return;
                                                     }
-
                                                     router.visit(`/client/announcements/${ann.id}`);
                                                 }}
                                                 onKeyDown={(event) => {
@@ -260,46 +410,63 @@ export default function ClientHome({
                                                     }
                                                 }}
                                             >
-                                                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-100">
-                                                    {ann.image ? (
-                                                        <img src={ann.image} alt={`Thumbnail for ${ann.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                                                    ) : (
-                                                        <i className="fa-regular fa-newspaper text-3xl text-slate-300" aria-hidden="true"></i>
-                                                    )}
-                                                </div>
+                                                {/* ============ URGENCY HEATMAP BANNER ============ */}
+                                                <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
 
-                                                <div className="flex min-w-0 flex-1 flex-col justify-between">
-                                                    <div>
-                                                        <div className="mb-2 flex items-center gap-2">
-                                                            <span className={`rounded px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase border ${getCategoryColor(ann.category)}`}>
-                                                                {ann.category === 'Event' ? 'Events' : ann.category === 'Academic' ? 'Academic' : ann.category === 'Service' ? 'Services' : 'General'}
-                                                            </span>
-                                                            <span className="text-xs font-semibold text-slate-500">{formatDate(ann.date)}</span>
-                                                        </div>
-
-                                                        <h3 className="text-lg font-bold text-slate-900 leading-snug mb-1">
-                                                            <Link href={`/client/announcements/${ann.id}`} className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                                                                {ann.title}
-                                                            </Link>
-                                                        </h3>
-                                                        <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="line-clamp-1 text-sm text-slate-900 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0" />
+                                                <div className="flex gap-5 p-5">
+                                                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+                                                        {ann.image ? (
+                                                            <img src={ann.image} alt={`Thumbnail for ${ann.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            <i className="fa-regular fa-newspaper text-3xl text-slate-300" aria-hidden="true"></i>
+                                                        )}
                                                     </div>
 
-                                                    <div className="mt-4 flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] text-slate-400">
-                                                                <i className="fa-solid fa-building" aria-hidden="true"></i>
+                                                    <div className="flex min-w-0 flex-1 flex-col justify-between">
+                                                        <div>
+                                                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                                {/* Urgency Status Pill */}
+                                                                <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                                    {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
+                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                                                                    </span>}
+                                                                    {urgency.label}
+                                                                </span>
+                                                                
+                                                                {/* Category Pill */}
+                                                                <span className={`rounded px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase border ${getCategoryColor(ann.category)}`}>
+                                                                    {ann.category === 'Event' ? 'Events' : ann.category === 'Academic' ? 'Academic' : ann.category === 'Service' ? 'Services' : 'General'}
+                                                                </span>
+                                                                
+                                                                <span className="text-xs font-semibold text-slate-500">{formatDate(ann.date)}</span>
                                                             </div>
-                                                            {ann.posted_by_office}
+
+                                                            <h3 className="text-lg font-bold text-slate-900 leading-snug mb-1">
+                                                                <Link href={`/client/announcements/${ann.id}`} className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                                                                    {ann.title}
+                                                                </Link>
+                                                            </h3>
+                                                            <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="line-clamp-1 text-sm text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0" />
                                                         </div>
-                                                        <Link
-                                                            href={`/client/announcements/${ann.id}`}
-                                                            className="text-xs font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
-                                                        >
-                                                            Read more
-                                                        </Link>
+
+                                                        <div className="mt-4 flex items-center justify-between">
+                                                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200/80 text-[10px] text-slate-500">
+                                                                    <i className="fa-solid fa-building" aria-hidden="true"></i>
+                                                                </div>
+                                                                {ann.posted_by_office}
+                                                            </div>
+                                                            <Link
+                                                                href={`/client/announcements/${ann.id}`}
+                                                                className="text-xs font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
+                                                            >
+                                                                Read more
+                                                            </Link>
+                                                        </div>
                                                     </div>
                                                 </div>
+
                                                 <Link
                                                     href={`/client/announcements/${ann.id}`}
                                                     aria-label={`Read more: ${ann.title}`}
@@ -308,7 +475,7 @@ export default function ClientHome({
                                                     Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
                                                 </Link>
                                             </div>
-                                        ))}
+                                        )})}
 
                                         {filteredAnnouncements.length === 0 && (
                                             <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
@@ -351,7 +518,6 @@ export default function ClientHome({
                                                     if (clickEvent.target instanceof Element && clickEvent.target.closest('a, button')) {
                                                         return;
                                                     }
-
                                                     router.visit(`/client/announcements/${event.id}`);
                                                 }}
                                                 onKeyDown={(keyEvent) => {

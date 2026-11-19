@@ -3,6 +3,24 @@ import { useEffect, useRef, useState } from 'react';
 import ClientNotificationDropdown from './ClientNotificationDropdown';
 import ClientNavbar from './ClientNavbar';
 
+interface ReadState {
+    count: number;
+    mine: boolean;
+}
+
+interface ReadPeer {
+    course: string;
+    year_level: string;
+    count: number;
+}
+
+interface ReadData {
+    read: ReadState;
+    peer_total: number;
+    peer_breakdown: ReadPeer[];
+    total_students: number;
+}
+
 interface Announcement {
     id: number;
     title: string;
@@ -24,6 +42,7 @@ interface Announcement {
     has_rsvped?: boolean;
     is_saved?: boolean;
     attachments?: { name: string; url: string; size: string }[] | null;
+    read_data?: ReadData | null;
 }
 
 interface DiscussionMessage {
@@ -43,12 +62,21 @@ interface ClientReadMoreProps {
     messages: DiscussionMessage[];
 }
 
+const emptyRead = (): ReadData => ({
+    read: { count: 0, mine: false },
+    peer_total: 0,
+    peer_breakdown: [],
+    total_students: 0,
+});
+
 export default function ClientReadMore({
     announcement,
     messages,
 }: ClientReadMoreProps) {
     const { auth } = usePage<any>().props;
     const isLoggedIn = auth?.user !== undefined;
+    const userCourse = auth?.user?.course || 'BSIT';
+    const userYear = auth?.user?.year_level || '3rd Year';
 
     const { data, setData, post, processing, errors, reset } = useForm({
         content: '',
@@ -61,8 +89,17 @@ export default function ClientReadMore({
     const [isSaved, setIsSaved] = useState(announcement.is_saved ?? false);
     const [replyingTo, setReplyingTo] = useState<number | null>(null);
     const commentsRef = useRef<HTMLDivElement>(null);
-    
-    // Modals state
+    const articleRef = useRef<HTMLElement>(null);
+
+    // Reading progress
+    const [readProgress, setReadProgress] = useState(0);
+
+    // Mark-as-read state
+    const [readData, setReadData] = useState<ReadData>(announcement.read_data ?? emptyRead());
+    const [readBusy, setReadBusy] = useState(false);
+    const [showReadBreakdown, setShowReadBreakdown] = useState(false);
+
+    // Modals
     const [isImageZoomed, setIsImageZoomed] = useState(false);
     const [previewFile, setPreviewFile] = useState<{ name: string; url: string; size: string } | null>(null);
 
@@ -87,15 +124,27 @@ export default function ClientReadMore({
         };
     }, []);
 
+    // Scroll tracking
     useEffect(() => {
-        const onScroll = () => setShowScrollTop(window.scrollY > 400);
-        window.addEventListener('scroll', onScroll);
+        const onScroll = () => {
+            setShowScrollTop(window.scrollY > 400);
+
+            if (!articleRef.current) return;
+            const rect = articleRef.current.getBoundingClientRect();
+            const total = rect.height - window.innerHeight * 0.4;
+            const scrolled = Math.max(0, -rect.top);
+            const pct = total > 0 ? (scrolled / total) * 100 : 0;
+            setReadProgress(Math.min(100, Math.max(0, pct)));
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    // Lock body scroll when modals are open
+    // Lock body scroll when modals open
     useEffect(() => {
-        if (isImageZoomed || previewFile) {
+        if (isImageZoomed || previewFile || showReadBreakdown) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -103,7 +152,47 @@ export default function ClientReadMore({
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isImageZoomed, previewFile]);
+    }, [isImageZoomed, previewFile, showReadBreakdown]);
+
+    // ================== MARK AS READ HANDLER ==================
+    const handleToggleRead = () => {
+        if (readBusy || !isLoggedIn) return;
+        setReadBusy(true);
+
+        const wasRead = readData.read.mine;
+
+        // Optimistic update
+        setReadData((prev) => {
+            const next: ReadData = {
+                ...prev,
+                read: {
+                    count: Math.max(0, prev.read.count + (wasRead ? -1 : 1)),
+                    mine: !wasRead,
+                },
+                peer_total: Math.max(0, prev.peer_total + (wasRead ? -1 : 1)),
+                total_students: Math.max(0, prev.total_students + (wasRead ? -1 : 1)),
+            };
+            return next;
+        });
+
+        router.post(
+            `/client/announcements/${announcement.id}/read`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['announcement'],
+                onSuccess: (page: any) => {
+                    const fresh = page?.props?.announcement?.read_data;
+                    if (fresh) setReadData(fresh);
+                },
+                onError: () => {
+                    setReadData(announcement.read_data ?? emptyRead());
+                },
+                onFinish: () => setReadBusy(false),
+            }
+        );
+    };
 
     const handleSubmitQuestion = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -159,6 +248,15 @@ export default function ClientReadMore({
         }
     };
 
+    const getCategorySpine = (cat: string) => {
+        switch (cat) {
+            case 'Academic': return 'from-blue-500 to-indigo-500';
+            case 'Event': return 'from-emerald-500 to-teal-500';
+            case 'Service': return 'from-purple-500 to-fuchsia-500';
+            default: return 'from-slate-500 to-slate-400';
+        }
+    };
+
     const categoryLabel = (cat: string) =>
         cat === 'Event'
             ? 'Events'
@@ -187,6 +285,13 @@ export default function ClientReadMore({
     const isEvent =
         announcement.category === 'Event' && announcement.event_date;
 
+    const referenceNo = `COT-${String(announcement.id).padStart(4, '0')}-${new Date(announcement.date).getFullYear()}`;
+
+    // Peer social proof line
+    const peerLabel = readData.peer_total > 0
+        ? `${readData.peer_total} ${userCourse} student${readData.peer_total === 1 ? '' : 's'} have read this`
+        : `Be the first ${userCourse} student to read this`;
+
 
     return (
         <>
@@ -197,6 +302,7 @@ export default function ClientReadMore({
                 @keyframes slideUpText { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.05); } 100% { transform: scale(1); } }
+                @keyframes readBounce { 0% { transform: scale(1); } 40% { transform: scale(1.1); } 100% { transform: scale(1); } }
                 
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
@@ -207,6 +313,7 @@ export default function ClientReadMore({
                 .animate-slide-up { animation: slideUpText 0.5s ease-out forwards; }
                 .animate-spin-slow { animation: spin-slow 25s linear infinite; }
                 .animate-pop-in { animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-read-bounce { animation: readBounce 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
                 
                 .shape-move-1 { animation: move-around-1 35s ease-in-out infinite; }
                 .shape-move-2 { animation: move-around-2 45s ease-in-out infinite; }
@@ -215,6 +322,22 @@ export default function ClientReadMore({
 
                 .clip-hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
                 .clip-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+                .article-content > p:first-of-type::first-letter {
+                    float: left;
+                    font-size: 4rem;
+                    line-height: 0.8;
+                    font-weight: 900;
+                    padding-right: 0.5rem;
+                    padding-top: 0.35rem;
+                    color: #1e40af;
+                    font-family: Georgia, 'Times New Roman', serif;
+                }
+
+                .hero-backdrop {
+                    mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 100%);
+                    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 100%);
+                }
             `}</style>
 
             <div className="font-sans text-slate-800 bg-slate-50 antialiased h-screen flex overflow-hidden relative">
@@ -238,7 +361,7 @@ export default function ClientReadMore({
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">
                     
                     {/* TOP BAR */}
-                    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
+                    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20 relative">
                         <div className="flex items-center gap-4">
                             <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight hidden sm:block">Announcement</h2>
                         </div>
@@ -246,19 +369,19 @@ export default function ClientReadMore({
                         <div className="flex items-center gap-3 sm:gap-4">
                             <ClientNotificationDropdown variant="light" />
                         </div>
+
+                        {/* READING PROGRESS BAR */}
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-100">
+                            <div
+                                className={`h-full bg-gradient-to-r ${getCategorySpine(announcement.category)} transition-all duration-150 ease-out`}
+                                style={{ width: `${readProgress}%` }}
+                            />
+                        </div>
                     </header>
 
                     <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
                         <div className="max-w-[1400px] mx-auto animate-slide-up">
                             
-                            <Link
-                                href="/client/announcements"
-                                className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <i className="fa-solid fa-arrow-left text-xs" aria-hidden="true" />
-                                Back to announcements
-                            </Link>
-
                             {/* BREADCRUMB */}
                             <nav className="mb-6 flex items-center gap-2 text-xs font-bold text-slate-500">
                                 <Link href="/client" className="hover:text-ctu-lightblue transition-colors rounded">
@@ -277,343 +400,412 @@ export default function ClientReadMore({
                             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                                 {/* LEFT COLUMN: MAIN CONTENT */}
                                 <div className={`space-y-6 ${isEvent ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
-                                    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
+                                    <article
+                                        ref={articleRef}
+                                        className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                                    >
                                         
-                                        <div className="mb-8 flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
-                                            <div>
-                                                <div className="mb-3 flex items-center gap-2">
-                                                    <span className={`rounded border px-2.5 py-1 text-[12px] font-bold tracking-wider uppercase ${getCategoryColor(announcement.category)}`}>
+                                        {/* ============ CINEMATIC HERO ============ */}
+                                        <div className="relative overflow-hidden">
+                                            {announcement.image && (
+                                                <>
+                                                    <img
+                                                        src={announcement.image}
+                                                        alt=""
+                                                        aria-hidden="true"
+                                                        className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-40 hero-backdrop"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-slate-900/60" />
+                                                    <div className={`absolute inset-0 bg-gradient-to-tr ${getCategorySpine(announcement.category)} opacity-10 mix-blend-overlay`} />
+                                                </>
+                                            )}
+                                            {!announcement.image && (
+                                                <div className={`absolute inset-0 bg-gradient-to-br ${getCategorySpine(announcement.category)} opacity-90`} />
+                                            )}
+
+                                            <div className="relative px-6 pt-12 pb-14 sm:px-10 sm:pt-16 sm:pb-20">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-sm">
                                                         {categoryLabel(announcement.category)}
                                                     </span>
                                                     {announcement.is_new && (
-                                                        <span className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-white uppercase">
+                                                        <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-amber-950">
                                                             New
                                                         </span>
                                                     )}
+                                                    <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-mono font-bold tracking-widest text-white/80 backdrop-blur-sm">
+                                                        {referenceNo}
+                                                    </span>
                                                 </div>
-                                                
-                                                <h1 className="text-3xl leading-tight font-extrabold text-slate-900 sm:text-4xl">
+
+                                                <h1 className="mt-5 text-3xl font-black leading-tight text-white drop-shadow-lg sm:text-4xl lg:text-5xl">
                                                     {announcement.title}
                                                 </h1>
 
-                                                <div className="mt-6 flex items-center gap-4">
-                                                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 font-bold text-slate-500">
+                                                <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-white/80">
+                                                    <div className="flex items-center gap-2.5">
                                                         {announcement.posted_by_logo ? (
-                                                            <img src={announcement.posted_by_logo} alt={announcement.posted_by} className="h-full w-full object-cover" />
+                                                            <img
+                                                                src={announcement.posted_by_logo}
+                                                                alt={announcement.posted_by}
+                                                                className="h-9 w-9 rounded-full border-2 border-white/40 object-cover"
+                                                            />
                                                         ) : (
-                                                            announcement.posted_by.charAt(0).toUpperCase()
+                                                            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/40 bg-white/20 text-xs font-bold text-white backdrop-blur-sm">
+                                                                {announcement.posted_by.charAt(0).toUpperCase()}
+                                                            </div>
                                                         )}
+                                                        <div>
+                                                            <p className="text-sm font-extrabold text-white">{announcement.posted_by}</p>
+                                                            <p className="text-[11px] font-medium text-white/60">{announcement.posted_by_name}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-base font-extrabold text-slate-900">
-                                                            {announcement.posted_by}
-                                                        </p>
-                                                        <p className="mt-0.5 text-sm font-medium text-slate-500">
-                                                            {formatDate(announcement.date)} · {readingTime}
-                                                        </p>
+                                                    <div className="h-8 w-px bg-white/20" />
+                                                    <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                                                        <i className="fa-regular fa-calendar text-white/50"></i>
+                                                        {formatDate(announcement.date)}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs font-semibold text-white/70">
+                                                        <i className="fa-regular fa-clock text-white/50"></i>
+                                                        {readingTime}
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <div className="flex shrink-0 gap-2 sm:flex-col">
+                                                <div className="mt-8 flex flex-wrap items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleToggleSaved}
+                                                        aria-pressed={isSaved}
+                                                        className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                                                            isSaved
+                                                                ? 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
+                                                                : 'bg-white text-slate-900 shadow-lg hover:bg-white/90'
+                                                        }`}
+                                                    >
+                                                        <i className={`${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark`} aria-hidden="true"></i>
+                                                        {isSaved ? 'Saved' : 'Save'}
+                                                    </button>
+
+                                                    {/* MARK AS READ BUTTON */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleToggleRead}
+                                                        disabled={!isLoggedIn || readBusy}
+                                                        aria-pressed={readData.read.mine}
+                                                        className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                            readData.read.mine
+                                                                ? 'bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 animate-read-bounce'
+                                                                : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
+                                                        }`}
+                                                    >
+                                                        {readData.read.mine ? (
+                                                            <>
+                                                                <i className="fa-solid fa-check-double"></i>
+                                                                Read
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <i className="fa-regular fa-eye"></i>
+                                                                {readBusy ? 'Marking…' : 'Mark as Read'}
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+
+                                                {/* Peer social proof chip */}
                                                 <button
                                                     type="button"
-                                                    onClick={handleToggleSaved}
-                                                    aria-pressed={isSaved}
-                                                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:flex-none ${
-                                                        isSaved
-                                                            ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                                                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                                                    }`}
+                                                    onClick={() => setShowReadBreakdown(true)}
+                                                    className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-white/70 transition-colors hover:text-white underline decoration-dotted underline-offset-4"
                                                 >
-                                                    <i className={`${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark`} aria-hidden="true"></i>
-                                                    {isSaved ? 'Saved' : 'Save'}
+                                                    <i className="fa-solid fa-users text-white/50"></i>
+                                                    {peerLabel} →
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* CONTENT WRAPPER TO ALIGN IMAGE AND TEXT */}
-                                        <div className="mx-auto max-w-4xl">
-                                            {/* AUTO-RESIZING IMAGE CONTAINER WITH ZOOM */}
-                                            {announcement.image && (
-                                                <div 
-                                                    className="group relative mx-auto mb-10 inline-flex max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
-                                                    onClick={() => setIsImageZoomed(true)}
-                                                >
-                                                    <img 
-                                                        src={announcement.image} 
-                                                        alt={announcement.title} 
-                                                        className="h-auto w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]" 
-                                                    />
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
-                                                        <div className="rounded-full bg-white/90 p-3 shadow-lg backdrop-blur-sm">
-                                                            <i className="fa-solid fa-magnifying-glass-plus text-xl text-slate-700"></i>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Fallback placeholder if no image */}
-                                            {!announcement.image && (
-                                                <div className="mb-10 flex h-64 w-full flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400 sm:h-80">
-                                                    <i className={`mb-3 text-5xl ${
-                                                            announcement.category === 'Academic' ? 'fa-solid fa-graduation-cap'
-                                                            : announcement.category === 'Event' ? 'fa-regular fa-calendar'
-                                                            : announcement.category === 'Service' ? 'fa-solid fa-hand-holding-heart'
-                                                            : 'fa-regular fa-newspaper'
-                                                        }`}
-                                                    ></i>
-                                                    <span className="text-sm font-bold tracking-widest uppercase">
-                                                        {categoryLabel(announcement.category)}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* TEXT CONTENT - CONSTRAINED WIDTH AND BETTER TYPOGRAPHY */}
-                                            <div>
-                                                <div
-                                                    dangerouslySetInnerHTML={{ __html: announcement.content_html }}
-                                                    className="mb-12 whitespace-pre-wrap break-words text-[17px] leading-[1.8] text-slate-700 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-300 [&_a]:decoration-2 [&_a]:underline-offset-2 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:bg-slate-50 [&_blockquote]:py-2 [&_blockquote]:pl-6 [&_blockquote]:pr-4 [&_blockquote]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:text-slate-900 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-6 [&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-5 [&_pre]:text-slate-100 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
-                                                />
-
-                                                {announcement.attachments && announcement.attachments.length > 0 && (
-                                                    <div className="mb-12 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                                        <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
-                                                            Attachments
-                                                        </h4>
-                                                        <div className="flex flex-wrap gap-3">
-                                                            {announcement.attachments.map((file, idx) => (
-                                                                <button
-                                                                    key={idx}
-                                                                    onClick={() => setPreviewFile(file)}
-                                                                    className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm text-left"
-                                                                >
-                                                                    <i className={`fa-solid ${
-                                                                        file.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
-                                                                        file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
-                                                                        'fa-file-lines text-slate-500'
-                                                                    }`}></i>
-                                                                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
-                                                                        {file.name}
-                                                                    </span>
-                                                                    <span className="text-xs text-slate-400">
-                                                                        {file.size}
-                                                                    </span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* ANNOUNCEMENT DISCUSSION */}
-                                            <div ref={commentsRef} className="mt-12 border-t border-slate-200 pt-10">
-                                                <div className="mb-8">
-                                                    <h3 className="text-2xl font-extrabold text-slate-900">
-                                                        Comments & discussion
-                                                    </h3>
-                                                    <p className="mt-2 text-base font-medium text-slate-500">
-                                                        Ask a question or join the discussion about this announcement.
-                                                    </p>
-                                                </div>
-
-                                                {isLoggedIn ? (
-                                                    <form onSubmit={handleSubmitQuestion} className="mb-10">
-                                                        <textarea
-                                                            value={data.content}
-                                                            onChange={(e) => setData('content', e.target.value)}
-                                                            placeholder="Write a comment..."
-                                                            rows={3}
-                                                            maxLength={5000}
-                                                            className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-base font-medium shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                        {/* ============ ARTICLE BODY ============ */}
+                                        <div className="px-6 py-10 sm:px-10">
+                                            <div className="mx-auto max-w-4xl">
+                                                
+                                                {announcement.image && (
+                                                    <div
+                                                        className="group relative mx-auto mb-10 inline-flex max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
+                                                        onClick={() => setIsImageZoomed(true)}
+                                                    >
+                                                        <img
+                                                            src={announcement.image}
+                                                            alt={announcement.title}
+                                                            className="h-auto w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
                                                         />
-                                                        {errors.content && (
-                                                            <p className="mt-1.5 text-sm font-bold text-red-600">{errors.content}</p>
-                                                        )}
-                                                        
-                                                        <div className="mt-3 flex items-center justify-between">
-                                                            <span className="text-xs font-semibold text-slate-400">
-                                                                {data.content.length} / 5000
-                                                            </span>
-                                                            <div className="flex items-center gap-4">
-                                                                {!data.content.trim() && (
-                                                                    <span className="text-xs font-semibold text-slate-400">
-                                                                        Write something first
-                                                                    </span>
-                                                                )}
-                                                                <button
-                                                                    type="submit"
-                                                                    disabled={!data.content.trim() || processing}
-                                                                    className={`rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                                                        !data.content.trim() || processing
-                                                                            ? 'cursor-not-allowed bg-slate-100 text-slate-400'
-                                                                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                                                                    }`}
-                                                                >
-                                                                    {processing ? 'Posting...' : 'Post comment'}
-                                                                </button>
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/5 group-hover:opacity-100">
+                                                            <div className="rounded-full bg-white/90 p-3 shadow-lg backdrop-blur-sm">
+                                                                <i className="fa-solid fa-magnifying-glass-plus text-xl text-slate-700"></i>
                                                             </div>
                                                         </div>
-                                                    </form>
-                                                ) : (
-                                                    <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
-                                                        <p className="mb-3 text-base font-bold text-slate-700">
-                                                            Log in to join the discussion.
-                                                        </p>
-                                                        <Link
-                                                            href="/auth/login"
-                                                            className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
-                                                        >
-                                                            Log In
-                                                        </Link>
                                                     </div>
                                                 )}
 
-                                                <div className="space-y-4" aria-live="polite">
-                                                    {messages.length === 0 ? (
-                                                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
-                                                            <i className="fa-regular fa-comments mb-3 text-3xl text-slate-400" aria-hidden="true"></i>
-                                                            <p className="text-base font-semibold text-slate-600">No comments yet</p>
-                                                            <p className="mt-1 text-sm text-slate-500">Be the first to start the discussion.</p>
+                                                {!announcement.image && (
+                                                    <div className="mb-10 flex h-64 w-full flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400 sm:h-80">
+                                                        <i className={`mb-3 text-5xl ${
+                                                                announcement.category === 'Academic' ? 'fa-solid fa-graduation-cap'
+                                                                : announcement.category === 'Event' ? 'fa-regular fa-calendar'
+                                                                : announcement.category === 'Service' ? 'fa-solid fa-hand-holding-heart'
+                                                                : 'fa-regular fa-newspaper'
+                                                            }`}
+                                                        ></i>
+                                                        <span className="text-sm font-bold tracking-widest uppercase">
+                                                            {categoryLabel(announcement.category)}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div>
+                                                    <div
+                                                        dangerouslySetInnerHTML={{ __html: announcement.content_html }}
+                                                        className="article-content mb-12 whitespace-pre-wrap break-words text-[17px] leading-[1.8] text-slate-700 [&_a]:font-medium [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-300 [&_a]:decoration-2 [&_a]:underline-offset-2 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:bg-slate-50 [&_blockquote]:py-2 [&_blockquote]:pl-6 [&_blockquote]:pr-4 [&_blockquote]:italic [&_h1]:mb-4 [&_h1]:mt-8 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h1]:text-slate-900 [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_li]:my-2 [&_ol]:my-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-6 [&_pre]:my-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-5 [&_pre]:text-slate-100 [&_ul]:my-6 [&_ul]:list-disc [&_ul]:pl-6"
+                                                    />
+
+                                                    {announcement.attachments && announcement.attachments.length > 0 && (
+                                                        <div className="mb-12 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                                                            <h4 className="mb-4 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                                                                Attachments
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-3">
+                                                                {announcement.attachments.map((file, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => setPreviewFile(file)}
+                                                                        className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 transition-all hover:border-blue-400 hover:shadow-sm text-left"
+                                                                    >
+                                                                        <i className={`fa-solid ${
+                                                                            file.name.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf text-rose-500' :
+                                                                            file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'fa-file-image text-blue-500' :
+                                                                            'fa-file-lines text-slate-500'
+                                                                        }`}></i>
+                                                                        <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">
+                                                                            {file.name}
+                                                                        </span>
+                                                                        <span className="text-xs text-slate-400">
+                                                                            {file.size}
+                                                                        </span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    ) : (
-                                                        messages.map((message) => {
-                                                            const parentMessage = message.parent_message_id
-                                                                ? messages.find((candidate) => candidate.id === message.parent_message_id)
-                                                                : null;
-                                                            let messageDepth = 0;
-                                                            let ancestorId = message.parent_message_id;
-                                                            const visitedIds = new Set([message.id]);
+                                                    )}
+                                                </div>
 
-                                                            while (ancestorId !== null && !visitedIds.has(ancestorId)) {
-                                                                const ancestor = messages.find((candidate) => candidate.id === ancestorId);
-                                                                if (!ancestor) break;
+                                                {/* ANNOUNCEMENT DISCUSSION */}
+                                                <div ref={commentsRef} className="mt-12 border-t border-slate-200 pt-10">
+                                                    <div className="mb-8">
+                                                        <h3 className="text-2xl font-extrabold text-slate-900">
+                                                            Comments & discussion
+                                                        </h3>
+                                                        <p className="mt-2 text-base font-medium text-slate-500">
+                                                            Ask a question or join the discussion about this announcement.
+                                                        </p>
+                                                    </div>
 
-                                                                visitedIds.add(ancestor.id);
-                                                                messageDepth += 1;
-                                                                ancestorId = ancestor.parent_message_id;
-                                                            }
-
-                                                            return (
-                                                            <div
-                                                                key={message.id}
-                                                                style={parentMessage ? { marginLeft: `${messageDepth * 16}px` } : undefined}
-                                                            >
-                                                                {parentMessage && (
-                                                                    <a
-                                                                        href={`#comment-${parentMessage.id}`}
-                                                                        className="relative mb-1 flex min-h-6 items-center gap-2 pl-4 text-xs text-slate-500 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-blue-200 after:absolute after:bottom-1 after:left-0 after:w-3 after:border-t-2 after:border-blue-200 hover:text-blue-700"
-                                                                    >
-                                                                        <i className="fa-solid fa-reply text-blue-400" aria-hidden="true"></i>
-                                                                        <span className="shrink-0">Replying to <strong className="font-bold text-slate-700">{parentMessage.author}</strong>:</span>
-                                                                        <span className="min-w-0 truncate">{parentMessage.content}</span>
-                                                                    </a>
-                                                                )}
-                                                                <article
-                                                                id={`comment-${message.id}`}
-                                                                className={`scroll-mt-24 rounded-xl border p-5 ${
-                                                                    message.role !== 'Client'
-                                                                        ? 'border-blue-200 bg-blue-50/50'
-                                                                        : 'border-slate-200 bg-white'
-                                                                }`}
-                                                                >
-                                                                <div className="mb-3 flex flex-wrap items-center gap-2">
-                                                                    {message.author_photo_url ? (
-                                                                        <img
-                                                                            src={message.author_photo_url}
-                                                                            alt=""
-                                                                            className="h-8 w-8 shrink-0 rounded-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
-                                                                            {message.author.charAt(0).toUpperCase()}
-                                                                        </div>
-                                                                    )}
-                                                                    <span className="text-sm font-bold text-slate-900">
-                                                                        {message.author}
-                                                                    </span>
-                                                                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                                                                            message.role !== 'Client'
-                                                                                ? 'bg-blue-100 text-blue-700'
-                                                                                : 'bg-slate-100 text-slate-600'
-                                                                        }`}
-                                                                    >
-                                                                        {message.role === 'Admin' ? announcement.posted_by : message.role}
-                                                                    </span>
-                                                                    {message.is_announcement_wide && (
-                                                                        <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                                                                            All clients
+                                                    {isLoggedIn ? (
+                                                        <form onSubmit={handleSubmitQuestion} className="mb-10">
+                                                            <textarea
+                                                                value={data.content}
+                                                                onChange={(e) => setData('content', e.target.value)}
+                                                                placeholder="Write a comment..."
+                                                                rows={3}
+                                                                maxLength={5000}
+                                                                className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-base font-medium shadow-sm transition-all outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                                            />
+                                                            {errors.content && (
+                                                                <p className="mt-1.5 text-sm font-bold text-red-600">{errors.content}</p>
+                                                            )}
+                                                            
+                                                            <div className="mt-3 flex items-center justify-between">
+                                                                <span className="text-xs font-semibold text-slate-400">
+                                                                    {data.content.length} / 5000
+                                                                </span>
+                                                                <div className="flex items-center gap-4">
+                                                                    {!data.content.trim() && (
+                                                                        <span className="text-xs font-semibold text-slate-400">
+                                                                            Write something first
                                                                         </span>
                                                                     )}
-                                                                    {message.is_mine && (
-                                                                        <span className="text-xs font-semibold text-slate-400">You</span>
-                                                                    )}
-                                                                    {message.sent_at && (
-                                                                        <time className="ml-auto text-xs font-medium text-slate-400" dateTime={message.sent_at}>
-                                                                            {new Date(message.sent_at).toLocaleString()}
-                                                                        </time>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-base leading-relaxed break-words whitespace-pre-wrap text-slate-700">
-                                                                    {message.content}
-                                                                </p>
-                                                                
-                                                                {isLoggedIn && (
                                                                     <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (replyingTo === message.id) {
-                                                                                setReplyingTo(null);
-                                                                                replyForm.reset();
-                                                                                replyForm.clearErrors();
-                                                                                return;
-                                                                            }
-                                                                            setReplyingTo(message.id);
-                                                                            replyForm.setData({
-                                                                                content: '',
-                                                                                parent_message_id: message.id,
-                                                                            });
-                                                                            replyForm.clearErrors();
-                                                                        }}
-                                                                        className="mt-3 rounded text-sm font-bold text-blue-600 transition hover:text-blue-800"
+                                                                        type="submit"
+                                                                        disabled={!data.content.trim() || processing}
+                                                                        className={`rounded-lg px-6 py-2.5 text-sm font-bold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                                                            !data.content.trim() || processing
+                                                                                ? 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                                        }`}
                                                                     >
-                                                                        {replyingTo === message.id ? 'Cancel reply' : 'Reply'}
+                                                                        {processing ? 'Posting...' : 'Post comment'}
                                                                     </button>
-                                                                )}
-                                                                
-                                                                {replyingTo === message.id && (
-                                                                    <form onSubmit={handleSubmitReply} className="mt-4 border-t border-slate-200/60 pt-4">
-                                                                        <label className="sr-only" htmlFor={`reply-${message.id}`}>
-                                                                            Reply to {message.author}
-                                                                        </label>
-                                                                        <textarea
-                                                                            id={`reply-${message.id}`}
-                                                                            value={replyForm.data.content}
-                                                                            onChange={(event) => replyForm.setData('content', event.target.value)}
-                                                                            placeholder={`Reply to ${message.author}...`}
-                                                                            rows={2}
-                                                                            maxLength={5000}
-                                                                            className="w-full resize-none rounded-lg border border-slate-300 bg-white p-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                                                                        />
-                                                                        {replyForm.errors.content && (
-                                                                            <p className="mt-1.5 text-xs font-bold text-red-600">{replyForm.errors.content}</p>
-                                                                        )}
-                                                                        <div className="mt-3 flex justify-end">
-                                                                            <button
-                                                                                type="submit"
-                                                                                disabled={!replyForm.data.content.trim() || replyForm.processing}
-                                                                                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-                                                                            >
-                                                                                {replyForm.processing ? 'Posting...' : 'Post reply'}
-                                                                            </button>
-                                                                        </div>
-                                                                    </form>
-                                                                )}
-                                                                </article>
+                                                                </div>
                                                             </div>
-                                                            );
-                                                        })
+                                                        </form>
+                                                    ) : (
+                                                        <div className="mb-8 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
+                                                            <p className="mb-3 text-base font-bold text-slate-700">
+                                                                Log in to join the discussion.
+                                                            </p>
+                                                            <Link
+                                                                href="/auth/login"
+                                                                className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                                                            >
+                                                                Log In
+                                                            </Link>
+                                                        </div>
                                                     )}
+
+                                                    <div className="space-y-4" aria-live="polite">
+                                                        {messages.length === 0 ? (
+                                                            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
+                                                                <i className="fa-regular fa-comments mb-3 text-3xl text-slate-400" aria-hidden="true"></i>
+                                                                <p className="text-base font-semibold text-slate-600">No comments yet</p>
+                                                                <p className="mt-1 text-sm text-slate-500">Be the first to start the discussion.</p>
+                                                            </div>
+                                                        ) : (
+                                                            messages.map((message) => {
+                                                                const parentMessage = message.parent_message_id
+                                                                    ? messages.find((candidate) => candidate.id === message.parent_message_id)
+                                                                    : null;
+                                                                let messageDepth = 0;
+                                                                let ancestorId = message.parent_message_id;
+                                                                const visitedIds = new Set([message.id]);
+
+                                                                while (ancestorId !== null && !visitedIds.has(ancestorId)) {
+                                                                    const ancestor = messages.find((candidate) => candidate.id === ancestorId);
+                                                                    if (!ancestor) break;
+
+                                                                    visitedIds.add(ancestor.id);
+                                                                    messageDepth += 1;
+                                                                    ancestorId = ancestor.parent_message_id;
+                                                                }
+
+                                                                return (
+                                                                <div
+                                                                    key={message.id}
+                                                                    style={parentMessage ? { marginLeft: `${messageDepth * 16}px` } : undefined}
+                                                                >
+                                                                    {parentMessage && (
+                                                                        <a
+                                                                            href={`#comment-${parentMessage.id}`}
+                                                                            className="relative mb-1 flex min-h-6 items-center gap-2 pl-4 text-xs text-slate-500 before:absolute before:top-0 before:bottom-0 before:left-0 before:border-l-2 before:border-blue-200 after:absolute after:bottom-1 after:left-0 after:w-3 after:border-t-2 after:border-blue-200 hover:text-blue-700"
+                                                                        >
+                                                                            <i className="fa-solid fa-reply text-blue-400" aria-hidden="true"></i>
+                                                                            <span className="shrink-0">Replying to <strong className="font-bold text-slate-700">{parentMessage.author}</strong>:</span>
+                                                                            <span className="min-w-0 truncate">{parentMessage.content}</span>
+                                                                        </a>
+                                                                    )}
+                                                                    <article
+                                                                    id={`comment-${message.id}`}
+                                                                    className={`scroll-mt-24 rounded-xl border p-5 ${
+                                                                        message.role !== 'Client'
+                                                                            ? 'border-blue-200 bg-blue-50/50'
+                                                                            : 'border-slate-200 bg-white'
+                                                                    }`}
+                                                                    >
+                                                                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                                        {message.author_photo_url ? (
+                                                                            <img
+                                                                                src={message.author_photo_url}
+                                                                                alt=""
+                                                                                className="h-8 w-8 shrink-0 rounded-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
+                                                                                {message.author.charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                        <span className="text-sm font-bold text-slate-900">
+                                                                            {message.author}
+                                                                        </span>
+                                                                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                                                                                message.role !== 'Client'
+                                                                                    ? 'bg-blue-100 text-blue-700'
+                                                                                    : 'bg-slate-100 text-slate-600'
+                                                                            }`}
+                                                                        >
+                                                                            {message.role === 'Admin' ? announcement.posted_by : message.role}
+                                                                        </span>
+                                                                        {message.is_announcement_wide && (
+                                                                            <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                                                                                All clients
+                                                                            </span>
+                                                                        )}
+                                                                        {message.is_mine && (
+                                                                            <span className="text-xs font-semibold text-slate-400">You</span>
+                                                                        )}
+                                                                        {message.sent_at && (
+                                                                            <time className="ml-auto text-xs font-medium text-slate-400" dateTime={message.sent_at}>
+                                                                                {new Date(message.sent_at).toLocaleString()}
+                                                                            </time>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-base leading-relaxed break-words whitespace-pre-wrap text-slate-700">
+                                                                        {message.content}
+                                                                    </p>
+                                                                    
+                                                                    {isLoggedIn && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (replyingTo === message.id) {
+                                                                                    setReplyingTo(null);
+                                                                                    replyForm.reset();
+                                                                                    replyForm.clearErrors();
+                                                                                    return;
+                                                                                }
+                                                                                setReplyingTo(message.id);
+                                                                                replyForm.setData({
+                                                                                    content: '',
+                                                                                    parent_message_id: message.id,
+                                                                                });
+                                                                                replyForm.clearErrors();
+                                                                            }}
+                                                                            className="mt-3 rounded text-sm font-bold text-blue-600 transition hover:text-blue-800"
+                                                                        >
+                                                                            {replyingTo === message.id ? 'Cancel reply' : 'Reply'}
+                                                                        </button>
+                                                                    )}
+                                                                    
+                                                                    {replyingTo === message.id && (
+                                                                        <form onSubmit={handleSubmitReply} className="mt-4 border-t border-slate-200/60 pt-4">
+                                                                            <label className="sr-only" htmlFor={`reply-${message.id}`}>
+                                                                                Reply to {message.author}
+                                                                            </label>
+                                                                            <textarea
+                                                                                id={`reply-${message.id}`}
+                                                                                value={replyForm.data.content}
+                                                                                onChange={(event) => replyForm.setData('content', event.target.value)}
+                                                                                placeholder={`Reply to ${message.author}...`}
+                                                                                rows={2}
+                                                                                maxLength={5000}
+                                                                                className="w-full resize-none rounded-lg border border-slate-300 bg-white p-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                                                            />
+                                                                            {replyForm.errors.content && (
+                                                                                <p className="mt-1.5 text-xs font-bold text-red-600">{replyForm.errors.content}</p>
+                                                                            )}
+                                                                            <div className="mt-3 flex justify-end">
+                                                                                <button
+                                                                                    type="submit"
+                                                                                    disabled={!replyForm.data.content.trim() || replyForm.processing}
+                                                                                    className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                                                                                >
+                                                                                    {replyForm.processing ? 'Posting...' : 'Post reply'}
+                                                                                </button>
+                                                                            </div>
+                                                                        </form>
+                                                                    )}
+                                                                    </article>
+                                                                </div>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -623,8 +815,6 @@ export default function ClientReadMore({
                                 {/* RIGHT COLUMN: SIDEBAR */}
                                 {isEvent && (
                                     <aside className="space-y-6 lg:col-span-4">
-                                    
-                                        {/* EVENT BOX */}
                                         <div className="animate-slide-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                             <h3 className="mb-4 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
                                                 Event details
@@ -663,7 +853,6 @@ export default function ClientReadMore({
                                                 RSVP coming soon
                                             </button>
                                         </div>
-
                                     </aside>
                                 )}
                             </div>
@@ -671,7 +860,7 @@ export default function ClientReadMore({
                     </main>
                 </div>
 
-                {/* Back-to-top with aria-label (accessibility) */}
+                {/* Back-to-top */}
                 {showScrollTop && (
                     <button
                         type="button"
@@ -685,18 +874,17 @@ export default function ClientReadMore({
 
                 {/* IMAGE ZOOM MODAL */}
                 {isImageZoomed && announcement.image && (
-                    <div 
+                    <div
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md animate-fade-in cursor-zoom-out"
                         onClick={() => setIsImageZoomed(false)}
                     >
-                        <button 
+                        <button
                             className="absolute top-6 right-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 hover:scale-110 z-10"
                             onClick={() => setIsImageZoomed(false)}
                             aria-label="Close image"
                         >
                             <i className="fa-solid fa-xmark text-xl"></i>
                         </button>
-                        
                         <img
                             src={announcement.image}
                             alt={announcement.title}
@@ -706,17 +894,114 @@ export default function ClientReadMore({
                     </div>
                 )}
 
+                {/* ============ READ BREAKDOWN MODAL ============ */}
+                {showReadBreakdown && (
+                    <div
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-md animate-fade-in"
+                        onClick={() => setShowReadBreakdown(false)}
+                    >
+                        <div
+                            className="w-full max-w-lg rounded-2xl bg-white shadow-2xl animate-pop-in overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-slate-900">Read breakdown</h3>
+                                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                                        {readData.peer_total} student{readData.peer_total === 1 ? '' : 's'} in {userCourse} · {userYear} have read this
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowReadBreakdown(false)}
+                                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                    aria-label="Close"
+                                >
+                                    <i className="fa-solid fa-xmark text-xl"></i>
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                                {/* Total read count */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
+                                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                                            <i className="fa-solid fa-check-double text-xs text-emerald-600"></i>
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Have read</span>
+                                        </div>
+                                        <p className="text-xl font-black text-emerald-900 tabular-nums">{readData.read.count}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                                            <i className="fa-solid fa-users text-xs text-slate-400"></i>
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">In your class</span>
+                                        </div>
+                                        <p className="text-xl font-black text-slate-900 tabular-nums">{readData.peer_total}</p>
+                                    </div>
+                                </div>
+
+                                {/* Breakdown by course & year */}
+                                <div>
+                                    <h4 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 mb-3">
+                                        By course & year
+                                    </h4>
+                                    {readData.peer_breakdown.length === 0 ? (
+                                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+                                            <i className="fa-solid fa-users-slash mb-2 text-2xl text-slate-300"></i>
+                                            <p className="text-sm font-semibold text-slate-600">No readers yet</p>
+                                            <p className="text-xs text-slate-400 mt-1">Be the first to mark this as read.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {readData.peer_breakdown
+                                                .slice()
+                                                .sort((a, b) => b.count - a.count)
+                                                .map((peer, idx) => {
+                                                    const max = readData.peer_breakdown.reduce((m, p) => Math.max(m, p.count), 1);
+                                                    const widthPct = (peer.count / max) * 100;
+                                                    return (
+                                                        <div key={`${peer.course}-${peer.year_level}-${idx}`} className="flex items-center gap-3">
+                                                            <span className="w-28 shrink-0 text-xs font-bold text-slate-700 truncate">
+                                                                {peer.course} · {peer.year_level}
+                                                            </span>
+                                                            <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full bg-gradient-to-r ${getCategorySpine(announcement.category)}`}
+                                                                    style={{ width: `${widthPct}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="w-8 shrink-0 text-right text-xs font-extrabold text-slate-900 tabular-nums">
+                                                                {peer.count}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Total campus count */}
+                                <div className="rounded-xl bg-slate-900 text-white p-4">
+                                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/60">Across the whole campus</p>
+                                    <p className="mt-1 text-2xl font-black tabular-nums">
+                                        {readData.total_students}
+                                        <span className="ml-2 text-xs font-bold text-white/60">students have read this</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* FILE PREVIEW MODAL */}
                 {previewFile && (
-                    <div 
+                    <div
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md animate-fade-in"
                         onClick={() => setPreviewFile(null)}
                     >
-                        <div 
+                        <div
                             className="relative flex h-full max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-pop-in"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Viewer Header */}
                             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
@@ -758,7 +1043,6 @@ export default function ClientReadMore({
                                 </div>
                             </div>
 
-                            {/* Viewer Body */}
                             <div className="flex-1 overflow-auto bg-slate-100 p-4 sm:p-6 flex items-center justify-center">
                                 {previewFile.name.toLowerCase().endsWith('.pdf') ? (
                                     <iframe
@@ -767,9 +1051,9 @@ export default function ClientReadMore({
                                         title={previewFile.name}
                                     />
                                 ) : previewFile.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                                    <img 
-                                        src={previewFile.url} 
-                                        alt={previewFile.name} 
+                                    <img
+                                        src={previewFile.url}
+                                        alt={previewFile.name}
                                         className="max-h-full max-w-full rounded-lg object-contain shadow-sm bg-white"
                                     />
                                 ) : (
@@ -793,7 +1077,6 @@ export default function ClientReadMore({
                                 )}
                             </div>
                             
-                            {/* Mobile Download Footer */}
                             <div className="border-t border-slate-200 bg-white p-4 sm:hidden">
                                 <a
                                     href={previewFile.url}
