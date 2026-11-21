@@ -109,6 +109,11 @@ return [
         'groq' => [
             'driver' => 'groq',
             'key' => env('GROQ_API_KEY'),
+            'models' => [
+                'text' => [
+                    'default' => env('GROQ_MODEL', 'openai/gpt-oss-120b'),
+                ],
+            ],
         ],
 
         'jina' => [

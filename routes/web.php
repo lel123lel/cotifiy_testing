@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Client\AnnouncementDiscussionController;
+use App\Http\Controllers\Client\ChatbotController;
 use App\Http\Controllers\Client\ClientAccountController;
 use App\Http\Controllers\Client\ClientPageController;
 use Illuminate\Http\Request;
@@ -24,6 +25,9 @@ Route::inertia('/auth/verify-email', 'auth/verify-email')->name('verification.no
 Route::get('/client/clientpage', ClientPageController::class)
     ->middleware(['auth:web', 'private-cache'])
     ->name('client.clientpage');
+Route::post('/client/chat', ChatbotController::class)
+    ->middleware(['auth:web', 'throttle:10,1'])
+    ->name('client.chat');
 Route::redirect('/client', '/client/clientpage')
     ->middleware(['auth:web', 'private-cache']);
 Route::get('/client/announcements', [ClientPageController::class, 'announcements'])

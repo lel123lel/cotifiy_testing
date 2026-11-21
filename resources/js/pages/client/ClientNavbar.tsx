@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import ClientChatbot from './ClientChatbot';
 
 type ClientNavPage = 'home' | 'announcements' | 'events' | 'saved' | 'settings';
 
@@ -289,6 +290,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                     </div>
                 </div>
             )}
+            <ClientChatbot />
         </>
     );
 }
