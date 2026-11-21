@@ -11,6 +11,7 @@ use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
 use App\Notifications\AnnouncementReminder;
+use App\Support\CollegeDepartment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -155,6 +157,7 @@ class AnnouncementController extends Controller
             'staffName' => $request->user('staff')->name,
             'staffId' => $request->user('staff')->id,
             'staffDepartment' => $request->user('staff')->office?->name,
+            'canRestrictDepartment' => CollegeDepartment::forOffice($request->user('staff')->office?->name) !== null,
             'initialTab' => $request->query('tab') === 'my-posts' ? 'My Posts' : null,
             'initialCategoryFilter' => $request->query('category') === 'Event' ? 'Event' : null,
         ]);
@@ -173,6 +176,7 @@ class AnnouncementController extends Controller
                 'title' => $announcement->title,
                 'body' => $announcement->body,
                 'posted_by' => $announcement->posted_by,
+                'target_department' => $announcement->target_department,
                 'image_url' => $announcement->image
                     ? Storage::disk('public')->url($announcement->image)
                     : null,
@@ -197,6 +201,7 @@ class AnnouncementController extends Controller
             'staffMode' => true,
             'staffName' => $request->user('staff')->name,
             'staffDepartment' => $request->user('staff')->office?->name,
+            'canRestrictDepartment' => CollegeDepartment::forOffice($request->user('staff')->office?->name) !== null,
         ]);
     }
 
@@ -233,6 +238,7 @@ class AnnouncementController extends Controller
                 'title' => $announcement->title,
                 'body' => $announcement->body,
                 'posted_by' => $announcement->posted_by,
+                'target_department' => $announcement->target_department,
                 'image_url' => $announcement->image
                     ? Storage::disk('public')->url($announcement->image)
                     : null,
@@ -345,6 +351,7 @@ class AnnouncementController extends Controller
             'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['nullable', Rule::in(['Draft', 'Published'])],
+            'department_only' => ['sometimes', 'boolean'],
             'is_urgent' => ['sometimes', 'boolean'],
             'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
@@ -363,6 +370,8 @@ class AnnouncementController extends Controller
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
         $validated['status'] = $isDraft ? 'Draft' : 'Published';
+        $targetDepartment = $this->resolveTargetDepartment($request, null);
+        unset($validated['department_only']);
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent ? (int) $validated['urgent_days'] : null;
         $validated['urgent_until'] = $isUrgent && ! $isDraft
@@ -382,6 +391,7 @@ class AnnouncementController extends Controller
 
         $announcement = Announcement::create([
             ...$validated,
+            'target_department' => $targetDepartment,
             'date' => now()->toDateString(),
             'image' => $imagePath,
             'attachments' => $attachments,
@@ -390,7 +400,7 @@ class AnnouncementController extends Controller
         ]);
 
         if (! $isDraft) {
-            User::query()->chunkById(100, function ($users) use ($announcement): void {
+            $announcement->notificationRecipients()->chunkById(100, function ($users) use ($announcement): void {
                 Notification::send($users, new AnnouncementPublished($announcement));
             });
         }
@@ -413,6 +423,7 @@ class AnnouncementController extends Controller
             'posted_by' => [$isDraft || $staffDepartment !== null ? 'nullable' : 'required', 'string', 'max:255'],
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['sometimes', Rule::in(['Draft', 'Published'])],
+            'department_only' => ['sometimes', 'boolean'],
             'is_urgent' => ['sometimes', 'boolean'],
             'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
@@ -433,6 +444,18 @@ class AnnouncementController extends Controller
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
         $validated['status'] = $request->input('status', $announcement->status ?? 'Published');
+        $previousTargetDepartment = $announcement->target_department;
+        if (
+            $announcement->status !== 'Draft'
+            && $request->has('department_only')
+            && $request->boolean('department_only') !== ($previousTargetDepartment !== null)
+        ) {
+            throw ValidationException::withMessages([
+                'department_only' => 'An announcement audience cannot be changed after publishing.',
+            ]);
+        }
+        $targetDepartment = $this->resolveTargetDepartment($request, $previousTargetDepartment);
+        unset($validated['department_only']);
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent
             ? (int) ($validated['urgent_days'] ?? $announcement->urgent_days ?? 1)
@@ -465,6 +488,7 @@ class AnnouncementController extends Controller
         $wasDraft = $announcement->status === 'Draft';
         $announcement->update([
             ...$validated,
+            'target_department' => $targetDepartment,
             'date' => $wasDraft && $validated['status'] === 'Published'
                 ? now()->toDateString()
                 : $announcement->date->toDateString(),
@@ -472,6 +496,13 @@ class AnnouncementController extends Controller
             'attachments' => $attachments,
             ...$this->eventFields($validated),
         ]);
+
+        if ($previousTargetDepartment !== $announcement->target_department) {
+            $announcement->notifications()
+                ->where('notifiable_type', User::class)
+                ->whereNotIn('notifiable_id', $announcement->notificationRecipients()->select('id'))
+                ->delete();
+        }
 
         foreach ($removedAttachmentPaths as $path) {
             if (! Storage::disk('public')->delete($path)) {
@@ -484,7 +515,7 @@ class AnnouncementController extends Controller
         }
 
         if ($wasDraft && $announcement->status === 'Published') {
-            User::query()->chunkById(100, function ($users) use ($announcement): void {
+            $announcement->notificationRecipients()->chunkById(100, function ($users) use ($announcement): void {
                 Notification::send($users, new AnnouncementPublished($announcement));
             });
         }
@@ -556,7 +587,7 @@ class AnnouncementController extends Controller
             404,
         );
 
-        $unreadClients = User::query()
+        $unreadClients = $announcement->notificationRecipients()
             ->whereDoesntHave('readAnnouncements', fn ($query) => $query->whereKey($announcement->getKey()));
         $recipientCount = $unreadClients->count();
 
@@ -588,6 +619,7 @@ class AnnouncementController extends Controller
             'comment_count' => $announcement->comment_count ?? $announcement->messages()->count(),
             'urgent_days' => $announcement->urgent_days,
             'urgent_until' => $announcement->urgent_until?->toIso8601String(),
+            'target_department' => $announcement->target_department,
             'title' => $announcement->title,
             'category' => $announcement->category,
             'posted_by' => $announcement->posted_by,
@@ -665,6 +697,31 @@ class AnnouncementController extends Controller
                     : number_format($size / 1024, 0).' KB',
             ];
         }, $announcement->attachments ?? []);
+    }
+
+    private function resolveTargetDepartment(Request $request, ?string $existingTarget): ?string
+    {
+        if (! $request->has('department_only')) {
+            return $existingTarget;
+        }
+
+        if (! $request->boolean('department_only')) {
+            return null;
+        }
+
+        if ($existingTarget !== null) {
+            return $existingTarget;
+        }
+
+        $department = CollegeDepartment::forOffice($request->user('staff')?->office?->name);
+
+        if ($department === null) {
+            throw ValidationException::withMessages([
+                'department_only' => 'Only staff assigned to a supported college can restrict an announcement to their department.',
+            ]);
+        }
+
+        return $department;
     }
 
     private function eventFields(array $validated): array

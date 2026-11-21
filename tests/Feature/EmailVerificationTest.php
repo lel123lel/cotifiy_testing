@@ -123,7 +123,7 @@ test('a valid registration verification link creates a verified user', function 
     $this->post(route('register.store'), [
         'name' => 'Taylor Student',
         'studentId' => 'STU-1001',
-        'course' => 'BSIT',
+        'course' => 'BSMx',
         'year_level' => '3rd Year',
         'email' => 'taylor@example.com',
         'password' => 'Password123!',
@@ -149,7 +149,7 @@ test('a valid registration verification link creates a verified user', function 
 
     expect(User::where('email', 'taylor@example.com')->firstOrFail()->hasVerifiedEmail())
         ->toBeTrue()
-        ->and(User::where('email', 'taylor@example.com')->value('course'))->toBe('BSIT')
+        ->and(User::where('email', 'taylor@example.com')->value('course'))->toBe('BSMx')
         ->and(User::where('email', 'taylor@example.com')->value('year_level'))->toBe('3rd Year');
 });
 

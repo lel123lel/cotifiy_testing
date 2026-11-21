@@ -15,12 +15,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        $now = now();
-        DB::table('offices')->insert(array_map(
-            fn (string $name): array => ['name' => $name, 'created_at' => $now, 'updated_at' => $now],
-            ["Registrar's Office", 'Office of the Dean', 'Student Affairs (SAO)', 'IT Department'],
-        ));
-
         Schema::table('staff_users', function (Blueprint $table) {
             $table->foreignId('office_id')->nullable()->constrained('offices')->nullOnDelete();
         });

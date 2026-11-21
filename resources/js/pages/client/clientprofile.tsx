@@ -240,10 +240,35 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                                                             onChange={e => profileForm.setData('course', e.target.value)}
                                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-ctu-lightblue focus:ring-4 focus:ring-ctu-lightblue/10 outline-none transition-all cursor-pointer"
                                                         >
-                                                            <option value="BSIT">BS Information Technology (BSIT)</option>
-                                                            <option value="BSCS">BS Computer Science (BSCS)</option>
-                                                            <option value="BSIS">BS Information Systems (BSIS)</option>
-                                                            <option value="ACT">Associate in Computer Technology (ACT)</option>
+                                                            <optgroup label="College of Education">
+                                                                <option value="BEEd">Bachelor of Elementary Education (BEEd)</option>
+                                                                <option value="BTLEd">Bachelor of Technology and Livelihood Education (BTLEd)</option>
+                                                                <option value="BSEd">Bachelor of Secondary Education (BSEd)</option>
+                                                                <option value="DipPE">Diploma in Professional Education</option>
+                                                            </optgroup>
+                                                            <optgroup label="College of Engineering">
+                                                                <option value="BSIE">BS Industrial Engineering (BSIE)</option>
+                                                                <option value="BSME">BS Mechanical Engineering (BSME)</option>
+                                                                <option value="BSCE">BS Civil Engineering (BSCE)</option>
+                                                                <option value="BSEE">BS Electrical Engineering (BSEE)</option>
+                                                                <option value="BSCpE">BS Computer Engineering (BSCpE)</option>
+                                                            </optgroup>
+                                                            <optgroup label="College of Technology">
+                                                                <option value="BSIT">BS Information Technology (BSIT)</option>
+                                                                <option value="BSMx">BS Mechatronics (BSMx)</option>
+                                                                <option value="BIT-Comp">BIT - Computer Technology</option>
+                                                                <option value="BIT-Draft">BIT - Drafting Technology</option>
+                                                                <option value="BIT-Elec">BIT - Electrical Technology</option>
+                                                                <option value="BIT-Electronics">BIT - Electronics Technology</option>
+                                                            </optgroup>
+                                                            <optgroup label="College of Management and Entrepreneurship">
+                                                                <option value="BSHM">BS Hospitality Management (BSHM)</option>
+                                                                <option value="BSTM">BS Tourism Management (BSTM)</option>
+                                                                <option value="BSBA">BS Business Administration (BSBA)</option>
+                                                            </optgroup>
+                                                            {['BSCS', 'BSIS', 'ACT'].includes(profileForm.data.course) && (
+                                                                <option value={profileForm.data.course}>{profileForm.data.course}</option>
+                                                            )}
                                                         </select>
                                                         {profileForm.errors.course && <p className="mt-1.5 text-xs font-bold text-red-600">{profileForm.errors.course}</p>}
                                                     </div>

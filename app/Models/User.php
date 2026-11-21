@@ -9,6 +9,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -47,6 +48,19 @@ class User extends Authenticatable implements MustVerifyEmail
     public function notifications(): MorphMany
     {
         return $this->morphMany(DatabaseNotification::class, 'notifiable')->latest();
+    }
+
+    /**
+     * @return Builder<DatabaseNotification>
+     */
+    public function visibleNotifications(): Builder
+    {
+        return $this->notifications()
+            ->getQuery()
+            ->where(function (Builder $query): void {
+                $query->whereNull('announcement_id')
+                    ->orWhereHas('announcement', fn (Builder $announcementQuery) => $announcementQuery->visibleTo($this));
+            });
     }
 
     /** @return BelongsToMany<Announcement, $this> */

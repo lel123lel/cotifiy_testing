@@ -21,6 +21,7 @@ type AdminEvent = {
     is_mine: boolean;
     body: string;
     posted_by: string;
+    target_department: string | null;
     image_url: string | null;
     attachments: EventAttachment[];
 };
@@ -45,6 +46,7 @@ type EventFormData = {
     image: File | null;
     attachments: File[];
     remove_attachments: string[];
+    department_only?: boolean;
     _method?: 'put';
 };
 
@@ -146,11 +148,13 @@ export default function AdminEvents({
     staffMode = false,
     staffName = '',
     staffDepartment = null,
+    canRestrictDepartment = false,
 }: {
     events: AdminEvent[];
     staffMode?: boolean;
     staffName?: string;
     staffDepartment?: string | null;
+    canRestrictDepartment?: boolean;
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen(!staffMode);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -181,6 +185,7 @@ export default function AdminEvents({
         image: null,
         attachments: [],
         remove_attachments: [],
+        ...(staffMode && canRestrictDepartment ? { department_only: false } : {}),
     });
 
     const openEventEditor = (event: AdminEvent | null = null) => {
@@ -200,6 +205,7 @@ export default function AdminEvents({
             image: null,
             attachments: [],
             remove_attachments: [],
+            ...(!event && staffMode && canRestrictDepartment ? { department_only: false } : {}),
         });
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
@@ -620,6 +626,43 @@ export default function AdminEvents({
                                         />
                                         {eventForm.errors.posted_by && <p className="mt-1 text-xs font-semibold text-rose-600">{eventForm.errors.posted_by}</p>}
                                     </div>
+                                    {staffMode && canRestrictDepartment && !editingEvent && (
+                                        <div>
+                                            <label className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={eventForm.data.department_only ?? false}
+                                                    onChange={(e) => eventForm.setData('department_only', e.currentTarget.checked)}
+                                                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span>Only show to my department</span>
+                                            </label>
+                                            <p className="mt-1 pl-7 text-xs text-slate-500">
+                                                Only student accounts in {staffDepartment} courses will see this event.
+                                            </p>
+                                            {eventForm.errors.department_only && <p className="mt-1 text-xs font-semibold text-rose-600">{eventForm.errors.department_only}</p>}
+                                        </div>
+                                    )}
+                                    {staffMode && canRestrictDepartment && editingEvent && (
+                                        <p className="text-xs text-slate-500">
+                                            {editingEvent.target_department
+                                                ? `Visible only to ${editingEvent.target_department} students.`
+                                                : 'Visible to all departments.'} The audience is fixed after publishing.
+                                        </p>
+                                    )}
+                                    {staffMode && !canRestrictDepartment && !editingEvent && (
+                                        <div>
+                                                <label className="flex items-start gap-3 text-sm font-semibold text-slate-500">
+                                                    <input type="checkbox" disabled className="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                                                    <span>Only show to my department</span>
+                                                </label>
+                                                <p className="mt-1 pl-7 text-xs text-slate-500">
+                                                    {staffDepartment
+                                                        ? `The assigned office "${staffDepartment}" is not mapped to one of the listed colleges.`
+                                                        : 'Assign your staff account to a college department to enable this option.'}
+                                                </p>
+                                        </div>
+                                    )}
                                     <div>
                                         <label htmlFor="calendar-event-image" className="mb-1 block text-xs font-bold text-slate-700">Cover image</label>
                                         {editingEvent?.image_url && !eventForm.data.image && (

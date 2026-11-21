@@ -7,6 +7,7 @@ use App\Models\AdminUser;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\VerifyPendingRegistration;
+use App\Support\CollegeDepartment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -23,8 +24,6 @@ use JsonException;
 
 class RegistrationController extends Controller
 {
-    private const COURSES = ['BSIT', 'BSCS', 'BSIS', 'ACT'];
-
     private const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 
     public function store(Request $request): RedirectResponse
@@ -36,7 +35,7 @@ class RegistrationController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
-            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), Rule::unique(AdminUser::class), Rule::unique(StaffUser::class)],
             'password' => ['required', 'string', Password::default(), 'confirmed'],
@@ -78,7 +77,7 @@ class RegistrationController extends Controller
         $validated = Validator::make($pendingRegistration, [
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
-            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), Rule::unique(AdminUser::class), Rule::unique(StaffUser::class)],
             'password' => ['required', 'string'],
@@ -107,7 +106,7 @@ class RegistrationController extends Controller
         $validated = Validator::make($pendingRegistration, [
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
-            'course' => ['required', 'string', Rule::in(self::COURSES)],
+            'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(self::YEAR_LEVELS)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), Rule::unique(AdminUser::class), Rule::unique(StaffUser::class)],
             'password' => ['required', 'string'],

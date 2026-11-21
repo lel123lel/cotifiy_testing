@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\CollegeDepartment;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,7 +18,7 @@ use Spatie\LaravelMarkdown\MarkdownRenderer;
  * @property Carbon|null $event_date
  * @property Carbon|null $event_end_date
  */
-#[Fillable(['image', 'title', 'category', 'posted_by', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'author_staff_id', 'author_admin_id', 'status', 'is_urgent', 'urgent_days', 'urgent_until'])]
+#[Fillable(['image', 'title', 'category', 'posted_by', 'target_department', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'author_staff_id', 'author_admin_id', 'status', 'is_urgent', 'urgent_days', 'urgent_until'])]
 class Announcement extends Model
 {
     protected $table = 'announcement';
@@ -39,6 +41,43 @@ class Announcement extends Model
     public function notifications(): HasMany
     {
         return $this->hasMany(DatabaseNotification::class);
+    }
+
+    /**
+     * @param  Builder<Announcement>  $query
+     * @return Builder<Announcement>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        $department = CollegeDepartment::forCourse($user->course);
+
+        return $query->where(function (Builder $query) use ($department): void {
+            $query->whereNull('target_department');
+
+            if ($department !== null) {
+                $query->orWhere('target_department', $department);
+            }
+        });
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        return $this->target_department === null
+            || $this->target_department === CollegeDepartment::forCourse($user->course);
+    }
+
+    /**
+     * @return Builder<User>
+     */
+    public function notificationRecipients(): Builder
+    {
+        $recipients = User::query();
+
+        if ($this->target_department !== null) {
+            $recipients->whereIn('course', CollegeDepartment::coursesFor($this->target_department));
+        }
+
+        return $recipients;
     }
 
     /** @return BelongsToMany<User, $this> */

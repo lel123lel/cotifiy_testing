@@ -21,6 +21,7 @@ class ClientPageController extends Controller
     {
         $publicAnnouncements = Announcement::query()
             ->where('status', '!=', 'Draft')
+            ->whereNull('target_department')
             ->select(['id', 'title', 'category', 'date', 'body'])
             ->orderByDesc('date')
             ->orderByDesc('id')
@@ -55,6 +56,7 @@ class ClientPageController extends Controller
                 $count = $lastAnnouncementId === null
                     ? 0
                     : Announcement::query()
+                        ->visibleTo($user)
                         ->where('id', '>', $lastAnnouncementId)
                         ->where('id', '<=', $latestAnnouncementId)
                         ->where('status', '!=', 'Draft')
@@ -71,6 +73,7 @@ class ClientPageController extends Controller
         }
 
         $announcements = Announcement::query()
+            ->visibleTo($request->user())
             ->where('status', 'Published')
             ->select([
                 'id',
@@ -97,6 +100,7 @@ class ClientPageController extends Controller
             ->map(fn (Announcement $announcement) => $this->announcementSummaryData($announcement));
 
         $upcomingEvents = Announcement::query()
+            ->visibleTo($request->user())
             ->where('status', '!=', 'Draft')
             ->select([
                 'id',
@@ -142,11 +146,12 @@ class ClientPageController extends Controller
         ]);
     }
 
-    public function announcements(): Response
+    public function announcements(Request $request): Response
     {
         Announcement::archiveExpiredUrgent();
 
         $announcements = Announcement::query()
+            ->visibleTo($request->user())
             ->where('status', 'Published')
             ->orderByDesc('is_urgent')
             ->orderByDesc('date')
@@ -159,9 +164,10 @@ class ClientPageController extends Controller
         ]);
     }
 
-    public function events(): Response
+    public function events(Request $request): Response
     {
         $events = Announcement::query()
+            ->visibleTo($request->user())
             ->where('status', '!=', 'Draft')
             ->where('category', 'Event')
             ->whereNotNull('event_date')
@@ -182,6 +188,7 @@ class ClientPageController extends Controller
 
         return Inertia::render('client/clientSaved', [
             'savedItems' => $user->savedAnnouncements()
+                ->visibleTo($user)
                 ->where('status', '!=', 'Draft')
                 ->orderByPivot('created_at', 'desc')
                 ->get()
@@ -204,6 +211,7 @@ class ClientPageController extends Controller
 
         /** @var User $user */
         $user = $request->user();
+        abort_unless($announcement->isVisibleTo($user), 404);
         $user->savedAnnouncements()->syncWithoutDetaching([$announcement->id]);
 
         return back();
@@ -222,6 +230,9 @@ class ClientPageController extends Controller
     {
         Announcement::archiveExpiredUrgent();
         $announcement->refresh();
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless($announcement->isVisibleTo($user), 404);
         abort_if($announcement->status === 'Draft', 404);
 
         if (! $request->headers->has('X-Inertia-Partial-Data')) {
@@ -229,8 +240,6 @@ class ClientPageController extends Controller
             $announcement->refresh();
         }
 
-        /** @var User $user */
-        $user = $request->user();
         $user->notifications()
             ->where('announcement_id', $announcement->id)
             ->whereNull('read_at')
@@ -317,6 +326,7 @@ class ClientPageController extends Controller
     {
         Announcement::archiveExpiredUrgent();
         $announcement->refresh();
+        abort_unless($announcement->isVisibleTo($request->user()), 404);
 
         abort_unless(
             $announcement->status === 'Published'

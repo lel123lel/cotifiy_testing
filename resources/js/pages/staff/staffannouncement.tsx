@@ -40,6 +40,7 @@ export type StaffAnnouncementsProps = {
     announcementComments: AnnouncementComment[];
     staffName: string;
     staffDepartment?: string | null;
+    canRestrictDepartment?: boolean;
     staffId: number;
     openAnnouncementId?: number | null;
     openAnnouncementSection?: 'comments' | null;
@@ -53,6 +54,7 @@ export default function StaffAnnouncements({
     announcementComments = [],
     staffName = '',
     staffDepartment = null,
+    canRestrictDepartment = false,
     staffId,
     openAnnouncementId = null,
     openAnnouncementSection = null,
@@ -70,11 +72,14 @@ export default function StaffAnnouncements({
     const [selectedAttachmentNames, setSelectedAttachmentNames] = useState<string[]>([]);
     const [removedAttachmentPaths, setRemovedAttachmentPaths] = useState<string[]>([]);
     const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+    const canSetDepartmentAudience = canRestrictDepartment
+        && (!editingAnnouncement || editingAnnouncement.status === 'Draft');
 
     // Editor State
     const [selectedCategory, setSelectedCategory] = useState('Academic');
     const [isUrgent, setIsUrgent] = useState(false);
     const [urgentDays, setUrgentDays] = useState(1);
+    const [isDepartmentOnly, setIsDepartmentOnly] = useState(false);
 
     // Table & Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -162,6 +167,7 @@ export default function StaffAnnouncements({
         setSelectedCategory(announcement?.category || 'Academic');
         setIsUrgent(announcement?.is_urgent ?? false);
         setUrgentDays(announcement?.urgent_days ?? 1);
+        setIsDepartmentOnly(announcement?.target_department != null);
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
         setRemovedAttachmentPaths([]);
@@ -579,39 +585,6 @@ export default function StaffAnnouncements({
                                                 {errors.body && <p className="mt-1 text-xs font-bold text-red-600">{errors.body}</p>}
                                             </div>
 
-                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                                                <label className="flex items-center gap-3 text-sm font-bold text-red-800">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="is_urgent"
-                                                        value="1"
-                                                        checked={isUrgent}
-                                                        onChange={(event) => setIsUrgent(event.currentTarget.checked)}
-                                                        className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
-                                                    />
-                                                    <span>Mark as URGENT</span>
-                                                </label>
-                                                {isUrgent && (
-                                                    <div className="mt-3">
-                                                        <label htmlFor="urgent_days" className="block text-xs font-semibold text-red-800">
-                                                            Keep urgent for (up to 3 days), then automatically archive
-                                                        </label>
-                                                        <select
-                                                            id="urgent_days"
-                                                            name="urgent_days"
-                                                            value={urgentDays}
-                                                            onChange={(event) => setUrgentDays(Number(event.currentTarget.value))}
-                                                            className="mt-1 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-800"
-                                                        >
-                                                            {[1, 2, 3].map((days) => (
-                                                                <option key={days} value={days}>{days} {days === 1 ? 'day' : 'days'}</option>
-                                                            ))}
-                                                        </select>
-                                                        {errors.urgent_days && <p className="mt-1 text-xs font-bold text-red-600">{errors.urgent_days}</p>}
-                                                    </div>
-                                                )}
-                                            </div>
-
                                             <div>
                                                 <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">Cover image</label>
                                                 <label className="flex flex-col items-center justify-center w-full min-h-32 border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer relative overflow-hidden group">
@@ -717,6 +690,90 @@ export default function StaffAnnouncements({
                                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-ctu-lightblue"
                                                 />
                                                 {errors.posted_by && <p className="mt-1 text-xs font-bold text-red-600">{errors.posted_by}</p>}
+                                            </div>
+
+                                            {canSetDepartmentAudience ? (
+                                                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                                                    <label htmlFor="announcement_audience" className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-widest mb-1.5">
+                                                        Audience
+                                                    </label>
+                                                    <select
+                                                        id="announcement_audience"
+                                                        name="department_only"
+                                                        value={isDepartmentOnly ? '1' : '0'}
+                                                        onChange={(event) => setIsDepartmentOnly(event.currentTarget.value === '1')}
+                                                        className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    >
+                                                        <option value="0">Public</option>
+                                                        <option value="1">{staffDepartment}</option>
+                                                    </select>
+                                                    <p className="mt-2 text-xs text-slate-600">
+                                                        {isDepartmentOnly
+                                                            ? `Visible only to student accounts in courses under ${staffDepartment}.`
+                                                            : 'Visible to all student accounts, regardless of course or department.'}
+                                                    </p>
+                                                    {errors.department_only && <p className="mt-2 text-xs font-bold text-red-600">{errors.department_only}</p>}
+                                                </div>
+                                            ) : canRestrictDepartment && editingAnnouncement ? (
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+                                                    <p className="font-semibold text-slate-700">
+                                                        {editingAnnouncement.target_department
+                                                            ? `Visible only to ${editingAnnouncement.target_department} students.`
+                                                            : 'Visible to all departments.'}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-slate-500">The audience is fixed after publishing.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                                    <label htmlFor="announcement_audience" className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
+                                                        Audience
+                                                    </label>
+                                                    <select
+                                                        id="announcement_audience"
+                                                        disabled
+                                                        className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500"
+                                                    >
+                                                        <option>Public</option>
+                                                    </select>
+                                                    <p className="mt-2 text-xs text-slate-500">
+                                                        {staffDepartment
+                                                            ? `The assigned office "${staffDepartment}" is not mapped to one of the listed colleges.`
+                                                            : 'Assign your staff account to a college department to enable this option.'}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                                                <label className="flex items-center gap-3 text-sm font-bold text-red-800">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="is_urgent"
+                                                        value="1"
+                                                        checked={isUrgent}
+                                                        onChange={(event) => setIsUrgent(event.currentTarget.checked)}
+                                                        className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                                    />
+                                                    <span>Mark as URGENT</span>
+                                                </label>
+                                                {isUrgent && (
+                                                    <div className="mt-3">
+                                                        <label htmlFor="urgent_days" className="block text-xs font-semibold text-red-800">
+                                                            Keep urgent for (up to 3 days), then automatically archive
+                                                        </label>
+                                                        <select
+                                                            id="urgent_days"
+                                                            name="urgent_days"
+                                                            value={urgentDays}
+                                                            onChange={(event) => setUrgentDays(Number(event.currentTarget.value))}
+                                                            className="mt-1 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-800"
+                                                        >
+                                                            {[1, 2, 3].map((days) => (
+                                                                <option key={days} value={days}>{days} {days === 1 ? 'day' : 'days'}</option>
+                                                            ))}
+                                                        </select>
+                                                        {errors.urgent_days && <p className="mt-1 text-xs font-bold text-red-600">{errors.urgent_days}</p>}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {selectedCategory === 'Event' && (

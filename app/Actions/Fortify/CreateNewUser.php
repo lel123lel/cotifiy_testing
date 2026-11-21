@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use App\Support\CollegeDepartment;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,7 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'studentId' => ['required', 'string', 'max:255'],
-            'course' => ['required', 'string', Rule::in(['BSIT', 'BSCS', 'BSIS', 'ACT'])],
+            'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
             'email' => [
                 'required',

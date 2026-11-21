@@ -13,6 +13,7 @@ export type Announcement = {
     comment_count?: number;
     urgent_days?: number | null;
     urgent_until?: string | null;
+    target_department?: string | null;
     status?: string;
     title: string;
     category: string;

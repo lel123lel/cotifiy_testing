@@ -221,7 +221,7 @@ export default function admin({
                             {/* RECENT ANNOUNCEMENTS AND UPCOMING EVENTS */}
                             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-8">
                                 <div className="min-w-0 space-y-6 lg:col-span-2">
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between lg:min-h-[80px]">
                                         <div>
                                             <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Recent Announcements from All Departments</h3>
                                             <p className="mt-1 text-sm text-slate-500">Latest updates shared by departments across campus.</p>
@@ -231,7 +231,7 @@ export default function admin({
 
                                     <div className="divide-y divide-slate-200 border-y border-slate-200 bg-white/90">
                                         {recentAnnouncements.length === 0 ? (
-                                            <p className="py-8 text-center text-sm font-medium text-slate-500">No announcements yet.</p>
+                                            <p className="flex min-h-[88px] items-center justify-center text-center text-sm font-medium text-slate-500">No announcements yet.</p>
                                         ) : recentAnnouncements.map((announcement) => (
                                             <button
                                                 key={announcement.id}
@@ -266,10 +266,14 @@ export default function admin({
                                 </div>
 
                                 <div className="min-w-0 space-y-6">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Upcoming Events</h3>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between lg:min-h-[80px]">
+                                        <div>
+                                            <h3 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Upcoming Events</h3>
+                                            <p className="mt-1 text-sm text-slate-500">Latest updates shared by departments across campus.</p>
+                                        </div>
                                         <Link href="/admin/events" className="shrink-0 text-sm font-bold text-violet-600 transition-colors hover:text-violet-700">+ New</Link>
                                     </div>
+
 
                                     {upcomingEvents.length === 0 ? (
                                         <div className="flex min-h-[88px] items-center justify-center rounded-2xl border border-dashed border-blue-200 bg-white/70 p-4 text-center">

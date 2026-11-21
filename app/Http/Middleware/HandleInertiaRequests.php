@@ -53,7 +53,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
             ],
-            'unreadCount' => fn () => $request->user('web')?->unreadNotifications()->count() ?? 0,
+            'unreadCount' => fn () => $request->user('web')?->visibleNotifications()->whereNull('read_at')->count() ?? 0,
             'staffUnreadCount' => fn () => $request->user('staff')?->unreadNotifications()->count() ?? 0,
             'adminUnreadCount' => fn () => $request->user('admin')?->unreadNotifications()->count() ?? 0,
             'staffDepartment' => fn () => $request->user('staff')?->office?->name,
@@ -64,7 +64,7 @@ class HandleInertiaRequests extends Middleware
                     return [];
                 }
 
-                return $user->notifications()
+                return $user->visibleNotifications()
                     ->latest()
                     ->limit(5)
                     ->get()

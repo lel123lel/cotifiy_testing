@@ -4,6 +4,7 @@ use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Office;
 use App\Models\StaffUser;
 use App\Models\User;
 use App\Notifications\AnnouncementPublished;
@@ -180,7 +181,7 @@ test('staff can manage announcements and events through the staff panel', functi
     $this->get(route('staff.announcements.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-        ->component('staff/staffannouncement')
+            ->component('staff/staffannouncement')
             ->where('staffName', 'Campus Staff')
             ->where('announcements.0.title', 'Staff event'));
 
@@ -198,6 +199,134 @@ test('staff can manage announcements and events through the staff panel', functi
 
     $this->assertDatabaseMissing('announcement', ['id' => $announcement->id]);
     $this->assertDatabaseHas('announcement', ['id' => $event->id, 'category' => 'Event']);
+});
+
+test('staff can restrict announcements and events to their college', function () {
+    Notification::fake();
+
+    $office = Office::create(['name' => 'COT Department']);
+    $staff = StaffUser::create([
+        'name' => 'Technology Staff',
+        'email' => 'technology-staff@example.com',
+        'password' => 'secret-password',
+    ]);
+    $staff->forceFill(['office_id' => $office->id])->save();
+    $technologyStudent = User::factory()->create(['course' => 'BSIT']);
+    $engineeringStudent = User::factory()->create(['course' => 'BSME']);
+
+    $this->actingAs($staff, 'staff')
+        ->get(route('staff.announcements.index'))
+        ->assertInertia(fn ($page) => $page->where('canRestrictDepartment', true));
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.store'), [
+            'title' => 'Technology-only notice',
+            'category' => 'General',
+            'body' => 'Only technology students should see this.',
+            'department_only' => '1',
+            'is_urgent' => '1',
+            'urgent_days' => '2',
+        ])
+        ->assertRedirect();
+
+    $this->post(route('staff.announcements.store'), [
+        'title' => 'Technology-only event',
+        'category' => 'Event',
+        'body' => 'Only technology students should see this event.',
+        'event_date' => now()->addDays(3)->toDateString(),
+        'location' => 'Main Hall',
+        'department_only' => '1',
+    ])->assertRedirect();
+
+    $announcement = Announcement::query()->where('title', 'Technology-only notice')->firstOrFail();
+    $event = Announcement::query()->where('title', 'Technology-only event')->firstOrFail();
+    expect($announcement->target_department)->toBe('College of Technology')
+        ->and($event->target_department)->toBe('College of Technology');
+
+    Notification::assertSentTo($technologyStudent, AnnouncementPublished::class, function (AnnouncementPublished $notification) use ($announcement, $technologyStudent): bool {
+        $channels = $notification->via($technologyStudent);
+        $mail = $notification->toMail($technologyStudent);
+        $database = $notification->toDatabase($technologyStudent);
+
+        return $notification->announcement->is($announcement)
+            && in_array('database', $channels, true)
+            && in_array('mail', $channels, true)
+            && $mail->subject === 'New announcement: Technology-only notice'
+            && $database['link'] === route('client.announcements.show', $announcement);
+    });
+    Notification::assertNotSentTo($engineeringStudent, AnnouncementPublished::class);
+
+    $this->actingAs($staff, 'staff')
+        ->put(route('staff.announcements.update', $announcement), [
+            'title' => $announcement->title,
+            'category' => $announcement->category,
+            'body' => $announcement->body,
+            'department_only' => '0',
+        ])
+        ->assertSessionHasErrors('department_only');
+    expect($announcement->fresh()->target_department)->toBe('College of Technology');
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.remind-unread-clients', $announcement))
+        ->assertRedirect();
+    Notification::assertSentTo($technologyStudent, AnnouncementReminder::class, function (AnnouncementReminder $notification) use ($announcement, $technologyStudent): bool {
+        $channels = $notification->via($technologyStudent);
+        $mail = $notification->toMail($technologyStudent);
+        $database = $notification->toDatabase($technologyStudent);
+
+        return $notification->announcement->is($announcement)
+            && in_array('database', $channels, true)
+            && in_array('mail', $channels, true)
+            && $mail->subject === 'Reminder: Please review urgent announcement - Technology-only notice'
+            && $database['type'] === 'urgent'
+            && $database['link'] === route('client.announcements.show', $announcement);
+    });
+    Notification::assertNotSentTo($engineeringStudent, AnnouncementReminder::class);
+
+    $this->actingAs($technologyStudent, 'web')
+        ->get(route('client.announcements.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('announcements', 2)
+            ->where('announcements.0.id', $announcement->id)
+            ->where('announcements.1.id', $event->id));
+
+    $this->get(route('client.events'))
+        ->assertInertia(fn ($page) => $page
+            ->has('events', 1)
+            ->where('events.0.id', $event->id));
+
+    $this->actingAs($engineeringStudent, 'web')
+        ->get(route('client.announcements.index'))
+        ->assertInertia(fn ($page) => $page->has('announcements', 0));
+
+    $this->get(route('client.events'))
+        ->assertInertia(fn ($page) => $page->has('events', 0));
+
+    $this->get(route('client.announcements.show', $announcement))->assertNotFound();
+    $this->post(route('client.announcements.messages.store', $announcement), [
+        'content' => 'Can I see this?',
+    ])->assertNotFound();
+
+    $staleNotificationId = (string) Str::uuid();
+    DB::table('notifications')->insert([
+        'id' => $staleNotificationId,
+        'type' => AnnouncementPublished::class,
+        'notifiable_type' => User::class,
+        'notifiable_id' => $engineeringStudent->id,
+        'announcement_id' => $announcement->id,
+        'data' => json_encode(['title' => $announcement->title], JSON_THROW_ON_ERROR),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->get(route('client.notifications'))
+        ->assertInertia(fn ($page) => $page
+            ->has('notifications', 0)
+            ->has('recentNotifications', 0)
+            ->where('unreadCount', 0));
+
+    $this->get(route('home'))
+        ->assertInertia(fn ($page) => $page->has('publicAnnouncements', 0));
 });
 
 test('deleting an announcement removes its client notifications', function () {

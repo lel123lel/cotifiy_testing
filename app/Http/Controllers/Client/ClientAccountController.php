@@ -7,6 +7,7 @@ use App\Models\AdminUser;
 use App\Models\Message;
 use App\Models\StaffUser;
 use App\Models\User;
+use App\Support\CollegeDepartment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -62,7 +63,7 @@ class ClientAccountController extends Controller
                 Rule::unique(StaffUser::class),
             ],
             'student_id' => ['nullable', 'string', 'max:255'],
-            'course' => ['required', 'string', Rule::in(['BSIT', 'BSCS', 'BSIS', 'ACT'])],
+            'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
         ]);
 
@@ -138,7 +139,7 @@ class ClientAccountController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $notifications = $user->notifications()
+        $notifications = $user->visibleNotifications()
             ->latest()
             ->limit(50)
             ->get()
@@ -156,7 +157,7 @@ class ClientAccountController extends Controller
 
         return Inertia::render('client/clientnotif', [
             'notifications' => $notifications,
-            'unreadCount' => $user->unreadNotifications()->count(),
+            'unreadCount' => $user->visibleNotifications()->whereNull('read_at')->count(),
         ]);
     }
 
@@ -164,7 +165,7 @@ class ClientAccountController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $user->notifications()->whereKey($notification)->firstOrFail()->markAsRead();
+        $user->visibleNotifications()->whereKey($notification)->firstOrFail()->markAsRead();
 
         return back();
     }
@@ -173,7 +174,7 @@ class ClientAccountController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $user->unreadNotifications()->update(['read_at' => now()]);
+        $user->visibleNotifications()->whereNull('read_at')->update(['read_at' => now()]);
 
         return back();
     }

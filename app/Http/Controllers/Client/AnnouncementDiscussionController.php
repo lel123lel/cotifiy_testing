@@ -23,6 +23,7 @@ class AnnouncementDiscussionController extends Controller
 
         $client = $request->user('web');
         abort_unless($client instanceof User, 403);
+        abort_unless($announcement->isVisibleTo($client), 404);
 
         $validated = $request->validate([
             'content' => ['required', 'string', 'max:5000'],

@@ -222,7 +222,7 @@ export default function AdminStudents({ users = [] }: { users: RegisteredUser[] 
                                             <label htmlFor="editUserCourse" className="mb-2 block text-xs font-extrabold text-slate-700 uppercase tracking-wide">Course</label>
                                             <select id="editUserCourse" name="course" defaultValue={editingUser.course ?? ''} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
                                                 <option value="">Select course</option>
-                                                {editingUser.course && !['BEEd', 'BTLEd', 'BSEd', 'DipPE', 'BSIE', 'BSME', 'BSCE', 'BSEE', 'BSCpE', 'BSIT', 'BSMx', 'BIT', 'BSHM', 'BSTM', 'BSBA'].includes(editingUser.course) && (
+                                                {editingUser.course && !['BEEd', 'BTLEd', 'BSEd', 'DipPE', 'BSIE', 'BSME', 'BSCE', 'BSEE', 'BSCpE', 'BSIT', 'BSMx', 'BIT-Comp', 'BIT-Draft', 'BIT-Elec', 'BIT-Electronics', 'BSHM', 'BSTM', 'BSBA'].includes(editingUser.course) && (
                                                     <option value={editingUser.course}>{editingUser.course}</option>
                                                 )}
                                                 <optgroup label="College of Education">
@@ -241,10 +241,10 @@ export default function AdminStudents({ users = [] }: { users: RegisteredUser[] 
                                                 <optgroup label="College of Technology">
                                                     <option value="BSIT">BS Information Technology (BSIT)</option>
                                                     <option value="BSMx">BS Mechatronics (BSMx)</option>
-                                                    <option value="BIT">BIT Computer</option>
-                                                    <option value="BIT">BIT Drafting</option>
-                                                    <option value="BIT">BIT Electrical</option>
-                                                    <option value="BIT">BIT Electronics</option>
+                                                    <option value="BIT-Comp">BIT - Computer Technology</option>
+                                                    <option value="BIT-Draft">BIT - Drafting Technology</option>
+                                                    <option value="BIT-Elec">BIT - Electrical Technology</option>
+                                                    <option value="BIT-Electronics">BIT - Electronics Technology</option>
                                                 </optgroup>
                                                 <optgroup label="College of Management and Entrepreneurship">
                                                     <option value="BSHM">BS Hospitality Management (BSHM)</option>
