@@ -39,16 +39,15 @@ function formatMessage(content: string) {
 }
 
 export default function ClientChatbot({ announcementTitle }: { announcementTitle?: string }) {
-    const [isOpen, setIsOpen] = useState(Boolean(announcementTitle));
+    const [isOpen, setIsOpen] = useState(false);
+    const [announcementNotice, setAnnouncementNotice] = useState('');
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>(() => [
         {
             role: 'assistant',
-            content: announcementTitle
-                ? `You're viewing “${announcementTitle}.” If you have any questions about this announcement, feel free to ask.`
-                : 'Hi! I’m Cotify Assistant. How can I help you with the student portal?',
+            content: 'Hi! I’m Cotify Assistant. How can I help you with the student portal?',
         },
     ]);
     const messageListRef = useRef<HTMLDivElement>(null);
@@ -56,14 +55,11 @@ export default function ClientChatbot({ announcementTitle }: { announcementTitle
     useEffect(() => {
         if (!announcementTitle) return;
 
-        setIsOpen(true);
-        setMessages([{
-            role: 'assistant',
-            content: `You're viewing “${announcementTitle}.” If you have any questions about this announcement, feel free to ask.`,
-        }]);
-        setError('');
+        setAnnouncementNotice(
+            `You're viewing “${announcementTitle}.” If you have any questions about this announcement, feel free to ask.`,
+        );
 
-        const closeTimer = window.setTimeout(() => setIsOpen(false), 5000);
+        const closeTimer = window.setTimeout(() => setAnnouncementNotice(''), 5000);
         return () => window.clearTimeout(closeTimer);
     }, [announcementTitle]);
 
@@ -125,6 +121,23 @@ export default function ClientChatbot({ announcementTitle }: { announcementTitle
 
     return (
         <div className="fixed right-4 bottom-4 z-[110] sm:right-6 sm:bottom-6">
+            {announcementNotice && !isOpen && (
+                <div
+                    role="status"
+                    className="mb-3 ml-auto flex max-w-[min(18rem,calc(100vw-2rem))] items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-700 shadow-xl"
+                >
+                    <p className="flex-1">{announcementNotice}</p>
+                    <button
+                        type="button"
+                        onClick={() => setAnnouncementNotice('')}
+                        aria-label="Dismiss announcement message"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                    >
+                        <i className="fa-solid fa-xmark" aria-hidden="true" />
+                    </button>
+                </div>
+            )}
+
             {isOpen && (
                 <section
                     aria-label="Cotify Assistant chat"

@@ -40,6 +40,23 @@ test('a client can open their account pages with their real account name', funct
             ->where('notifications', []));
 });
 
+test('the client profile displays the student ID stored on their account', function () {
+    $user = User::factory()->create([
+        'studentId' => '2026123',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('client.profile'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('user.student_id', '2026123'));
+
+    $this->get(route('client.settings'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('user.student_id', '2026123'));
+});
+
 test('the client sidebar receives the signed-in student profile photo url', function () {
     $user = User::factory()->create([
         'profile_photo_path' => 'profile-photos/student.jpg',

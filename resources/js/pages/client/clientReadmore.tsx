@@ -774,12 +774,6 @@ export default function ClientReadMore({
                                                 </div>
                                             </div>
 
-                                            <button
-                                                disabled
-                                                className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500"
-                                            >
-                                                RSVP coming soon
-                                            </button>
                                         </div>
                                     </aside>
                                 )}

@@ -222,6 +222,8 @@ class AnnouncementController extends Controller
             'discussions' => $this->discussionData(),
             'announcementComments' => $this->announcementCommentData(),
             'adminId' => $request->user('admin')->id,
+            'openAnnouncementId' => $request->integer('announcement') ?: null,
+            'openAnnouncementSection' => $request->query('section') === 'comments' ? 'comments' : null,
         ]);
     }
 

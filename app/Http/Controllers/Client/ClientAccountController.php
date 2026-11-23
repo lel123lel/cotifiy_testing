@@ -131,6 +131,7 @@ class ClientAccountController extends Controller
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
+                'student_id' => $user->studentId,
             ],
         ]);
     }

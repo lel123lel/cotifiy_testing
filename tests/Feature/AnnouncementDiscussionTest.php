@@ -579,6 +579,13 @@ test('client comments notify the staff author and all admins, but not other staf
                 ]),
             ));
 
+    $this->get(route('admin.announcements.index', [
+        'announcement' => $announcement->id,
+        'section' => 'comments',
+    ]))->assertInertia(fn ($page) => $page
+        ->where('openAnnouncementId', $announcement->id)
+        ->where('openAnnouncementSection', 'comments'));
+
     $notification = $admin->notifications()->firstOrFail();
     $this->post(route('admin.notifications.read', $notification->id))
         ->assertRedirect();

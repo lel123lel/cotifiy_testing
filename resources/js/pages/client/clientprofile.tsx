@@ -195,7 +195,7 @@ export default function ClientProfile({ user }: ClientProfileProps) {
                                                     <div className="min-w-0 flex-1">
                                                         <h2 className="text-2xl font-extrabold text-slate-900">{user.name}</h2>
                                                         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500">
-                                                            <span>{user.student_id || '123456'}</span>
+                                                            <span>{user.student_id || '—'}</span>
                                                             <span>·</span>
                                                             <span className="min-w-0 break-all">{user.email}</span>
                                                         </div>
