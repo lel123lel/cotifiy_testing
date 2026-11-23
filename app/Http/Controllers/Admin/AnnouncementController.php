@@ -352,6 +352,7 @@ class AnnouncementController extends Controller
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['nullable', Rule::in(['Draft', 'Published'])],
             'department_only' => ['sometimes', 'boolean'],
+            'target_department' => ['sometimes', 'nullable', 'string', Rule::in([null, ...CollegeDepartment::allDepartments()])],
             'is_urgent' => ['sometimes', 'boolean'],
             'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
@@ -372,6 +373,7 @@ class AnnouncementController extends Controller
         $validated['status'] = $isDraft ? 'Draft' : 'Published';
         $targetDepartment = $this->resolveTargetDepartment($request, null);
         unset($validated['department_only']);
+        unset($validated['target_department']);
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent ? (int) $validated['urgent_days'] : null;
         $validated['urgent_until'] = $isUrgent && ! $isDraft
@@ -424,6 +426,7 @@ class AnnouncementController extends Controller
             'body' => [$isDraft ? 'nullable' : 'required', 'string'],
             'status' => ['sometimes', Rule::in(['Draft', 'Published'])],
             'department_only' => ['sometimes', 'boolean'],
+            'target_department' => ['sometimes', 'nullable', 'string', Rule::in([null, ...CollegeDepartment::allDepartments()])],
             'is_urgent' => ['sometimes', 'boolean'],
             'urgent_days' => [Rule::requiredIf($isUrgent && $request->has('is_urgent')), 'nullable', 'integer', 'between:1,3'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
@@ -447,15 +450,21 @@ class AnnouncementController extends Controller
         $previousTargetDepartment = $announcement->target_department;
         if (
             $announcement->status !== 'Draft'
-            && $request->has('department_only')
-            && $request->boolean('department_only') !== ($previousTargetDepartment !== null)
+            && (
+                ($request->has('department_only')
+                    && $request->boolean('department_only') !== ($previousTargetDepartment !== null))
+                || ($request->has('target_department')
+                    && ($request->input('target_department') ?: null) !== $previousTargetDepartment)
+            )
         ) {
             throw ValidationException::withMessages([
                 'department_only' => 'An announcement audience cannot be changed after publishing.',
+                'target_department' => 'An announcement audience cannot be changed after publishing.',
             ]);
         }
         $targetDepartment = $this->resolveTargetDepartment($request, $previousTargetDepartment);
         unset($validated['department_only']);
+        unset($validated['target_department']);
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent
             ? (int) ($validated['urgent_days'] ?? $announcement->urgent_days ?? 1)
@@ -701,6 +710,10 @@ class AnnouncementController extends Controller
 
     private function resolveTargetDepartment(Request $request, ?string $existingTarget): ?string
     {
+        if ($request->has('target_department')) {
+            return $request->input('target_department') ?: null;
+        }
+
         if (! $request->has('department_only')) {
             return $existingTarget;
         }

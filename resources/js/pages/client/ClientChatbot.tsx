@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, Fragment, useEffect, useRef, useState } from 'react';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -10,18 +10,62 @@ interface ChatResponse {
     message?: unknown;
 }
 
-export default function ClientChatbot() {
-    const [isOpen, setIsOpen] = useState(false);
+function formatMessage(content: string) {
+    const parts = content.split(/(\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|<u>[^<\n]+<\/u>|\+\+[^+\n]+\+\+|\*[^*\n]+\*|_[^_\n]+_)/g);
+
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**') || part.startsWith('__') && part.endsWith('__')) {
+            return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+
+        if (part.startsWith('*') && part.endsWith('*') || part.startsWith('_') && part.endsWith('_')) {
+            return <em key={index}>{part.slice(1, -1)}</em>;
+        }
+
+        if (part.startsWith('<u>') && part.endsWith('</u>')) {
+            return <u key={index}>{part.slice(3, -4)}</u>;
+        }
+
+        if (part.startsWith('++') && part.endsWith('++')) {
+            return <u key={index}>{part.slice(2, -2)}</u>;
+        }
+
+        if (part.startsWith('~~') && part.endsWith('~~')) {
+            return <del key={index}>{part.slice(2, -2)}</del>;
+        }
+
+        return <Fragment key={index}>{part}</Fragment>;
+    });
+}
+
+export default function ClientChatbot({ announcementTitle }: { announcementTitle?: string }) {
+    const [isOpen, setIsOpen] = useState(Boolean(announcementTitle));
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
-    const [messages, setMessages] = useState<ChatMessage[]>([
+    const [messages, setMessages] = useState<ChatMessage[]>(() => [
         {
             role: 'assistant',
-            content: 'Hi! I’m Cotify Assistant. How can I help you with the student portal?',
+            content: announcementTitle
+                ? `You're viewing “${announcementTitle}.” If you have any questions about this announcement, feel free to ask.`
+                : 'Hi! I’m Cotify Assistant. How can I help you with the student portal?',
         },
     ]);
     const messageListRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!announcementTitle) return;
+
+        setIsOpen(true);
+        setMessages([{
+            role: 'assistant',
+            content: `You're viewing “${announcementTitle}.” If you have any questions about this announcement, feel free to ask.`,
+        }]);
+        setError('');
+
+        const closeTimer = window.setTimeout(() => setIsOpen(false), 5000);
+        return () => window.clearTimeout(closeTimer);
+    }, [announcementTitle]);
 
     useEffect(() => {
         messageListRef.current?.scrollTo({
@@ -123,7 +167,7 @@ export default function ClientChatbot() {
                                             : 'rounded-bl-md border border-slate-200 bg-white text-slate-700'
                                     }`}
                                 >
-                                    {message.content}
+                                    {formatMessage(message.content)}
                                 </p>
                             </div>
                         ))}

@@ -295,7 +295,7 @@ export default function ClientReadMore({
                     </div>
                 </div>
 
-                <ClientNavbar activePage="announcements" />
+                <ClientNavbar activePage="announcements" announcementTitle={announcement.title} />
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col bg-transparent overflow-hidden relative w-full z-10">

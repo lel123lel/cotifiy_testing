@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Ai\Agents\CotifyAssistant;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,12 @@ class ChatbotController extends Controller
             );
             $lastMessage = $validated['messages'][array_key_last($validated['messages'])];
 
-            $response = (new CotifyAssistant)
+            $user = $request->user();
+            if (! $user instanceof User) {
+                abort(403);
+            }
+
+            $response = (new CotifyAssistant($user))
                 ->withMessages($messages)
                 ->prompt(
                     $lastMessage['content'],
@@ -87,7 +93,7 @@ class ChatbotController extends Controller
         } catch (RequestException $exception) {
             Log::error('Groq chatbot request could not be completed.', [
                 'message' => $exception->getMessage(),
-                'status' => $exception->response?->status(),
+                'status' => $exception->response->status(),
             ]);
 
             return response()->json(['message' => 'Groq rejected the request. Check the configured model and API settings.'], 502);

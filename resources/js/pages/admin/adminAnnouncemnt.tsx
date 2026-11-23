@@ -69,6 +69,9 @@ export default function AdminAnnouncements({
 
     // Editor State
     const [selectedCategory, setSelectedCategory] = useState('Academic');
+    const [isUrgent, setIsUrgent] = useState(false);
+    const [urgentDays, setUrgentDays] = useState(1);
+    const [targetDepartment, setTargetDepartment] = useState('');
 
     // Table & Sidebar State
     const [isSidebarOpen, setIsSidebarOpen] = useAdminSidebarOpen(true);
@@ -178,6 +181,9 @@ export default function AdminAnnouncements({
     const openEditor = (announcement: Announcement | null = null) => {
         setEditingAnnouncement(announcement);
         setSelectedCategory(announcement?.category || 'Academic');
+        setIsUrgent(announcement?.is_urgent ?? false);
+        setUrgentDays(announcement?.urgent_days ?? 1);
+        setTargetDepartment(announcement?.target_department ?? '');
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
         setRemovedAttachmentPaths([]);
@@ -450,6 +456,7 @@ export default function AdminAnnouncements({
                                     <>
                                     {editingAnnouncement && <input type="hidden" name="_method" value="put" />}
                                     <input ref={statusInputRef} type="hidden" name="status" defaultValue={editingAnnouncement?.status === 'Draft' ? 'Draft' : 'Published'} />
+                                    <input type="hidden" name="is_urgent" value="0" />
 
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200 bg-white shrink-0 gap-3">
                                         <div className="flex items-center gap-4">
@@ -623,7 +630,7 @@ export default function AdminAnnouncements({
                                                 >
                                                     <option value="Academic">Academic</option>
                                                     <option value="General">General</option>
-                                                    {editingAnnouncement?.category === 'Event' && <option value="Event">Event</option>}
+                                                    <option value="Event">Event</option>
                                                     <option value="Service">Service</option>
                                                 </select>
                                                 {errors.category && <p className="mb-3 text-xs font-bold text-red-600">{errors.category}</p>}
@@ -641,6 +648,84 @@ export default function AdminAnnouncements({
                                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none focus:border-ctu-lightblue"
                                                 />
                                                 {errors.posted_by && <p className="mt-1 text-xs font-bold text-red-600">{errors.posted_by}</p>}
+                                            </div>
+
+                                            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                                                <label htmlFor="target_department" className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-widest mb-1.5">
+                                                    Audience
+                                                </label>
+                                                {editingAnnouncement && editingAnnouncement.status !== 'Draft' ? (
+                                                    <>
+                                                        <select
+                                                            id="target_department"
+                                                            value={targetDepartment}
+                                                            disabled
+                                                            className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-500"
+                                                        >
+                                                            <option value="">All departments</option>
+                                                            <option value="College of Education">College of Education</option>
+                                                            <option value="College of Engineering">College of Engineering</option>
+                                                            <option value="College of Technology">College of Technology</option>
+                                                            <option value="College of Management and Entrepreneurship">College of Management and Entrepreneurship</option>
+                                                        </select>
+                                                        <p className="mt-2 text-xs text-slate-500">The audience is fixed after publishing.</p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <select
+                                                            id="target_department"
+                                                            name="target_department"
+                                                            value={targetDepartment}
+                                                            onChange={(event) => setTargetDepartment(event.currentTarget.value)}
+                                                            className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                        >
+                                                            <option value="">All departments</option>
+                                                            <option value="College of Education">College of Education</option>
+                                                            <option value="College of Engineering">College of Engineering</option>
+                                                            <option value="College of Technology">College of Technology</option>
+                                                            <option value="College of Management and Entrepreneurship">College of Management and Entrepreneurship</option>
+                                                        </select>
+                                                        <p className="mt-2 text-xs text-slate-600">
+                                                            {targetDepartment
+                                                                ? `Visible only to student accounts under ${targetDepartment}.`
+                                                                : 'Visible to all student accounts, regardless of department.'}
+                                                        </p>
+                                                    </>
+                                                )}
+                                                {errors.target_department && <p className="mt-2 text-xs font-bold text-red-600">{errors.target_department}</p>}
+                                            </div>
+
+                                            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                                                <label className="flex items-center gap-3 text-sm font-bold text-red-800">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="is_urgent"
+                                                        value="1"
+                                                        checked={isUrgent}
+                                                        onChange={(event) => setIsUrgent(event.currentTarget.checked)}
+                                                        className="h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+                                                    />
+                                                    <span>Mark as URGENT</span>
+                                                </label>
+                                                {isUrgent && (
+                                                    <div className="mt-3">
+                                                        <label htmlFor="urgent_days" className="block text-xs font-semibold text-red-800">
+                                                            Keep urgent for (up to 3 days), then automatically archive
+                                                        </label>
+                                                        <select
+                                                            id="urgent_days"
+                                                            name="urgent_days"
+                                                            value={urgentDays}
+                                                            onChange={(event) => setUrgentDays(Number(event.currentTarget.value))}
+                                                            className="mt-1 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-800"
+                                                        >
+                                                            {[1, 2, 3].map((days) => (
+                                                                <option key={days} value={days}>{days} {days === 1 ? 'day' : 'days'}</option>
+                                                            ))}
+                                                        </select>
+                                                        {errors.urgent_days && <p className="mt-1 text-xs font-bold text-red-600">{errors.urgent_days}</p>}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {selectedCategory === 'Event' && (

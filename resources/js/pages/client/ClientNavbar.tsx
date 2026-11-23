@@ -14,9 +14,10 @@ function rememberPointerPosition(event: { clientX: number; clientY: number }) {
 
 interface ClientNavbarProps {
     activePage?: ClientNavPage;
+    announcementTitle?: string;
 }
 
-export default function ClientNavbar({ activePage }: ClientNavbarProps) {
+export default function ClientNavbar({ activePage, announcementTitle }: ClientNavbarProps) {
     const { auth } = usePage<{
         auth?: { user?: { name?: string; course?: string | null; profile_photo_url?: string | null } };
     }>().props;
@@ -290,7 +291,7 @@ export default function ClientNavbar({ activePage }: ClientNavbarProps) {
                     </div>
                 </div>
             )}
-            <ClientChatbot />
+            <ClientChatbot announcementTitle={announcementTitle} />
         </>
     );
 }

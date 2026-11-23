@@ -13,6 +13,49 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+
+test('an admin can target all departments or a specific department and mark an announcement urgent', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin-targeting@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.announcements.store'), [
+            'title' => 'Engineering update',
+            'category' => 'General',
+            'posted_by' => 'Office of the Registrar',
+            'body' => 'A department-specific update.',
+            'target_department' => 'College of Engineering',
+            'is_urgent' => '1',
+            'urgent_days' => '2',
+        ])
+        ->assertRedirect();
+
+    $announcement = Announcement::query()->where('title', 'Engineering update')->firstOrFail();
+
+    expect($announcement->target_department)->toBe('College of Engineering')
+        ->and($announcement->is_urgent)->toBeTrue()
+        ->and($announcement->urgent_days)->toBe(2);
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.announcements.store'), [
+            'title' => 'All-department event',
+            'category' => 'Event',
+            'posted_by' => 'Office of the Registrar',
+            'body' => 'An event for everyone.',
+            'target_department' => '',
+            'event_date' => now()->addDays(3)->toDateString(),
+            'event_end_date' => now()->addDays(3)->toDateString(),
+            'location' => 'Main Hall',
+        ])
+        ->assertRedirect();
+
+    $event = Announcement::query()->where('title', 'All-department event')->firstOrFail();
+    expect($event->category)->toBe('Event')
+        ->and($event->target_department)->toBeNull();
+});
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 

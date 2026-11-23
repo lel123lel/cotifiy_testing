@@ -5,7 +5,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 if (typeof window !== 'undefined') {
     let isRevalidatingProtectedPage = false;
     const isProtectedPage = () =>
-        /^\/(?:admin|client)(?:\/|$)/.test(window.location.pathname);
+        /^\/(?:admin|client|staff)(?:\/|$)/.test(window.location.pathname);
     const hideProtectedPage = () => {
         if (isProtectedPage())
             document.documentElement.style.visibility = 'hidden';

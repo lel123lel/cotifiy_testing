@@ -88,4 +88,12 @@ final class CollegeDepartment
             ...array_merge(...array_values(self::COURSES_BY_DEPARTMENT)),
         ]));
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function allDepartments(): array
+    {
+        return array_keys(self::COURSES_BY_DEPARTMENT);
+    }
 }
