@@ -458,7 +458,7 @@ export default function ClientReadMore({
                                                 
                                                 {announcement.image && (
                                                     <div
-                                                        className="group relative mx-auto mb-10 inline-flex max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
+                                                        className="group relative mx-auto mb-10 flex w-fit max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-4 cursor-pointer transition-all hover:bg-slate-100"
                                                         onClick={() => setIsImageZoomed(true)}
                                                     >
                                                         <img

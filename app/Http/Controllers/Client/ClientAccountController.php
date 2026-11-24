@@ -31,6 +31,7 @@ class ClientAccountController extends Controller
                 'student_id' => $user->studentId,
                 'course' => $user->course,
                 'year_level' => $user->year_level,
+                'section' => $user->section,
                 'profile_photo_url' => $user->profile_photo_path
                     ? Storage::disk('public')->url($user->profile_photo_path)
                     : null,
@@ -65,6 +66,7 @@ class ClientAccountController extends Controller
             'student_id' => ['nullable', 'string', 'max:255'],
             'course' => ['required', 'string', Rule::in(CollegeDepartment::allCourses())],
             'year_level' => ['required', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
+            'section' => ['nullable', 'string', 'max:255'],
         ]);
 
         $emailChanged = $user->email !== $validated['email'];
@@ -74,6 +76,7 @@ class ClientAccountController extends Controller
             'studentId' => $validated['student_id'] ?? null,
             'course' => $validated['course'],
             'year_level' => $validated['year_level'],
+            'section' => $validated['section'] ?? null,
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ])->save();
 

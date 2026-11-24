@@ -79,6 +79,7 @@ test('a client can update their profile details', function () {
             'student_id' => 'STU-2026',
             'course' => 'BSCS',
             'year_level' => '4th Year',
+            'section' => '4-A',
         ])
         ->assertRedirect();
 
@@ -86,7 +87,12 @@ test('a client can update their profile details', function () {
         ->name->toBe('Updated Account Name')
         ->studentId->toBe('STU-2026')
         ->course->toBe('BSCS')
-        ->year_level->toBe('4th Year');
+        ->year_level->toBe('4th Year')
+        ->section->toBe('4-A');
+
+    $this->get(route('client.profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('user.section', '4-A'));
 });
 
 test('a client can upload and replace their profile photo', function () {
