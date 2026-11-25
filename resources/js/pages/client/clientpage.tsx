@@ -1,12 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ClientNotificationDropdown from './ClientNotificationDropdown';
 import ClientNavbar from './ClientNavbar';
 
 interface Announcement {
     id: number;
     title: string;
-    category: 'Academic' | 'Event' | 'General' | 'Service';
+    category: 'Academic' | 'Event' | 'General' ;
     posted_by_office: string;
     date: string;
     content: string;
@@ -65,7 +65,7 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
     if (ann.is_urgent) {
         return {
             level: 'urgent',
-            label: 'Urgent announcement',
+            label: 'Urgent',
             bannerColor: 'bg-red-600',
             badgeBg: 'bg-red-100',
             badgeText: 'text-red-700',
@@ -75,48 +75,44 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
         };
     }
 
-    // 1. Urgent — Happening today or within 24h
     if (eventStart && diffHours > 0 && diffHours <= 24) {
         return {
             level: 'urgent',
-            label: diffHours <= 1 ? 'Deadline in < 1 hr' : `Starting in ${Math.round(diffHours)} hr${Math.round(diffHours) === 1 ? '' : 's'}`,
+            label: diffHours <= 1 ? 'Deadline < 1 hr' : `Starts in ${Math.round(diffHours)} hrs`,
             bannerColor: 'bg-red-600',
             badgeBg: 'bg-red-100',
             badgeText: 'text-red-700',
             badgeBorder: 'border-red-200',
-            bgTint: 'bg-red-50', // Solid, non-transparent
+            bgTint: 'bg-red-50',
             pulse: true,
         };
     }
 
-    // 2. Pinned
     if (ann.is_pinned) {
         return {
             level: 'pinned',
-            label: 'Pinned Notice',
+            label: 'Pinned',
             bannerColor: 'bg-indigo-600',
             badgeBg: 'bg-indigo-100',
             badgeText: 'text-indigo-700',
             badgeBorder: 'border-indigo-200',
-            bgTint: 'bg-indigo-50', // Solid, non-transparent
+            bgTint: 'bg-indigo-50',
         };
     }
 
-    // 3. Soon — Happening within 7 days
     if (eventStart && diffHours > 24 && diffHours <= 168) {
         const days = Math.ceil(diffHours / 24);
         return {
             level: 'soon',
-            label: `Starts in ${days} day${days === 1 ? '' : 's'}`,
+            label: `Starts in ${days} days`,
             bannerColor: 'bg-amber-500',
             badgeBg: 'bg-amber-100',
             badgeText: 'text-amber-700',
             badgeBorder: 'border-amber-200',
-            bgTint: 'bg-amber-50', // Solid, non-transparent
+            bgTint: 'bg-amber-50',
         };
     }
 
-    // 4. Good News
     const titleLower = ann.title.toLowerCase();
     const contentLower = ann.content.toLowerCase();
     const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
@@ -130,11 +126,10 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-emerald-100',
             badgeText: 'text-emerald-700',
             badgeBorder: 'border-emerald-200',
-            bgTint: 'bg-emerald-50', // Solid, non-transparent
+            bgTint: 'bg-emerald-50',
         };
     }
 
-    // 5. Info
     if (ann.category === 'Event' || ann.category === 'Academic') {
         return {
             level: 'info',
@@ -143,11 +138,10 @@ function getUrgencyTheme(ann: Announcement): UrgencyTheme {
             badgeBg: 'bg-blue-100',
             badgeText: 'text-blue-700',
             badgeBorder: 'border-blue-200',
-            bgTint: 'bg-blue-50', // Solid, non-transparent
+            bgTint: 'bg-blue-50',
         };
     }
 
-    // 6. Default
     return {
         level: 'default',
         label: 'Notice',
@@ -174,11 +168,15 @@ export default function ClientHome({
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     const [activeFilter, setActiveFilter] = useState<
-        'all' | 'Academic' | 'Event' | 'General' | 'Service'
+        'all' | 'Academic' | 'Event' | 'General' 
     >('all');
 
     const [sortBy, setSortBy] = useState<SortOption>('newest');
     const [isSortOpen, setIsSortOpen] = useState(false);
+
+    // State for Hero Auto Carousel
+    const [heroIndex, setHeroIndex] = useState(0);
+    const [isHeroHovered, setIsHeroHovered] = useState(false);
 
     useEffect(() => {
         const intervalId = window.setInterval(() => setCurrentTime(new Date()), 60_000);
@@ -233,6 +231,32 @@ export default function ClientHome({
         return result;
     }, [activeFilter, announcements, sortBy]);
 
+    const urgentAnnouncements = useMemo(() => {
+        return filteredAnnouncements.filter(ann => getUrgencyTheme(ann).level === 'urgent');
+    }, [filteredAnnouncements]);
+
+    // In this layout, everything goes to the main feed below the hero
+    const feedAnnouncements = useMemo(() => {
+        return filteredAnnouncements.filter(ann => getUrgencyTheme(ann).level !== 'urgent');
+    }, [filteredAnnouncements]);
+
+    // Auto-carousel effect for Hero
+    useEffect(() => {
+        if (urgentAnnouncements.length <= 1 || isHeroHovered) return;
+
+        const interval = setInterval(() => {
+            setHeroIndex((prev) => (prev + 1) % urgentAnnouncements.length);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [urgentAnnouncements.length, isHeroHovered]);
+
+    useEffect(() => {
+        if (heroIndex >= urgentAnnouncements.length) {
+            setHeroIndex(0);
+        }
+    }, [urgentAnnouncements.length, heroIndex]);
+
     const formatDate = (date: string) =>
         new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
             month: 'short',
@@ -250,14 +274,10 @@ export default function ClientHome({
 
     const getCategoryColor = (cat: string) => {
         switch (cat) {
-            case 'Academic':
-                return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Event':
-                return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'Service':
-                return 'bg-purple-100 text-purple-700 border-purple-200';
-            default:
-                return 'bg-slate-100 text-slate-700 border-slate-200';
+            case 'Academic': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Event': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+            case 'General': return 'bg-slate-100 text-slate-700 border-slate-200';
+            default: return 'bg-slate-100 text-slate-700 border-slate-200';
         }
     };
 
@@ -324,29 +344,26 @@ export default function ClientHome({
                     </header>
 
                     <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-                        <div className="mb-6 sm:mb-8 animate-slide-up max-w-[1400px] mx-auto">
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                                {greeting}, {userName.split(' ')[0]}
-                            </h1>
-                            <p className="mt-2 text-sm sm:text-base text-slate-500 leading-relaxed">
-                                {user.course || 'Course not set'} · {user.year_level || 'Year level not set'} ·{' '}
-                                <span className="text-blue-600 font-bold">
-                                    {newAnnouncementCount} new announcements
-                                </span>{' '}
-                                since your last visit · 1 event this week
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 max-w-[1400px] mx-auto">
-                            <div className="space-y-6 lg:col-span-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        <div className="max-w-[1400px] mx-auto animate-slide-up">
+                            
+                            {/* Greeting & Filters */}
+                            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                                <div>
+                                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                                        {greeting}, {userName.split(' ')[0]}
+                                    </h1>
+                                    <p className="mt-1 text-sm sm:text-base text-slate-500">
+                                        {user.course} · {user.year_level} · <span className="text-blue-600 font-bold">{newAnnouncementCount} new announcements</span>
+                                    </p>
+                                </div>
                                 
-                                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                                    <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-2">
-                                        {['all', 'Academic', 'Event', 'General', 'Service'].map((tab) => (
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                    <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+                                        {['all', 'Academic', 'Event', 'General'].map((tab) => (
                                             <button
                                                 key={tab}
                                                 onClick={() => setActiveFilter(tab as any)}
-                                                className={`rounded-full border px-3 sm:px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                                className={`rounded-full border px-4 py-1.5 text-xs font-bold whitespace-nowrap transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                                     activeFilter === tab
                                                         ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -356,227 +373,260 @@ export default function ClientHome({
                                             </button>
                                         ))}
                                     </div>
-
-                                    <div className="relative shrink-0 sort-dropdown-container self-end sm:self-auto">
+                                    <div className="relative shrink-0 sort-dropdown-container">
                                         <button 
                                             onClick={() => setIsSortOpen(!isSortOpen)}
-                                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+                                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 px-2 py-1"
                                         >
                                             Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : 'A-Z'} 
-                                            <i className={`fa-solid fa-chevron-down ml-1 text-[10px] transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} aria-hidden="true"></i>
+                                            <i className={`fa-solid fa-chevron-down text-[10px] ${isSortOpen ? 'rotate-180' : ''}`}></i>
                                         </button>
-
                                         {isSortOpen && (
-                                            <div className="absolute right-0 top-full mt-2 w-32 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-fade-in z-30">
-                                                <div className="py-1">
-                                                    <button onClick={() => { setSortBy('newest'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'newest' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Newest First</button>
-                                                    <button onClick={() => { setSortBy('oldest'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'oldest' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Oldest First</button>
-                                                    <button onClick={() => { setSortBy('az'); setIsSortOpen(false); }} className={`block w-full px-4 py-2 text-left text-xs font-bold transition-colors ${sortBy === 'az' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}>Title (A-Z)</button>
-                                                </div>
+                                            <div className="absolute right-0 top-full mt-2 w-32 rounded-xl bg-white shadow-lg ring-1 ring-black/5 animate-fade-in z-30">
+                                                <button onClick={() => { setSortBy('newest'); setIsSortOpen(false); }} className="block w-full px-4 py-2 text-left text-xs font-bold hover:bg-slate-50">Newest First</button>
+                                                <button onClick={() => { setSortBy('oldest'); setIsSortOpen(false); }} className="block w-full px-4 py-2 text-left text-xs font-bold hover:bg-slate-50">Oldest First</button>
+                                                <button onClick={() => { setSortBy('az'); setIsSortOpen(false); }} className="block w-full px-4 py-2 text-left text-xs font-bold hover:bg-slate-50">Title (A-Z)</button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
+                            </div>
 
-                                {isLoading && (
-                                    <div className="animate-pulse space-y-4">
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex flex-col sm:flex-row gap-4 rounded-2xl border border-slate-200 bg-white p-5">
-                                                <div className="h-16 w-16 shrink-0 rounded-xl bg-slate-200"></div>
-                                                <div className="flex-1 space-y-3 py-1">
-                                                    <div className="h-4 w-1/4 rounded bg-slate-200"></div>
-                                                    <div className="h-5 w-3/4 rounded bg-slate-200"></div>
-                                                    <div className="h-4 w-full rounded bg-slate-200"></div>
-                                                </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 sm:gap-8">
+                                
+                                {/* LEFT COLUMN: Announcements (Feed Style) */}
+                                <div className="xl:col-span-3 space-y-6">
+                                    
+                                    {/* URGENT HERO CAROUSEL */}
+                                    {urgentAnnouncements.length > 0 && (
+                                        <div 
+                                            className="relative w-full overflow-hidden rounded-2xl shadow-md border border-slate-200 bg-white group"
+                                            onMouseEnter={() => setIsHeroHovered(true)}
+                                            onMouseLeave={() => setIsHeroHovered(false)}
+                                        >
+                                            <div 
+                                                className="flex transition-transform duration-500 ease-in-out h-full"
+                                                style={{ transform: `translateX(-${heroIndex * 100}%)` }}
+                                            >
+                                                {urgentAnnouncements.map((ann) => {
+                                                    const urgency = getUrgencyTheme(ann);
+                                                    return (
+                                                        <div 
+                                                            key={ann.id}
+                                                            onClick={() => router.visit(`/client/announcements/${ann.id}`)}
+                                                            className={`w-full shrink-0 flex flex-col md:flex-row cursor-pointer relative ${urgency.bgTint}`}
+                                                        >
+                                                            <div className={`absolute top-0 left-0 right-0 h-1.5 ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
+                                                            
+                                                            <div className="flex flex-1 flex-col justify-center p-6 sm:p-8 md:w-1/2">
+                                                                <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-widest ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} border ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                                        {urgency.label}
+                                                                    </span>
+                                                                    <span className={`rounded border px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getCategoryColor(ann.category)}`}>
+                                                                        {ann.category}
+                                                                    </span>
+                                                                    <span className="text-xs font-semibold text-slate-500 ml-auto">{formatDate(ann.date)}</span>
+                                                                </div>
+                                                                
+                                                                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight mb-3">
+                                                                    {ann.title}
+                                                                </h2>
+                                                                <div 
+                                                                    dangerouslySetInnerHTML={{ __html: ann.content_html }} 
+                                                                    className="line-clamp-3 text-sm text-slate-600 mb-6 [&_p]:mb-0"
+                                                                />
+                                                                
+                                                                <div className="mt-auto flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px]">
+                                                                        <i className="fa-solid fa-building"></i>
+                                                                    </div>
+                                                                    {ann.posted_by_office}
+                                                                </div>
+                                                            </div>
+
+                                                            {ann.image && (
+                                                                <div className="md:w-1/2 shrink-0 bg-slate-900 relative min-h-[250px] md:min-h-full overflow-hidden flex items-center justify-center">
+                                                                    <img 
+                                                                        src={ann.image} 
+                                                                        alt="" 
+                                                                        aria-hidden="true"
+                                                                        className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-40" 
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/10" />
+                                                                    
+                                                                    <img 
+                                                                        src={ann.image} 
+                                                                        alt={ann.title} 
+                                                                        className="relative z-10 max-h-[350px] w-auto max-w-full object-contain drop-shadow-2xl" 
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
 
-                                {hasError && !isLoading && (
-                                    <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-                                        <h3 className="text-lg font-bold text-red-800">Unable to load announcements</h3>
-                                        <button onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-red-600 px-5 py-2 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500">Retry</button>
-                                    </div>
-                                )}
+                                            {urgentAnnouncements.length > 1 && (
+                                                <>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setHeroIndex((prev) => (prev === 0 ? urgentAnnouncements.length - 1 : prev - 1)); }}
+                                                        className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                                                    >
+                                                        <i className="fa-solid fa-chevron-left text-sm"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setHeroIndex((prev) => (prev + 1) % urgentAnnouncements.length); }}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                                                    >
+                                                        <i className="fa-solid fa-chevron-right text-sm"></i>
+                                                    </button>
 
-                                {!isLoading && !hasError && (
-                                    <div className="space-y-4">
-                                        {filteredAnnouncements.map((ann) => {
+                                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                                        {urgentAnnouncements.map((_, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={(e) => { e.stopPropagation(); setHeroIndex(idx); }}
+                                                                className={`h-2 rounded-full transition-all ${idx === heroIndex ? 'w-6 bg-slate-800' : 'w-2 bg-slate-400/50 hover:bg-slate-400'}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* STANDARD ANNOUNCEMENTS FEED (1 Column with Square Image) */}
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {feedAnnouncements.map((ann) => {
                                             const urgency = getUrgencyTheme(ann);
-                                            
                                             return (
                                             <div
                                                 key={ann.id}
-                                                role="link"
-                                                tabIndex={0}
-                                                aria-label={`Read announcement: ${ann.title}`}
-                                                className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md bg-white ${urgency.bgTint}`}
-                                                onClick={(event) => {
-                                                    if (event.target instanceof Element && event.target.closest('a, button')) {
-                                                        return;
-                                                    }
-                                                    router.visit(`/client/announcements/${ann.id}`);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (event.target === event.currentTarget && event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        router.visit(`/client/announcements/${ann.id}`);
-                                                    }
-                                                }}
+                                                onClick={() => router.visit(`/client/announcements/${ann.id}`)}
+                                                className={`flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer group ${urgency.bgTint}`}
                                             >
-                                                {/* ============ URGENCY HEATMAP BANNER ============ */}
+                                                {/* Heatmap Top Border */}
                                                 <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
 
-                                                {/* Fixed Mobile Padding & Flex Direction */}
-                                                <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
-                                                    
-                                                    {/* Fixed Image Sizing on Mobile */}
-                                                    <div className="flex h-16 w-16 sm:h-24 sm:w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
-                                                        {ann.image ? (
-                                                            <img src={ann.image} alt={`Thumbnail for ${ann.title}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                                                        ) : (
-                                                            <i className="fa-regular fa-newspaper text-3xl text-slate-300" aria-hidden="true"></i>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex min-w-0 flex-1 flex-col justify-between">
+                                                {/* Social Header */}
+                                                <div className="flex items-start justify-between p-4 pb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 font-bold">
+                                                            {ann.posted_by_office.charAt(0).toUpperCase()}
+                                                        </div>
                                                         <div>
-                                                            {/* Fixed Tag Wrapping for Mobile */}
-                                                            <div className="mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                                                <span className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 sm:px-2.5 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
-                                                                    {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
-                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
-                                                                    </span>}
-                                                                    {urgency.label}
-                                                                </span>
-                                                                
-                                                                <span className={`rounded px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase border ${getCategoryColor(ann.category)}`}>
-                                                                    {ann.category === 'Event' ? 'Events' : ann.category === 'Academic' ? 'Academic' : ann.category === 'Service' ? 'Services' : 'General'}
-                                                                </span>
-                                                                
-                                                                <span className="text-[11px] sm:text-xs font-semibold text-slate-500">{formatDate(ann.date)}</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <h4 className="text-sm font-bold text-slate-900 hover:underline">
+                                                                    {ann.posted_by_office}
+                                                                </h4>
+                                                                <i className="fa-solid fa-circle-check text-[12px] text-blue-500" title="Verified"></i>
                                                             </div>
-
-                                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug mb-1">
-                                                                <Link href={`/client/announcements/${ann.id}`} className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                                                                    {ann.title}
-                                                                </Link>
-                                                            </h3>
-                                                            
-                                                            {/* Description truncated for mobile */}
-                                                            <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="line-clamp-2 text-xs sm:text-sm text-slate-600 [&_a]:text-blue-700 [&_a]:underline [&_a]:[text-shadow:0_0_8px_rgb(59_130_246_/_50%)] [&_p]:mb-0" />
-                                                        </div>
-
-                                                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 sm:mt-4 sm:gap-3">
-                                                            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-slate-500">
-                                                                <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-slate-200/80 text-[9px] sm:text-[10px] text-slate-500">
-                                                                    <i className="fa-solid fa-building" aria-hidden="true"></i>
-                                                                </div>
-                                                                <span className="truncate max-w-[120px] sm:max-w-none">{ann.posted_by_office}</span>
+                                                            <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                                                <span>{formatDate(ann.date)}</span>
+                                                                <span>·</span>
+                                                                <i className="fa-solid fa-globe text-[10px]"></i>
                                                             </div>
-                                                            
-                                                            <Link
-                                                                href={`/client/announcements/${ann.id}`}
-                                                                className="text-[11px] sm:text-xs font-bold text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden"
-                                                            >
-                                                                Read more
-                                                            </Link>
                                                         </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`rounded px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest ${urgency.badgeBg} ${urgency.badgeText} border ${urgency.badgeBorder}`}>
+                                                            {urgency.label}
+                                                        </span>
                                                     </div>
                                                 </div>
 
-                                                {/* Hover Link for Desktop */}
-                                                <Link
-                                                    href={`/client/announcements/${ann.id}`}
-                                                    aria-label={`Read more: ${ann.title}`}
-                                                    className="absolute inset-y-0 right-0 z-10 hidden w-48 translate-x-4 items-center justify-center gap-2 rounded-r-2xl border-y-4 border-r-4 border-l-0 border-transparent [background-clip:padding-box,border-box] [background-image:linear-gradient(to_left,rgba(37,99,235,0.3)_0%,rgba(59,130,246,0.2)_30%,rgba(96,165,250,0.11)_60%,rgba(191,219,254,0.04)_85%,rgba(255,255,255,0)_100%),linear-gradient(to_left,rgba(30,64,175,0.9)_0%,rgba(59,130,246,0.65)_35%,rgba(147,197,253,0.35)_70%,rgba(191,219,254,0.03)_100%)] [background-origin:padding-box,border-box] text-base font-extrabold text-white drop-shadow-[0_1px_3px_rgba(15,23,42,0.9)] opacity-0 transition-[opacity,transform] duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-300 sm:flex"
-                                                >
-                                                    Read more <i className="fa-solid fa-arrow-right text-xs" aria-hidden="true" />
-                                                </Link>
+                                                {/* Caption / Text Content */}
+                                                <div className="px-4 pb-3">
+                                                    <h3 className="text-[17px] font-bold text-slate-900 leading-tight mb-2 line-clamp-2">
+                                                        {ann.title}
+                                                    </h3>
+                                                    <div dangerouslySetInnerHTML={{ __html: ann.content_html }} className="text-[14px] text-slate-700 leading-relaxed line-clamp-3 [&_p]:mb-0" />
+                                                </div>
+
+                                                {/* SQUARE Image Container */}
+                                                {ann.image && (
+                                                    <div className="w-full aspect-square bg-slate-900 relative overflow-hidden flex items-center justify-center border-t border-slate-100">
+                                                        {/* Blurred Background to fill empty space */}
+                                                        <img 
+                                                            src={ann.image} 
+                                                            alt="" 
+                                                            className="absolute inset-0 h-full w-full scale-110 object-cover blur-md opacity-50" 
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/10" />
+                                                        
+                                                        {/* Sharp Image */}
+                                                        <img 
+                                                            src={ann.image} 
+                                                            alt={ann.title} 
+                                                            className="relative z-10 h-full w-auto max-w-full object-contain transition-transform duration-500 group-hover:scale-105" 
+                                                        />
+                                                    </div>
+                                                )}
+
                                             </div>
                                         )})}
-
-                                        {filteredAnnouncements.length === 0 && (
-                                            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-                                                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
-                                                    <i className="fa-regular fa-folder-open text-2xl text-slate-300" aria-hidden="true"></i>
-                                                </div>
-                                                <h3 className="text-lg font-bold text-slate-800">No updates found</h3>
-                                            </div>
-                                        )}
-
-                                        {announcements.length === 10 && (
-                                            <div className="pt-4 text-center">
-                                                <Link href="/client/announcements" className="inline-flex rounded-lg border border-slate-200 bg-white px-6 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                                    View all announcements
-                                                </Link>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <aside className="space-y-6 lg:col-span-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                                        <h3 className="text-sm font-extrabold text-slate-900">Upcoming events</h3>
-                                        <Link href="/client/events" className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                                            View all
-                                        </Link>
                                     </div>
 
-                                    <div className="space-y-5 p-5">
-                                        {upcomingEvents.map((event) => (
-                                            <div
-                                                key={event.id}
-                                                role="link"
-                                                tabIndex={0}
-                                                aria-label={`Read announcement: ${event.title}`}
-                                                className="flex cursor-pointer gap-3"
-                                                onClick={(clickEvent) => {
-                                                    if (clickEvent.target instanceof Element && clickEvent.target.closest('a, button')) {
-                                                        return;
-                                                    }
-                                                    router.visit(`/client/announcements/${event.id}`);
-                                                }}
-                                                onKeyDown={(keyEvent) => {
-                                                    if (keyEvent.target === keyEvent.currentTarget && keyEvent.key === 'Enter') {
-                                                        keyEvent.preventDefault();
-                                                        router.visit(`/client/announcements/${event.id}`);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="h-fit min-w-[50px] shrink-0 rounded-lg bg-slate-100 p-2 text-center">
-                                                    <p className="text-[9px] font-extrabold text-slate-500 uppercase" aria-hidden="true">
-                                                        {new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}
-                                                    </p>
-                                                    <p className="mt-0.5 text-lg leading-none font-black text-slate-800">
-                                                        {new Date(`${event.event_date}T00:00:00`).getDate()}
-                                                    </p>
+                                    {filteredAnnouncements.length === 0 && (
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-800">No updates found</h3>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* RIGHT COLUMN: Sidebar (Calendar / Events) */}
+                                <div className="space-y-6 hidden xl:block">
+                                    
+                                    {/* Placeholder Calendar block */}
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-center min-h-[200px]">
+                                        <h3 className="text-xl font-extrabold text-slate-300 uppercase tracking-widest text-center">
+                                            Calendar<br/>(Coming Soon)
+                                        </h3>
+                                    </div>
+
+                                    {/* Upcoming Events */}
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                        <h3 className="mb-4 text-lg font-extrabold text-slate-900">Upcoming Events</h3>
+                                        <div className="space-y-4">
+                                            {upcomingEvents.map((event) => (
+                                                <div
+                                                    key={event.id}
+                                                    onClick={() => router.visit(`/client/announcements/${event.id}`)}
+                                                    className="flex cursor-pointer gap-3 group"
+                                                >
+                                                    <div className="h-fit min-w-[50px] shrink-0 rounded-lg bg-slate-100 p-2 text-center group-hover:bg-blue-50 transition-colors">
+                                                        <p className="text-[9px] font-extrabold text-slate-500 uppercase">
+                                                            {new Date(`${event.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}
+                                                        </p>
+                                                        <p className="mt-0.5 text-lg leading-none font-black text-slate-800">
+                                                            {new Date(`${event.event_date}T00:00:00`).getDate()}
+                                                        </p>
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <h4 className="mb-1 line-clamp-2 text-sm leading-tight font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                                            {event.title}
+                                                        </h4>
+                                                        <p className="text-[11px] font-semibold text-slate-500">
+                                                            {formatTime(event.start_time)} · {event.location}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <h4 className="mb-1 line-clamp-1 text-sm leading-tight font-bold text-slate-900">
-                                                        {event.title}
-                                                    </h4>
-                                                    <p className="text-[11px] font-semibold text-slate-500">
-                                                        {formatTime(event.start_time)} · {event.location}
-                                                    </p>
-                                                    <Link href={`/client/announcements/${event.id}`} className="mt-2 inline-flex text-xs font-bold text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
-                                                        View event details
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {upcomingEvents.length === 0 && (
-                                            <p className="py-4 text-center text-sm font-medium text-slate-500">
-                                                No upcoming events.
-                                            </p>
-                                        )}
+                                            ))}
+                                            {upcomingEvents.length === 0 && (
+                                                <p className="text-center text-sm text-slate-500 py-4">No upcoming events.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Starting Now / Urgent Events Box */}
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                         <h3 className="mb-4 text-lg font-extrabold text-slate-900">Starting Now</h3>
+                                         <p className="text-sm font-medium text-slate-500">Check back later for live events.</p>
                                     </div>
                                 </div>
-                            </aside>
+
+                            </div>
                         </div>
                     </main>
                 </div>
