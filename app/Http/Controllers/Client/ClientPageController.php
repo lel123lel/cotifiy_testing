@@ -20,7 +20,7 @@ class ClientPageController extends Controller
     public function welcome(): Response
     {
         $publicAnnouncements = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->whereNull('target_department')
             ->select(['id', 'title', 'category', 'date', 'body'])
             ->orderByDesc('date')
@@ -50,7 +50,7 @@ class ClientPageController extends Controller
             $user = $request->user();
             $newAnnouncementCount = DB::transaction(function () use ($user): int {
                 $user = User::query()->lockForUpdate()->findOrFail($user->id);
-                $latestAnnouncementId = (int) (Announcement::query()->where('status', '!=', 'Draft')->max('id') ?? 0);
+                $latestAnnouncementId = (int) (Announcement::query()->where('status', 'Published')->max('id') ?? 0);
                 $lastAnnouncementId = $user->last_announcement_id;
 
                 $count = $lastAnnouncementId === null
@@ -59,7 +59,7 @@ class ClientPageController extends Controller
                         ->visibleTo($user)
                         ->where('id', '>', $lastAnnouncementId)
                         ->where('id', '<=', $latestAnnouncementId)
-                        ->where('status', '!=', 'Draft')
+                        ->where('status', 'Published')
                         ->count();
 
                 if ($latestAnnouncementId > ($lastAnnouncementId ?? 0)) {
@@ -101,7 +101,7 @@ class ClientPageController extends Controller
 
         $upcomingEvents = Announcement::query()
             ->visibleTo($request->user())
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->select([
                 'id',
                 'title',
@@ -168,7 +168,7 @@ class ClientPageController extends Controller
     {
         $events = Announcement::query()
             ->visibleTo($request->user())
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->where('category', 'Event')
             ->whereNotNull('event_date')
             ->orderBy('event_date')
@@ -189,7 +189,7 @@ class ClientPageController extends Controller
         return Inertia::render('client/clientSaved', [
             'savedItems' => $user->savedAnnouncements()
                 ->visibleTo($user)
-                ->where('status', '!=', 'Draft')
+                ->where('status', 'Published')
                 ->orderByPivot('created_at', 'desc')
                 ->get()
                 ->map(fn (Announcement $announcement) => [

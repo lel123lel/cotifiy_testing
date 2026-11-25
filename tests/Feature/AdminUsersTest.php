@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\AdminUser;
+use App\Models\Office;
 use App\Models\StaffUser;
 use App\Models\User;
+use App\Support\CollegeDepartment;
 use Illuminate\Support\Facades\Hash;
 
 test('an admin can view registered users and admin users separately', function () {
@@ -51,11 +53,14 @@ test('an admin can view staff accounts from the staff page', function () {
         'email' => 'admin@example.com',
         'password' => 'secret-password',
     ]);
+    $office = Office::create(['name' => 'College of Technology']);
     $staff = StaffUser::create([
         'name' => 'Campus Staff',
         'email' => 'staff@example.com',
         'password' => 'secret-password',
     ]);
+    $staff->office_id = $office->id;
+    $staff->save();
 
     $this->actingAs($admin, 'admin')
         ->get(route('admin.staff'))
@@ -63,6 +68,7 @@ test('an admin can view staff accounts from the staff page', function () {
         ->assertInertia(fn ($page) => $page
             ->component('admin/adminstaff')
             ->has('adminUsers', 1)
+            ->where('departments', CollegeDepartment::allDepartments())
             ->where('adminUsers.0.id', $admin->id)
             ->where('adminUsers.0.name', 'Site Admin')
             ->missing('adminUsers.0.password')
@@ -70,6 +76,7 @@ test('an admin can view staff accounts from the staff page', function () {
             ->where('staffUsers.0.id', $staff->id)
             ->where('staffUsers.0.name', 'Campus Staff')
             ->where('staffUsers.0.email', 'staff@example.com')
+            ->where('staffUsers.0.department', 'College of Technology')
             ->missing('staffUsers.0.password'));
 });
 
@@ -86,14 +93,38 @@ test('an admin can add a staff user with a password without granting admin or st
             'email' => 'NEW-STAFF@example.com',
             'password' => 'a-strong-password',
             'password_confirmation' => 'a-strong-password',
+            'department' => 'College of Technology',
         ])
         ->assertRedirect();
 
     $staff = StaffUser::query()->where('email', 'new-staff@example.com')->firstOrFail();
     expect($staff->name)->toBe('New Staff')
+        ->and($staff->office->name)->toBe('College of Technology')
         ->and(Hash::check('a-strong-password', $staff->password))->toBeTrue()
         ->and(AdminUser::query()->count())->toBe(1)
         ->and(User::query()->count())->toBe(0);
+});
+
+test('staff creation requires a supported department', function () {
+    $admin = AdminUser::create([
+        'name' => 'Site Admin',
+        'email' => 'admin@example.com',
+        'password' => 'secret-password',
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->from(route('admin.staff'))
+        ->post(route('admin.users.staff.store'), [
+            'name' => 'New Staff',
+            'email' => 'new-staff@example.com',
+            'password' => 'a-strong-password',
+            'password_confirmation' => 'a-strong-password',
+            'department' => 'Unlisted Department',
+        ])
+        ->assertRedirect(route('admin.staff'))
+        ->assertSessionHasErrors('department');
+
+    expect(StaffUser::query()->exists())->toBeFalse();
 });
 
 test('staff users cannot reuse student or admin email addresses', function () {

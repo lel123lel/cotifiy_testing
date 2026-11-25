@@ -8,13 +8,14 @@ type User = {
     name: string;
     email: string;
     created_at: string | null;
+    department?: string | null;
 };
 
 const formatDate = (date: string | null) => date
     ? new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
     : '—';
 
-export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { adminUsers: User[]; staffUsers: User[] }) {
+export default function AdminStaff({ adminUsers = [], staffUsers = [], departments }: { adminUsers: User[]; staffUsers: User[]; departments: string[] }) {
     const [adminSearch, setAdminSearch] = useState('');
     const [staffSearch, setStaffSearch] = useState('');
     const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
@@ -35,7 +36,7 @@ export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { admin
     );
     const normalizedStaffSearch = staffSearch.trim().toLowerCase();
     const filteredStaffUsers = staffUsers.filter((staff) =>
-        [staff.name, staff.email].some((value) => value.toLowerCase().includes(normalizedStaffSearch)),
+        [staff.name, staff.email, staff.department].some((value) => value?.toLowerCase().includes(normalizedStaffSearch) ?? false),
     );
 
     return (
@@ -208,11 +209,12 @@ export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { admin
                                 </div>
 
                                 <div className="overflow-x-auto mobile-scroll-x">
-                                    <table className="w-full min-w-[820px] text-left border-collapse">
+                                    <table className="w-full min-w-[960px] text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-extrabold">
                                                 <th className="px-6 py-5">Name</th>
                                                 <th className="px-6 py-5">Email</th>
+                                                <th className="px-6 py-5">Department</th>
                                                 <th className="px-6 py-5">Joined</th>
                                                 <th className="px-6 py-5 text-right">Actions</th>
                                             </tr>
@@ -220,7 +222,7 @@ export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { admin
                                         <tbody className="divide-y divide-slate-100">
                                             {filteredStaffUsers.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={4} className="px-6 py-16 text-center text-sm font-medium text-slate-500">
+                                                    <td colSpan={5} className="px-6 py-16 text-center text-sm font-medium text-slate-500">
                                                         No staff users found.
                                                     </td>
                                                 </tr>
@@ -235,6 +237,15 @@ export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { admin
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 font-medium text-slate-600">{account.email}</td>
+                                                    <td className="px-6 py-4 font-medium text-slate-600">
+                                                        {account.department ? (
+                                                            <span className="inline-flex rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                                                                {account.department}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400">Unassigned</span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-4 font-medium text-slate-500">{formatDate(account.created_at)}</td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex justify-end gap-2">
@@ -409,6 +420,14 @@ export default function AdminStaff({ adminUsers = [], staffUsers = [] }: { admin
                                         <label htmlFor="staffEmail" className="mb-2 block text-xs font-extrabold text-slate-700 uppercase tracking-wide">Email</label>
                                         <input id="staffEmail" name="email" type="email" required maxLength={255} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
                                         {errors.email && <p className="mt-1.5 text-xs font-bold text-red-600">{errors.email}</p>}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="staffDepartment" className="mb-2 block text-xs font-extrabold text-slate-700 uppercase tracking-wide">Department</label>
+                                        <select id="staffDepartment" name="department" required defaultValue="" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
+                                            <option value="" disabled>Select a department</option>
+                                            {departments.map((department) => <option key={department} value={department}>{department}</option>)}
+                                        </select>
+                                        {errors.department && <p className="mt-1.5 text-xs font-bold text-red-600">{errors.department}</p>}
                                     </div>
                                     <div>
                                         <label htmlFor="staffPassword" className="mb-2 block text-xs font-extrabold text-slate-700 uppercase tracking-wide">Password</label>

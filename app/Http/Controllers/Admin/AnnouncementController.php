@@ -34,7 +34,7 @@ class AnnouncementController extends Controller
         $lastMonthStart = $monthStart->copy()->subMonth();
 
         $announcements = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->whereNotIn('status', ['Draft', 'Pending Approval'])
             ->withCount([
                 'readers',
                 'savedByUsers as saved_count',
@@ -56,7 +56,7 @@ class AnnouncementController extends Controller
             'announcements' => $announcements->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'recentAnnouncements' => $announcements->take(5)->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'upcomingEvents' => Announcement::query()
-                ->where('status', '!=', 'Draft')
+                ->where('status', 'Published')
                 ->where('category', 'Event')
                 ->where(function ($query) {
                     $query->whereDate('event_end_date', '>=', now()->toDateString())
@@ -81,7 +81,7 @@ class AnnouncementController extends Controller
                 ]),
             'publishedThisMonthCount' => $publishedThisMonthCount,
             'publishedChangeFromLastMonth' => $publishedThisMonthCount - $publishedLastMonthCount,
-            'eventCount' => Announcement::query()->where('status', '!=', 'Draft')->where('category', 'Event')->count(),
+            'eventCount' => Announcement::query()->where('status', 'Published')->where('category', 'Event')->count(),
             'activeStudentCount' => $this->activeStudentCount(),
             'discussions' => $this->discussionData(),
             'announcementComments' => $this->announcementCommentData(),
@@ -91,7 +91,7 @@ class AnnouncementController extends Controller
     public function staffDashboard(Request $request): Response
     {
         $announcements = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->withCount([
                 'readers',
                 'savedByUsers as saved_count',
@@ -104,7 +104,7 @@ class AnnouncementController extends Controller
         return Inertia::render('staff/staff', [
             'recentAnnouncements' => $announcements->take(5)->map(fn (Announcement $announcement) => $this->announcementData($announcement)),
             'upcomingEvents' => Announcement::query()
-                ->where('status', '!=', 'Draft')
+                ->whereNotIn('status', ['Draft', 'Pending Approval'])
                 ->where('category', 'Event')
                 ->where(function ($query) {
                     $query->whereDate('event_end_date', '>=', now()->toDateString())
@@ -129,7 +129,7 @@ class AnnouncementController extends Controller
             'announcementCount' => Announcement::query()
                 ->where('author_staff_id', $request->user('staff')->id)
                 ->count(),
-            'eventCount' => Announcement::query()->where('status', '!=', 'Draft')->where('category', 'Event')->count(),
+            'eventCount' => Announcement::query()->where('status', 'Published')->where('category', 'Event')->count(),
             'userName' => $request->user('staff')->name,
         ]);
     }
@@ -166,7 +166,7 @@ class AnnouncementController extends Controller
     public function staffEvents(Request $request): Response
     {
         $events = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->where('category', 'Event')
             ->orderByDesc('event_date')
             ->orderByDesc('id')
@@ -230,7 +230,7 @@ class AnnouncementController extends Controller
     public function events(Request $request): Response
     {
         $events = Announcement::query()
-            ->where('status', '!=', 'Draft')
+            ->where('status', 'Published')
             ->where('category', 'Event')
             ->orderByDesc('event_date')
             ->orderByDesc('id')
@@ -372,13 +372,15 @@ class AnnouncementController extends Controller
         $postedByFallback = ($validated['posted_by'] ?? '') ?: ($request->user('staff')->name ?? $request->user('admin')->name ?? 'Staff');
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
-        $validated['status'] = $isDraft ? 'Draft' : 'Published';
         $targetDepartment = $this->resolveTargetDepartment($request, null);
         unset($validated['department_only']);
         unset($validated['target_department']);
+        $isStaffPost = $request->user('staff') instanceof StaffUser;
+        $requiresApproval = $isStaffPost && ! $isDraft && ($isUrgent || $targetDepartment === null);
+        $validated['status'] = $isDraft ? 'Draft' : ($requiresApproval ? 'Pending Approval' : 'Published');
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent ? (int) $validated['urgent_days'] : null;
-        $validated['urgent_until'] = $isUrgent && ! $isDraft
+        $validated['urgent_until'] = $isUrgent && $validated['status'] === 'Published'
             ? now()->addDays($validated['urgent_days'])
             : null;
 
@@ -403,7 +405,7 @@ class AnnouncementController extends Controller
             ...$this->eventFields($validated),
         ]);
 
-        if (! $isDraft) {
+        if ($validated['status'] === 'Published') {
             $announcement->notificationRecipients()->chunkById(100, function ($users) use ($announcement): void {
                 Notification::send($users, new AnnouncementPublished($announcement));
             });
@@ -467,11 +469,16 @@ class AnnouncementController extends Controller
         $targetDepartment = $this->resolveTargetDepartment($request, $previousTargetDepartment);
         unset($validated['department_only']);
         unset($validated['target_department']);
+        $isStaffPost = $request->user('staff') instanceof StaffUser;
+        $requiresApproval = $isStaffPost && ! $isDraft && ($isUrgent || $targetDepartment === null);
+        $validated['status'] = $isDraft
+            ? 'Draft'
+            : ($requiresApproval ? 'Pending Approval' : 'Published');
         $validated['is_urgent'] = $isUrgent;
         $validated['urgent_days'] = $isUrgent
             ? (int) ($validated['urgent_days'] ?? $announcement->urgent_days ?? 1)
             : null;
-        $validated['urgent_until'] = $isUrgent && $validated['status'] !== 'Draft'
+        $validated['urgent_until'] = $isUrgent && $validated['status'] === 'Published'
             ? now()->addDays($validated['urgent_days'])
             : null;
 
@@ -580,6 +587,36 @@ class AnnouncementController extends Controller
         }
 
         $announcement->update($updates);
+
+        return back();
+    }
+
+    public function approve(Request $request, Announcement $announcement): RedirectResponse
+    {
+        abort_unless($request->user('admin') instanceof AdminUser, 403);
+        abort_unless($announcement->status === 'Pending Approval', 404);
+
+        $updates = ['status' => 'Published'];
+        if ($announcement->is_urgent) {
+            $updates['urgent_until'] = now()->addDays((int) ($announcement->urgent_days ?? 1));
+        }
+        $announcement->update($updates);
+        $announcement->notificationRecipients()->chunkById(100, function ($users) use ($announcement): void {
+            Notification::send($users, new AnnouncementPublished($announcement));
+        });
+
+        return back();
+    }
+
+    public function reject(Request $request, Announcement $announcement): RedirectResponse
+    {
+        abort_unless($request->user('admin') instanceof AdminUser, 403);
+        abort_unless($announcement->status === 'Pending Approval', 404);
+
+        $announcement->update([
+            'status' => 'Draft',
+            'urgent_until' => null,
+        ]);
 
         return back();
     }

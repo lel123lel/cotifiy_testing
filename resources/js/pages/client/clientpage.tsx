@@ -164,6 +164,7 @@ export default function ClientHome({
     const { auth } = usePage<any>().props;
     const userName = auth?.user?.name || user.name;
     const [currentTime, setCurrentTime] = useState(() => new Date());
+    const [calendarDate, setCalendarDate] = useState(() => new Date());
     const hour = currentTime.getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -271,6 +272,25 @@ export default function ClientHome({
                   minute: '2-digit',
               })
             : '';
+
+    const calendarWeekStart = new Date(
+        calendarDate.getFullYear(),
+        calendarDate.getMonth(),
+        calendarDate.getDate() - calendarDate.getDay(),
+    );
+    const calendarWeekDays = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(calendarWeekStart);
+        date.setDate(calendarWeekStart.getDate() + index);
+        return date;
+    });
+    const calendarWeekEnd = calendarWeekDays[6];
+    const todayKey = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
+    const eventsByDate = upcomingEvents.reduce<Record<string, Announcement[]>>((groupedEvents, event) => {
+        if (event.event_date) {
+            groupedEvents[event.event_date] = [...(groupedEvents[event.event_date] ?? []), event];
+        }
+        return groupedEvents;
+    }, {});
 
     const getCategoryColor = (cat: string) => {
         switch (cat) {
@@ -497,7 +517,7 @@ export default function ClientHome({
                                     )}
 
                                     {/* STANDARD ANNOUNCEMENTS FEED (1 Column with Square Image) */}
-                                    <div className="grid grid-cols-1 gap-4">
+                                    {feedAnnouncements.length > 0 && <div className="grid grid-cols-1 gap-4">
                                         {feedAnnouncements.map((ann) => {
                                             const urgency = getUrgencyTheme(ann);
                                             return (
@@ -566,7 +586,7 @@ export default function ClientHome({
 
                                             </div>
                                         )})}
-                                    </div>
+                                    </div>}
 
                                     {filteredAnnouncements.length === 0 && (
                                         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
@@ -578,16 +598,78 @@ export default function ClientHome({
                                 {/* RIGHT COLUMN: Sidebar (Calendar / Events) */}
                                 <div className="space-y-6 hidden xl:block">
                                     
-                                    {/* Placeholder Calendar block */}
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex items-center justify-center min-h-[200px]">
-                                        <h3 className="text-xl font-extrabold text-slate-300 uppercase tracking-widest text-center">
-                                            Calendar<br/>(Coming Soon)
-                                        </h3>
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <h3 className="text-sm font-extrabold text-slate-900">
+                                                {calendarWeekDays[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                {' – '}
+                                                {calendarWeekEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </h3>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    aria-label="Previous week"
+                                                    onClick={() => setCalendarDate(new Date(calendarWeekStart.getFullYear(), calendarWeekStart.getMonth(), calendarWeekStart.getDate() - 7))}
+                                                    className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                                                >
+                                                    <i className="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    aria-label="Next week"
+                                                    onClick={() => setCalendarDate(new Date(calendarWeekStart.getFullYear(), calendarWeekStart.getMonth(), calendarWeekStart.getDate() + 7))}
+                                                    className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                                                >
+                                                    <i className="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            {calendarWeekDays.map((date) => {
+                                                const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                                const isToday = dateKey === todayKey;
+                                                const dayEvents = eventsByDate[dateKey] ?? [];
+
+                                                return (
+                                                    <div key={dateKey} className="flex items-start gap-2 py-1.5">
+                                                        <div className={`w-10 shrink-0 rounded-md px-0.5 py-0.5 text-center ${isToday ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>
+                                                            <p className="text-[8px] font-bold uppercase">{date.toLocaleDateString(undefined, { weekday: 'short' })}</p>
+                                                            <p className={`text-xs leading-tight ${isToday ? 'font-extrabold' : 'font-bold text-slate-800'}`}>{date.getDate()}</p>
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            {dayEvents.length > 0 ? (
+                                                                <div className="space-y-1">
+                                                                    {dayEvents.map((event) => (
+                                                                        <Link
+                                                                            key={event.id}
+                                                                            href={`/client/announcements/${event.id}`}
+                                                                            className="block min-w-0 rounded-md hover:text-blue-600"
+                                                                        >
+                                                                            <span className="block truncate text-[11px] font-bold leading-tight text-slate-800 hover:text-blue-600">
+                                                                                {event.title}
+                                                                            </span>
+                                                                            <span className="block truncate text-[9px] font-medium leading-tight text-slate-500">
+                                                                                {[formatTime(event.start_time), event.location].filter(Boolean).join(' · ')}
+                                                                            </span>
+                                                                        </Link>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-[10px] text-slate-400">No events</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <Link href="/client/events" className="mt-2 block text-center text-[11px] font-bold text-blue-600 hover:text-blue-700">
+                                            View all events
+                                        </Link>
                                     </div>
 
                                     {/* Upcoming Events */}
                                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                        <h3 className="mb-4 text-lg font-extrabold text-slate-900">Upcoming Events</h3>
+                                        <h3 className="mb-4 text-lg font-extrabold text-slate-900">Upcoming & Live Events</h3>
                                         <div className="space-y-4">
                                             {upcomingEvents.map((event) => (
                                                 <div
@@ -617,12 +699,10 @@ export default function ClientHome({
                                                 <p className="text-center text-sm text-slate-500 py-4">No upcoming events.</p>
                                             )}
                                         </div>
-                                    </div>
-
-                                    {/* Starting Now / Urgent Events Box */}
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                         <h3 className="mb-4 text-lg font-extrabold text-slate-900">Starting Now</h3>
-                                         <p className="text-sm font-medium text-slate-500">Check back later for live events.</p>
+                                        <div className="mt-5 border-t border-slate-100 pt-4">
+                                            <h4 className="mb-2 text-sm font-bold text-slate-800">Starting Now</h4>
+                                            <p className="text-sm font-medium text-slate-500">Check back later for live events.</p>
+                                        </div>
                                     </div>
                                 </div>
 

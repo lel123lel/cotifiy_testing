@@ -26,7 +26,7 @@ type AnnouncementComment = {
     messages: DiscussionMessage[];
 };
 
-type AnnouncementTab = 'My Posts' | 'All' | 'Drafts' | 'Archived';
+type AnnouncementTab = 'My Posts' | 'All' | 'Approval' | 'Drafts' | 'Archived';
 
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
     month: 'short',
@@ -116,6 +116,12 @@ export default function StaffAnnouncements({
             count: announcements.filter((announcement) => announcement.author_staff_id === staffId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
         },
         { label: 'All', count: announcements.filter((announcement) => announcement.status !== 'Draft' && announcement.status !== 'Archived').length },
+        {
+            label: 'Approval',
+            count: announcements.filter((announcement) =>
+                announcement.author_staff_id === staffId && announcement.status === 'Pending Approval'
+            ).length,
+        },
         { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft' && announcement.author_staff_id === staffId).length },
         { label: 'Archived', count: announcements.filter((announcement) => announcement.status === 'Archived').length },
     ];
@@ -124,13 +130,15 @@ export default function StaffAnnouncements({
     const filteredAnnouncements = announcements.filter((ann) => {
         const matchesTab = activeTab === 'My Posts'
             ? ann.author_staff_id === staffId && ann.status !== 'Draft' && ann.status !== 'Archived'
-            : activeTab === 'Drafts'
-                ? ann.status === 'Draft' && ann.author_staff_id === staffId
-                : activeTab === 'Archived'
-                    ? ann.status === 'Archived'
-                    : activeTab === 'All'
-                        ? ann.status !== 'Draft' && ann.status !== 'Archived'
-                        : ann.status === activeTab;
+            : activeTab === 'Approval'
+                ? ann.author_staff_id === staffId && ann.status === 'Pending Approval'
+                : activeTab === 'Drafts'
+                    ? ann.status === 'Draft' && ann.author_staff_id === staffId
+                    : activeTab === 'Archived'
+                        ? ann.status === 'Archived'
+                        : activeTab === 'All'
+                            ? ann.status !== 'Draft' && ann.status !== 'Archived'
+                            : ann.status === activeTab;
         const matchesSearch = ann.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = categoryFilter === 'All' || ann.category === categoryFilter;
         return matchesTab && matchesSearch && matchesCategory;
@@ -167,7 +175,7 @@ export default function StaffAnnouncements({
         setSelectedCategory(announcement?.category || 'Academic');
         setIsUrgent(announcement?.is_urgent ?? false);
         setUrgentDays(announcement?.urgent_days ?? 1);
-        setIsDepartmentOnly(announcement?.target_department != null);
+        setIsDepartmentOnly(announcement ? announcement.target_department != null : canRestrictDepartment);
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
         setRemovedAttachmentPaths([]);
@@ -390,7 +398,13 @@ export default function StaffAnnouncements({
                                                     </td>
                                                     <td className="px-4 py-5 text-xs font-semibold">{announcement.posted_by || '—'}</td>
                                                     <td className="px-4 py-5">
-                                                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${announcement.status === 'Scheduled' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-800'}`}>
+                                                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${
+                                                            announcement.status === 'Pending Approval'
+                                                                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                                                : announcement.status === 'Scheduled'
+                                                                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                                                    : 'border-slate-200 bg-white text-slate-800'
+                                                        }`}>
                                                             {announcement.status || 'Published'}
                                                         </span>
                                                     </td>
@@ -532,7 +546,11 @@ export default function StaffAnnouncements({
                                                 }}
                                                 className="flex-1 sm:flex-none px-4 py-2 bg-ctu-dark hover:bg-slate-800 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
-                                                {processing ? 'Saving...' : editingAnnouncement?.status === 'Draft' ? 'Publish' : editingAnnouncement ? 'Save changes' : 'Publish'}
+                                                {processing
+                                                    ? 'Saving...'
+                                                    : (isUrgent || !isDepartmentOnly)
+                                                        ? 'Submit for approval'
+                                                        : (editingAnnouncement?.status === 'Draft' ? 'Publish' : editingAnnouncement ? 'Save changes' : 'Publish')}
                                             </button>
                                         </div>
                                     </div>

@@ -26,7 +26,7 @@ type AnnouncementComment = {
     messages: DiscussionMessage[];
 };
 
-type AnnouncementTab = 'My Posts' | 'All' | 'Drafts' | 'Archived';
+type AnnouncementTab = 'My Posts' | 'All' | 'Drafts' | 'Approval' | 'Archived';
 
 const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
     month: 'short',
@@ -102,6 +102,7 @@ export default function AdminAnnouncements({
             count: announcements.filter((announcement) => announcement.author_admin_id === adminId && announcement.status !== 'Draft' && announcement.status !== 'Archived').length,
         },
         { label: 'All', count: announcements.filter((announcement) => announcement.status !== 'Draft' && announcement.status !== 'Archived').length },
+        { label: 'Approval', count: announcements.filter((announcement) => announcement.status === 'Pending Approval').length },
         { label: 'Drafts', count: announcements.filter((announcement) => announcement.status === 'Draft').length },
         { label: 'Archived', count: announcements.filter((announcement) => announcement.status === 'Archived').length },
     ];
@@ -112,11 +113,13 @@ export default function AdminAnnouncements({
             ? ann.author_admin_id === adminId && ann.status !== 'Draft' && ann.status !== 'Archived'
             : activeTab === 'Drafts'
                 ? ann.status === 'Draft'
-                : activeTab === 'Archived'
-                    ? ann.status === 'Archived'
-                    : activeTab === 'All'
-                        ? ann.status !== 'Draft' && ann.status !== 'Archived'
-                        : ann.status === activeTab;
+                : activeTab === 'Approval'
+                    ? ann.status === 'Pending Approval'
+                    : activeTab === 'Archived'
+                        ? ann.status === 'Archived'
+                        : activeTab === 'All'
+                            ? ann.status !== 'Draft' && ann.status !== 'Archived'
+                            : ann.status === activeTab;
         const matchesSearch = ann.title.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = categoryFilter === 'All' || ann.category === categoryFilter;
         return matchesTab && matchesSearch && matchesCategory;
@@ -144,6 +147,18 @@ export default function AdminAnnouncements({
 
     const restoreAnnouncement = (announcement: Announcement) => {
         router.patch(`${panelBase}/announcements/${announcement.id}/restore`, {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const approveAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/approve`, {}, {
+            preserveScroll: true,
+        });
+    };
+
+    const rejectAnnouncement = (announcement: Announcement) => {
+        router.patch(`${panelBase}/announcements/${announcement.id}/reject`, {}, {
             preserveScroll: true,
         });
     };
@@ -412,7 +427,28 @@ export default function AdminAnnouncements({
                                                     </td>
                                                     <td className="whitespace-nowrap px-4 py-5 text-xs">{formatDate(announcement.date)}</td>
                                                     <td className="px-4 py-5 text-right" onClick={(event) => event.stopPropagation()}>
-                                                        {activeTab === 'Archived'
+                                                        {activeTab === 'Approval'
+                                                            ? (
+                                                                <div className="flex justify-end gap-1.5">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => rejectAnnouncement(announcement)}
+                                                                        title="Return to draft"
+                                                                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-[10px] font-bold text-slate-700 transition-colors hover:bg-slate-100"
+                                                                    >
+                                                                        <i className="fa-solid fa-xmark" aria-hidden="true"></i> Reject
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => approveAnnouncement(announcement)}
+                                                                        title="Approve and publish"
+                                                                        className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-2 text-[10px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+                                                                    >
+                                                                        <i className="fa-solid fa-check" aria-hidden="true"></i> Approve
+                                                                    </button>
+                                                                </div>
+                                                            )
+                                                            : activeTab === 'Archived'
                                                             ? renderAdminActions(announcement, true)
                                                             : renderAdminActions(announcement)}
                                                     </td>

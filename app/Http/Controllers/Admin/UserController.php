@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminUser;
+use App\Models\Office;
 use App\Models\StaffUser;
 use App\Models\User;
+use App\Support\CollegeDepartment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,12 +33,21 @@ class UserController extends Controller
     public function staff(): Response
     {
         return Inertia::render('admin/adminstaff', [
+            'departments' => CollegeDepartment::allDepartments(),
             'adminUsers' => AdminUser::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'email', 'created_at']),
             'staffUsers' => StaffUser::query()
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'created_at']),
+                ->with('office:id,name')
+                ->get(['id', 'name', 'email', 'created_at', 'office_id'])
+                ->map(fn (StaffUser $staff) => [
+                    'id' => $staff->id,
+                    'name' => $staff->name,
+                    'email' => $staff->email,
+                    'created_at' => $staff->created_at,
+                    'department' => $staff->office?->name,
+                ]),
         ]);
     }
 
@@ -87,13 +98,16 @@ class UserController extends Controller
                 Rule::unique(StaffUser::class),
             ],
             'password' => ['required', 'string', Password::default(), 'confirmed'],
+            'department' => ['required', 'string', Rule::in(CollegeDepartment::allDepartments())],
         ]);
+
+        $office = Office::firstOrCreate(['name' => $validated['department']]);
 
         StaffUser::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-        ]);
+        ])->forceFill(['office_id' => $office->id])->save();
 
         return back();
     }

@@ -170,15 +170,6 @@ Route::get('/admin/settings', [SettingsController::class, 'index'])
 Route::put('/admin/settings/password', [SettingsController::class, 'updatePassword'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.settings.password');
-Route::post('/admin/offices', [SettingsController::class, 'storeOffice'])
-    ->middleware(['auth:admin', 'private-cache'])
-    ->name('admin.offices.store');
-Route::put('/admin/offices/{office}', [SettingsController::class, 'updateOffice'])
-    ->middleware(['auth:admin', 'private-cache'])
-    ->name('admin.offices.update');
-Route::delete('/admin/offices/{office}', [SettingsController::class, 'destroyOffice'])
-    ->middleware(['auth:admin', 'private-cache'])
-    ->name('admin.offices.destroy');
 Route::post('/admin/users/admins', [UserController::class, 'storeAdmin'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.users.admins.store');
@@ -203,6 +194,12 @@ Route::patch('/admin/announcements/{announcement}/archive', [AnnouncementControl
 Route::patch('/admin/announcements/{announcement}/restore', [AnnouncementController::class, 'restore'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.restore');
+Route::patch('/admin/announcements/{announcement}/approve', [AnnouncementController::class, 'approve'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.announcements.approve');
+Route::patch('/admin/announcements/{announcement}/reject', [AnnouncementController::class, 'reject'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.announcements.reject');
 Route::post('/admin/announcements/{announcement}/remind-unread-clients', [AnnouncementController::class, 'remindUnreadClients'])
     ->middleware(['auth:admin', 'private-cache', 'throttle:6,1'])
     ->name('admin.announcements.remind-unread-clients');

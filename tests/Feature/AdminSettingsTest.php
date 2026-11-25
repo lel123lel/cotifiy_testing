@@ -14,7 +14,10 @@ test('an admin can view the settings page', function () {
     $this->actingAs($admin, 'admin')
         ->get(route('admin.settings'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('admin/settings'));
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/settings')
+            ->missing('offices')
+            ->missing('staffAccounts'));
 });
 
 test('an admin can change their password using the current password', function () {

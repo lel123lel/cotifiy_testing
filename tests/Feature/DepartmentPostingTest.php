@@ -1,66 +1,15 @@
 <?php
 
-use App\Models\AdminUser;
 use App\Models\Announcement;
 use App\Models\Office;
 use App\Models\StaffUser;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('an admin can save staff account links to an office', function () {
-    $admin = AdminUser::create([
-        'name' => 'Site Admin',
-        'email' => 'admin@example.com',
-        'password' => 'secret-password',
-    ]);
-    $staff = StaffUser::create([
-        'name' => 'Registrar Staff',
-        'email' => 'staff@example.com',
-        'password' => 'secret-password',
-    ]);
-
-    $this->actingAs($admin, 'admin')
-        ->post(route('admin.offices.store'), [
-            'name' => 'Registrar Test Office',
-            'staff_account_ids' => [$staff->id],
-        ])
-        ->assertRedirect();
-
-    $office = Office::query()->where('name', 'Registrar Test Office')->firstOrFail();
-    expect($staff->fresh()->office_id)->toBe($office->id);
-
-    $this->get(route('admin.settings'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->has('offices', 5)
-            ->where('staffAccounts.0.office_id', $office->id));
-});
-
-test('an admin can remove an office and unassign its staff accounts', function () {
-    $admin = AdminUser::create([
-        'name' => 'Site Admin',
-        'email' => 'admin@example.com',
-        'password' => 'secret-password',
-    ]);
-    $office = Office::create(['name' => 'Office To Remove']);
-    $staff = StaffUser::create([
-        'name' => 'Registrar Staff',
-        'email' => 'staff@example.com',
-        'password' => 'secret-password',
-    ]);
-    $staff->forceFill(['office_id' => $office->id])->save();
-
-    $this->actingAs($admin, 'admin')
-        ->delete(route('admin.offices.destroy', $office))
-        ->assertRedirect();
-
-    expect(Office::query()->whereKey($office->id)->exists())->toBeFalse();
-    expect($staff->fresh()->office_id)->toBeNull();
-});
-
 test('a linked staff account can only publish and edit posts under its office', function () {
     Notification::fake();
 
-    $office = Office::query()->where('name', "Registrar's Office")->firstOrFail();
+    $office = Office::firstOrCreate(['name' => "Registrar's Office"]);
     $staff = StaffUser::create([
         'name' => 'Registrar Staff',
         'email' => 'staff@example.com',

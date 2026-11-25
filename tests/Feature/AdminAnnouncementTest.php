@@ -220,6 +220,14 @@ test('staff can manage announcements and events through the staff panel', functi
     $eventResponse->assertRedirect();
 
     $event = Announcement::query()->where('title', 'Staff event')->firstOrFail();
+    $admin = AdminUser::create([
+        'name' => 'Fixture Admin',
+        'email' => 'fixture-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $this->actingAs($admin, 'admin')
+        ->patch(route('admin.announcements.approve', $event))
+        ->assertRedirect();
 
     $this->get(route('staff.announcements.index'))
         ->assertOk()
@@ -285,6 +293,15 @@ test('staff can restrict announcements and events to their college', function ()
     $event = Announcement::query()->where('title', 'Technology-only event')->firstOrFail();
     expect($announcement->target_department)->toBe('College of Technology')
         ->and($event->target_department)->toBe('College of Technology');
+
+    $admin = AdminUser::create([
+        'name' => 'Department Admin',
+        'email' => 'department-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $this->actingAs($admin, 'admin')
+        ->patch(route('admin.announcements.approve', $announcement))
+        ->assertRedirect();
 
     Notification::assertSentTo($technologyStudent, AnnouncementPublished::class, function (AnnouncementPublished $notification) use ($announcement, $technologyStudent): bool {
         $channels = $notification->via($technologyStudent);
@@ -532,7 +549,8 @@ test('staff can publish an urgent announcement for up to three days', function (
     $announcement = Announcement::query()->where('title', 'Urgent campus update')->firstOrFail();
     expect($announcement->is_urgent)->toBeTrue()
         ->and($announcement->urgent_days)->toBe(3)
-        ->and($announcement->urgent_until->isFuture())->toBeTrue();
+        ->and($announcement->status)->toBe('Pending Approval')
+        ->and($announcement->urgent_until)->toBeNull();
 
     $this->actingAs($staff, 'staff')
         ->post(route('staff.announcements.store'), [
@@ -683,6 +701,16 @@ test('staff announcement pages render the dedicated staff page with all announce
         ])->assertRedirect();
 
     $otherEvent = Announcement::query()->where('title', 'Other staff event')->firstOrFail();
+    $admin = AdminUser::create([
+        'name' => 'List Admin',
+        'email' => 'list-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $this->actingAs($admin, 'admin');
+    foreach (['Other staff event', 'My event', 'My announcement'] as $title) {
+        $announcement = Announcement::query()->where('title', $title)->firstOrFail();
+        $this->patch(route('admin.announcements.approve', $announcement))->assertRedirect();
+    }
 
     $this->actingAs($staff, 'staff')
         ->get(route('staff.announcements.index'))
@@ -780,8 +808,18 @@ test('staff can save an incomplete announcement as a private draft', function ()
         ])
         ->assertRedirect();
 
-    expect($draft->fresh()->status)->toBe('Published');
+    expect($draft->fresh()->status)->toBe('Pending Approval');
     expect($draft->fresh()->date->toDateString())->toBe(now()->toDateString());
+    Notification::assertNothingSent();
+
+    $admin = AdminUser::create([
+        'name' => 'Approval Admin',
+        'email' => 'approval-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $this->actingAs($admin, 'admin')
+        ->patch(route('admin.announcements.approve', $draft))
+        ->assertRedirect();
     Notification::assertSentTo($client, AnnouncementPublished::class);
 
     $this->actingAs($client, 'web')
