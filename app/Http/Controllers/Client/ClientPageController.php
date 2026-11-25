@@ -245,29 +245,16 @@ class ClientPageController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        $conversation = Conversation::query()
+        $messages = Conversation::query()
             ->where('announcement_id', $announcement->id)
-            ->where('client_id', $user->id)
             ->with([
                 'messages' => fn ($query) => $query
                     ->with(['sender', 'adminSender', 'staffSender'])
                     ->orderBy('created_at')
                     ->orderBy('id'),
             ])
-            ->first();
-
-        $announcementComments = Conversation::query()
-            ->where('announcement_id', $announcement->id)
-            ->whereNull('client_id')
-            ->with([
-                'messages' => fn ($query) => $query
-                    ->with(['sender', 'adminSender', 'staffSender'])
-                    ->orderBy('created_at')
-                    ->orderBy('id'),
-            ])
-            ->first()
-            ?->messages
-            ->map(fn (Message $message) => [
+            ->get()
+            ->flatMap(fn (Conversation $conversation) => $conversation->messages->map(fn (Message $message) => [
                 'id' => $message->id,
                 'parent_message_id' => $message->parent_message_id,
                 'author' => $message->sender_staff_id !== null
@@ -285,29 +272,10 @@ class ClientPageController extends Controller
                 'sent_at' => $message->created_at?->toIso8601String(),
                 'is_mine' => $message->sender_id === $user->id,
                 'is_announcement_wide' => true,
-            ]) ?? collect();
-
-        $clientMessages = $conversation?->messages
-            ->map(fn (Message $message) => [
-                'id' => $message->id,
-                'parent_message_id' => $message->parent_message_id,
-                'author' => $message->sender_staff_id !== null
-                    ? $message->staffSender->name
-                    : ($message->sender_admin_id !== null
-                        ? $message->adminSender->name
-                        : $message->sender->name),
-                'author_photo_url' => $message->sender_id !== null && $message->sender?->profile_photo_path !== null
-                    ? Storage::disk('public')->url($message->sender->profile_photo_path)
-                    : null,
-                'role' => $message->sender_staff_id !== null
-                    ? 'Staff'
-                    : ($message->sender_admin_id === null ? 'Client' : 'Admin'),
-                'content' => $message->content,
-                'sent_at' => $message->created_at?->toIso8601String(),
-                'is_mine' => $message->sender_id === $user->id,
-                'is_announcement_wide' => false,
-            ])
-            ->values() ?? collect();
+            ]))
+            ->sort(fn (array $first, array $second): int => strcmp($first['sent_at'] ?? '', $second['sent_at'] ?? '')
+                ?: ($first['id'] <=> $second['id']))
+            ->values();
 
         return Inertia::render('client/clientReadmore', [
             'announcement' => [
@@ -315,10 +283,7 @@ class ClientPageController extends Controller
                 'is_saved' => $user->savedAnnouncements()->whereKey($announcement->id)->exists(),
                 'is_read' => $announcement->readers()->whereKey($user->id)->exists(),
             ],
-            'messages' => $announcementComments
-                ->concat($clientMessages)
-                ->sortBy('sent_at')
-                ->values() ?? [],
+            'messages' => $messages,
         ]);
     }
 

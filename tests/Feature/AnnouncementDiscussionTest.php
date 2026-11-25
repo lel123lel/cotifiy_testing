@@ -47,10 +47,10 @@ test('client messages are saved to a conversation for that client and announceme
             ->where('messages.0.is_mine', true));
 });
 
-test('each client has a separate discussion for the same announcement', function () {
+test('clients across departments can see and reply to each other comments', function () {
     $announcement = createDiscussionAnnouncement();
-    $firstClient = User::factory()->create();
-    $secondClient = User::factory()->create();
+    $firstClient = User::factory()->create(['course' => 'BSIT']);
+    $secondClient = User::factory()->create(['course' => 'BSCE']);
 
     $this->actingAs($firstClient, 'web')
         ->post(route('client.announcements.messages.store', $announcement), ['content' => 'First client question']);
@@ -60,11 +60,35 @@ test('each client has a separate discussion for the same announcement', function
     expect(Conversation::query()->count())->toBe(2)
         ->and(Message::query()->count())->toBe(2);
 
+    $firstComment = Conversation::query()
+        ->where('client_id', $firstClient->id)
+        ->firstOrFail()
+        ->messages()
+        ->sole();
+
+    $this->actingAs($secondClient, 'web')
+        ->post(route('client.announcements.messages.store', $announcement), [
+            'content' => 'Reply from another department',
+            'parent_message_id' => $firstComment->id,
+        ])
+        ->assertRedirect();
+
     $this->actingAs($firstClient, 'web')
         ->get(route('client.announcements.show', $announcement))
         ->assertInertia(fn ($page) => $page
-            ->has('messages', 1)
-            ->where('messages.0.content', 'First client question'));
+            ->has('messages', 3)
+            ->where('messages.0.content', 'First client question')
+            ->where('messages.0.is_announcement_wide', true)
+            ->where('messages.1.content', 'Second client question')
+            ->where('messages.2.content', 'Reply from another department')
+            ->where('messages.2.parent_message_id', $firstComment->id));
+
+    $this->actingAs($secondClient, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertInertia(fn ($page) => $page
+            ->has('messages', 3)
+            ->where('messages.0.content', 'First client question')
+            ->where('messages.2.content', 'Reply from another department'));
 });
 
 test('a client has separate discussions for different announcements', function () {

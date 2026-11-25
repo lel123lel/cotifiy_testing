@@ -35,11 +35,7 @@ class AnnouncementDiscussionController extends Controller
                         'conversation_id',
                         Conversation::query()
                             ->select('id')
-                            ->where('announcement_id', $announcement->id)
-                            ->where(function ($query) use ($client): void {
-                                $query->whereNull('client_id')
-                                    ->orWhere('client_id', $client->id);
-                            }),
+                            ->where('announcement_id', $announcement->id),
                     ),
                 ),
             ],
