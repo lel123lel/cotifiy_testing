@@ -795,7 +795,7 @@ export default function ClientReadMore({
                                                 <div className="mb-5">
                                                     <h3 className="text-xl font-extrabold text-slate-900">Event Gallery</h3>
                                                     <p className="mt-1 text-sm font-medium text-slate-500">
-                                                        Relive the moments from this event.
+                                                        Happening Now.
                                                     </p>
                                                 </div>
 
