@@ -54,51 +54,47 @@ function getUrgencyTheme(event: EventAnnouncement): UrgencyTheme {
     const diffMs = eventStart ? eventStart.getTime() - now.getTime() : 0;
     const diffHours = diffMs / (1000 * 60 * 60);
 
-    // 1. Urgent — Happening today or within 24h
     if (eventStart && diffHours > 0 && diffHours <= 24) {
         return {
             level: 'urgent',
             label: diffHours <= 1 ? 'Deadline in < 1 hr' : `Starting in ${Math.round(diffHours)} hr${Math.round(diffHours) === 1 ? '' : 's'}`,
-            bannerColor: 'bg-red-600',
-            badgeBg: 'bg-red-100',
+            bannerColor: 'bg-red-500',
+            badgeBg: 'bg-red-50',
             badgeText: 'text-red-700',
             badgeBorder: 'border-red-200',
-            bgTint: 'bg-red-50/40',
+            bgTint: 'bg-red-50/30',
             dotColor: 'bg-red-500',
             pulse: true,
         };
     }
 
-    // 2. Pinned
     if (event.is_pinned) {
         return {
             level: 'pinned',
             label: 'Pinned Event',
-            bannerColor: 'bg-indigo-600',
-            badgeBg: 'bg-indigo-100',
+            bannerColor: 'bg-indigo-500',
+            badgeBg: 'bg-indigo-50',
             badgeText: 'text-indigo-700',
             badgeBorder: 'border-indigo-200',
-            bgTint: 'bg-indigo-50/30',
+            bgTint: 'bg-indigo-50/20',
             dotColor: 'bg-indigo-500',
         };
     }
 
-    // 3. Soon — Happening within 7 days
     if (eventStart && diffHours > 24 && diffHours <= 168) {
         const days = Math.ceil(diffHours / 24);
         return {
             level: 'soon',
             label: `Starts in ${days} day${days === 1 ? '' : 's'}`,
-            bannerColor: 'bg-amber-500',
-            badgeBg: 'bg-amber-100',
+            bannerColor: 'bg-amber-400',
+            badgeBg: 'bg-amber-50',
             badgeText: 'text-amber-700',
             badgeBorder: 'border-amber-200',
-            bgTint: 'bg-amber-50/30',
+            bgTint: 'bg-amber-50/20',
             dotColor: 'bg-amber-500',
         };
     }
 
-    // 4. Good News
     const titleLower = event.title.toLowerCase();
     const contentLower = event.content.toLowerCase();
     const goodNewsKeywords = ['dean', 'award', 'achieve', 'winner', 'honor', 'congrat', 'success', 'top', 'passed', 'excellence', 'champion'];
@@ -109,23 +105,22 @@ function getUrgencyTheme(event: EventAnnouncement): UrgencyTheme {
             level: 'good_news',
             label: 'Good News',
             bannerColor: 'bg-emerald-500',
-            badgeBg: 'bg-emerald-100',
+            badgeBg: 'bg-emerald-50',
             badgeText: 'text-emerald-700',
             badgeBorder: 'border-emerald-200',
-            bgTint: 'bg-emerald-50/30',
+            bgTint: 'bg-emerald-50/20',
             dotColor: 'bg-emerald-500',
         };
     }
 
-    // 5. Default Event Info
     return {
         level: 'info',
         label: 'Upcoming Event',
         bannerColor: 'bg-blue-500',
-        badgeBg: 'bg-blue-100',
+        badgeBg: 'bg-blue-50',
         badgeText: 'text-blue-700',
         badgeBorder: 'border-blue-200',
-        bgTint: 'bg-blue-50/20',
+        bgTint: 'bg-blue-50/10',
         dotColor: 'bg-blue-500',
     };
 }
@@ -135,6 +130,9 @@ export default function ClientEvents({
     isLoading = false,
 }: ClientEventsProps) {
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Dinosaur Animation State
+    const [dinoAnimation, setDinoAnimation] = useState<{ active: boolean; row: number; col: number } | null>(null);
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -186,11 +184,36 @@ export default function ClientEvents({
     
     const activeDateEvents = getEventsForDate(activeDateStr);
     const activeDateObj = new Date(`${activeDateStr}T00:00:00`);
+    const selectedDateInCurrentMonth = selectedDate?.startsWith(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-`)
+        ? parseInt(selectedDate.slice(-2), 10)
+        : null;
+    const selectedDinoPosition = selectedDateInCurrentMonth
+        ? (() => {
+            const index = selectedDateInCurrentMonth - 1 + firstDay;
+            return { row: Math.floor(index / 7), col: index % 7 };
+        })()
+        : null;
 
     // --- Helpers ---
     const formatTime = (time: string | null) => time
         ? new Date(`1970-01-01T${time}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
         : '';
+
+    const handleDateClick = (dateStr: string, day: number) => {
+        setSelectedDate(dateStr);
+        
+        // Calculate row and column for Dino animation
+        const index = day - 1 + firstDay;
+        const row = Math.floor(index / 7);
+        const col = index % 7;
+        
+        setDinoAnimation({ active: true, row, col });
+        
+        // Reset after animation finishes
+        setTimeout(() => {
+            setDinoAnimation(null);
+        }, 1200); // Duration of the run
+    };
 
     return (
         <>
@@ -206,6 +229,17 @@ export default function ClientEvents({
                     50% { opacity: 0.9; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0); } 
                 }
                 
+                /* Dino Run Animation */
+                @keyframes run-across {
+                    0% { transform: translateX(0); opacity: 1; }
+                    80% { transform: translateX(var(--target-x)); opacity: 1; }
+                    100% { transform: translateX(var(--target-x)); opacity: 1; }
+                }
+                @keyframes hop {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-4px); }
+                }
+
                 @keyframes move-around-1 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-35vw, 25vh) rotate(25deg); } 50% { transform: translate(-15vw, 50vh) rotate(-15deg); } 75% { transform: translate(25vw, 30vh) rotate(15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-2 { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(30vw, -30vh) rotate(-25deg); } 50% { transform: translate(-40vw, -20vh) rotate(15deg); } 75% { transform: translate(-25vw, 30vh) rotate(-15deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
                 @keyframes move-around-3 { 0% { transform: translate(0, 0) rotate(0deg) scale(1); } 33% { transform: translate(35vw, -40vh) rotate(55deg) scale(1.3); } 66% { transform: translate(-30vw, 25vh) rotate(110deg) scale(0.9); } 100% { transform: translate(0, 0) rotate(0deg) scale(1); } }
@@ -275,7 +309,8 @@ export default function ClientEvents({
                             {/* PAGE HEADER & TABS */}
                             <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                                 <div>
-                                    <p className="mt-2 text-base text-slate-500">Discover what's happening on campus.</p>
+                                    <h1 className="text-3xl font-extrabold text-slate-900">Campus Calendar</h1>
+                                    <p className="mt-2 text-base text-slate-500">Discover what's happening on campus and keep track of upcoming events.</p>
                                 </div>
                             </div>
 
@@ -286,26 +321,28 @@ export default function ClientEvents({
                             ) : (
                                 <div className="animate-fade-in">
                                     
-                                    <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.38fr)]">
+                                    <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.35fr)]">
                                             
                                             {/* Calendar Grid */}
-                                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                                <div className="-mx-6 -mt-6 mb-4 flex items-center justify-between rounded-t-2xl bg-white px-6 pt-6 pb-3">
-                                                    <h2 className="text-xl font-extrabold text-slate-900">
+                                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/50 relative overflow-hidden">
+                                                
+                                                <div className="-mx-6 -mt-6 mb-4 flex items-center justify-between rounded-t-3xl bg-white px-6 pt-6 pb-4 border-b border-slate-100">
+                                                    <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-3">
+                                                        <i className="fa-regular fa-calendar text-ctu-lightblue bg-blue-50 p-2 rounded-lg"></i>
                                                         {currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
                                                     </h2>
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={prevMonth}
                                                             aria-label="Previous month"
-                                                            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                         >
                                                             <i className="fa-solid fa-chevron-left text-sm"></i>
                                                         </button>
                                                         <button
                                                             onClick={nextMonth}
                                                             aria-label="Next month"
-                                                            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                         >
                                                             <i className="fa-solid fa-chevron-right text-sm"></i>
                                                         </button>
@@ -360,20 +397,47 @@ export default function ClientEvents({
                                                         }
                                                     }}
                                                 >
-                                                <div className="min-w-[700px] xl:min-w-0">
+                                                <div className="min-w-[700px] xl:min-w-0 relative">
+
+                                                    {/* DINO MARKER (Moves smoothly to the selected date box) */}
+                                                    {selectedDinoPosition && (
+                                                        <div 
+                                                            className="absolute z-50 pointer-events-none"
+                                                            style={{
+                                                                top: `calc(${selectedDinoPosition.row} * (6rem + 0.25rem) + 2.5rem)`, 
+                                                                left: `calc(${selectedDinoPosition.col} * (100% / 7))`,
+                                                                width: 'calc(100% / 7)',
+                                                                height: '6rem',
+                                                                display: 'flex',
+                                                                alignItems: 'flex-end',
+                                                                justifyContent: 'center',
+                                                                paddingBottom: '0.35rem',
+                                                                transition: 'top 0.6s ease-in-out, left 0.6s ease-in-out',
+                                                            }}
+                                                        >
+                                                            <div style={{ animation: 'hop 0.8s ease-in-out infinite' }}>
+                                                                {/* Pixel Art Dinosaur */}
+                                                                <img 
+                                                                    src="/images/output-onlinegiftools.gif" 
+                                                                    alt="Dino" 
+                                                                    className="w-15 h-15 object-contain drop-shadow-md" 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                 {/* Days of Week */}
                                                 <div className="mb-2 grid grid-cols-7 gap-1 text-center">
                                                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                                                        <div key={i} className="py-2 text-[12px] font-bold tracking-wider text-slate-400 uppercase">{day}</div>
+                                                        <div key={i} className="py-2 text-[11px] font-extrabold tracking-widest text-slate-400 uppercase">{day}</div>
                                                     ))}
                                                 </div>
 
                                                 {/* Calendar Cells */}
-                                                <div className="grid grid-cols-7 gap-1">
+                                                <div className="grid grid-cols-7 gap-1.5">
                                                     {/* Empty cells for offset */}
                                                     {Array.from({ length: firstDay }).map((_, i) => (
-                                                        <div key={`empty-${i}`} className="h-24 rounded-lg bg-slate-50/50"></div>
+                                                        <div key={`empty-${i}`} className="h-24 rounded-xl bg-slate-50/50"></div>
                                                     ))}
 
                                                     {/* Actual days */}
@@ -384,48 +448,42 @@ export default function ClientEvents({
                                                         const isSelected = selectedDate === dateStr;
                                                         const isToday = dateStr === todayStr;
 
-                                                        // Determine highest priority urgency for this day's dot
-                                                        const hasUrgent = dayEvents.some(e => {
-                                                            const u = getUrgencyTheme(e);
-                                                            return u.level === 'urgent';
-                                                        });
-                                                        const hasSoon = dayEvents.some(e => {
-                                                            const u = getUrgencyTheme(e);
-                                                            return u.level === 'soon';
-                                                        });
-
                                                         return (
                                                             <div 
                                                                 key={day} 
-                                                                onClick={() => setSelectedDate(dateStr)}
-                                                                className={`flex h-24 cursor-pointer flex-col overflow-hidden rounded-lg border p-1.5 transition-colors ${
-                                                                    isToday ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200' :
-                                                                    isSelected ? 'border-blue-500 bg-blue-50/50' :
-                                                                    'border-transparent hover:bg-slate-50'
+                                                                onClick={() => handleDateClick(dateStr, day)}
+                                                                className={`flex h-24 cursor-pointer flex-col overflow-hidden rounded-xl border p-1.5 transition-all ${
+                                                                    isToday 
+                                                                        ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-200 shadow-sm' 
+                                                                        : isSelected 
+                                                                            ? 'border-slate-400 bg-slate-100 ring-2 ring-slate-300 shadow-md transform scale-[1.02] z-10 relative' 
+                                                                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                                                                 }`}
                                                             >
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${
-                                                                        isToday ? 'bg-blue-600 text-white' : 'text-slate-700'
+                                                                    <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
+                                                                        isToday 
+                                                                            ? 'bg-blue-600 text-white shadow-md' 
+                                                                            : isSelected 
+                                                                                ? 'bg-slate-800 text-white shadow-md' 
+                                                                                : 'text-slate-600 bg-slate-100'
                                                                     }`}>
                                                                         {day}
                                                                     </span>
-                                                                    
-                                                                    {/* Urgency Dot in Calendar Cell */}
-                                                                    {dayEvents.length > 0 && (
-                                                                        <span className={`flex h-2 w-2 rounded-full ${hasUrgent ? 'bg-red-500 animate-pulse' : hasSoon ? 'bg-amber-500' : 'bg-blue-500'}`} title="Event scheduled"></span>
-                                                                    )}
                                                                 </div>
                                                                 
-                                                                {/* Event Pills */}
+                                                                {/* Event Previews inside Cell */}
                                                                 <div className="no-scrollbar mt-1 space-y-1 overflow-y-auto">
-                                                                    {dayEvents.slice(0, 2).map(e => (
-                                                                        <div key={e.id} className="truncate rounded bg-slate-200/70 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
-                                                                            {e.title}
+                                                                    {dayEvents.slice(0, 2).map(e => {
+                                                                        const u = getUrgencyTheme(e);
+                                                                        return (
+                                                                        <div key={e.id} className="flex items-center gap-1.5 truncate rounded-md bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm border border-slate-200">
+                                                                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${u.dotColor}`} />
+                                                                            <span className="truncate">{e.title}</span>
                                                                         </div>
-                                                                    ))}
+                                                                    )})}
                                                                     {dayEvents.length > 2 && (
-                                                                        <div className="px-1.5 text-[11px] font-bold text-slate-500">+{dayEvents.length - 2} more</div>
+                                                                        <div className="px-1.5 pt-0.5 text-[10px] font-bold text-slate-400">+{dayEvents.length - 2} more</div>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -438,31 +496,42 @@ export default function ClientEvents({
 
                                             {/* Side Panel for Selected Date */}
                                             <aside className="space-y-4">
-                                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                                    <h3 className="mb-4 border-b border-slate-100 pb-3 text-lg font-extrabold text-slate-900">
-                                                        {activeDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-                                                    </h3>
+                                                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/50">
+                                                    <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+                                                        <div>
+                                                            <h3 className="text-2xl font-extrabold text-slate-900">
+                                                                {activeDateObj.toLocaleDateString(undefined, { day: 'numeric' })}
+                                                            </h3>
+                                                            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+                                                                {activeDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long' })}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-ctu-lightblue to-blue-600 text-white shadow-lg shadow-blue-500/30">
+                                                            <i className="fa-regular fa-calendar-check text-2xl"></i>
+                                                        </div>
+                                                    </div>
                                                     
                                                     {activeDateEvents.length === 0 ? (
-                                                        <div className="py-8 text-center">
-                                                            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50">
-                                                                <i className="fa-regular fa-calendar-xmark text-xl text-slate-400"></i>
+                                                        <div className="py-10 text-center">
+                                                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 border border-slate-100">
+                                                                <i className="fa-regular fa-calendar-xmark text-2xl text-slate-300"></i>
                                                             </div>
-                                                            <p className="text-sm font-semibold text-slate-500">No events on this day.</p>
+                                                            <p className="text-base font-bold text-slate-700">No events today</p>
+                                                            <p className="text-sm font-medium text-slate-500 mt-1">Enjoy your free time!</p>
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-5">
                                                             {activeDateEvents.map(event => {
                                                                 const urgency = getUrgencyTheme(event);
                                                                 return (
-                                                                <div key={event.id} className={`flex flex-col overflow-hidden rounded-xl border border-slate-200 transition-shadow hover:shadow-md ${urgency.bgTint}`}>
+                                                                <div key={event.id} className={`group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md ${urgency.bgTint}`}>
                                                                     
                                                                     {/* Urgency Banner */}
                                                                     <div className={`h-1.5 w-full ${urgency.bannerColor} ${urgency.pulse ? 'animate-pulse-urgent' : ''}`} />
                                                                     
                                                                     <div className="p-5">
-                                                                        <div className="mb-2">
-                                                                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase ${urgency.badgeBg} ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
+                                                                        <div className="mb-3">
+                                                                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold tracking-widest uppercase shadow-sm bg-white ${urgency.badgeText} ${urgency.badgeBorder} ${urgency.pulse ? 'animate-pulse' : ''}`}>
                                                                                 {urgency.pulse && <span className="relative flex h-1.5 w-1.5">
                                                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                                                                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
@@ -472,27 +541,36 @@ export default function ClientEvents({
                                                                         </div>
 
                                                                         {/* Event Poster */}
-                                                                        <div className="mb-4 h-32 w-full overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                                                        <div className="mb-4 h-40 w-full overflow-hidden rounded-xl border border-slate-100 bg-white relative">
                                                                             {event.image ? (
-                                                                                <img src={event.image} alt={event.title} className="h-full w-full object-cover" />
+                                                                                <img src={event.image} alt={event.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                                             ) : (
-                                                                                <div className="flex h-full w-full items-center justify-center text-slate-400">
-                                                                                    <i className="fa-regular fa-image text-3xl"></i>
+                                                                                <div className="flex h-full w-full items-center justify-center text-slate-300 bg-slate-50">
+                                                                                    <i className="fa-regular fa-image text-4xl"></i>
                                                                                 </div>
                                                                             )}
                                                                         </div>
                                                                         
-                                                                        <h4 className="mb-2 text-base leading-tight font-bold text-slate-900">{event.title}</h4>
-                                                                        <p className="mb-4 text-sm font-medium text-slate-500">
-                                                                            {formatTime(event.start_time)} {event.end_time && `– ${formatTime(event.end_time)}`} • {event.location}
-                                                                        </p>
+                                                                        <h4 className="mb-2 text-lg leading-tight font-extrabold text-slate-900 line-clamp-2">{event.title}</h4>
                                                                         
-                                                                        {/* Rule: Secondary button */}
+                                                                        <div className="mb-5 space-y-2 text-sm font-semibold text-slate-600">
+                                                                            <p className="flex items-center gap-2">
+                                                                                <i className="fa-regular fa-clock text-slate-400 w-4"></i>
+                                                                                {formatTime(event.start_time)} {event.end_time && `– ${formatTime(event.end_time)}`}
+                                                                            </p>
+                                                                            <p className="flex items-center gap-2">
+                                                                                <i className="fa-solid fa-location-dot text-slate-400 w-4"></i>
+                                                                                <span className="truncate">{event.location}</span>
+                                                                            </p>
+                                                                        </div>
+                                                                        
+                                                                        {/* Action Button */}
                                                                         <Link 
                                                                             href={`/client/announcements/${event.id}`} 
-                                                                            className="block w-full rounded-lg border border-slate-300 bg-white py-2.5 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-ctu-lightblue focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                                                                         >
                                                                             View event details
+                                                                            <i className="fa-solid fa-arrow-right text-xs"></i>
                                                                         </Link>
                                                                     </div>
                                                                 </div>
