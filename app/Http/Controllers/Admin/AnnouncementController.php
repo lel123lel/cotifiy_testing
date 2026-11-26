@@ -181,6 +181,8 @@ class AnnouncementController extends Controller
                     ? Storage::disk('public')->url($announcement->image)
                     : null,
                 'attachments' => $this->attachmentData($announcement),
+                'gallery_enabled' => $announcement->gallery_enabled,
+                'gallery_images' => $this->galleryImageData($announcement),
                 'date' => $announcement->event_date?->toDateString() ?? $announcement->date->toDateString(),
                 'end_date' => $announcement->event_end_date?->toDateString() ?? $announcement->event_date?->toDateString() ?? $announcement->date->toDateString(),
                 'time' => $announcement->start_time ?? '',
@@ -245,6 +247,8 @@ class AnnouncementController extends Controller
                     ? Storage::disk('public')->url($announcement->image)
                     : null,
                 'attachments' => $this->attachmentData($announcement),
+                'gallery_enabled' => $announcement->gallery_enabled,
+                'gallery_images' => $this->galleryImageData($announcement),
                 'date' => $announcement->event_date?->toDateString() ?? $announcement->date->toDateString(),
                 'end_date' => $announcement->event_end_date?->toDateString() ?? $announcement->event_date?->toDateString() ?? $announcement->date->toDateString(),
                 'time' => $announcement->start_time ?? '',
@@ -360,6 +364,7 @@ class AnnouncementController extends Controller
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
             'attachments' => ['sometimes', 'array', 'max:10'],
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
+            'gallery_enabled' => ['sometimes', 'boolean'],
             'event_date' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'date'],
             'event_end_date' => $isDraft ? ['nullable', 'date'] : ['nullable', 'date', 'after_or_equal:event_date'],
             'start_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:end_time', 'date_format:H:i'],
@@ -372,6 +377,14 @@ class AnnouncementController extends Controller
         $postedByFallback = ($validated['posted_by'] ?? '') ?: ($request->user('staff')->name ?? $request->user('admin')->name ?? 'Staff');
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
+        $galleryEnabled = $validated['category'] === 'Event' && $request->boolean('gallery_enabled');
+        if ($request->boolean('gallery_enabled') && $validated['category'] !== 'Event') {
+            throw ValidationException::withMessages([
+                'gallery_enabled' => 'The event gallery can only be enabled for event announcements.',
+            ]);
+        }
+        unset($validated['gallery_enabled']);
+        $galleryImages = [];
         $targetDepartment = $this->resolveTargetDepartment($request, null);
         unset($validated['department_only']);
         unset($validated['target_department']);
@@ -401,6 +414,8 @@ class AnnouncementController extends Controller
             'date' => now()->toDateString(),
             'image' => $imagePath,
             'attachments' => $attachments,
+            'gallery_enabled' => $galleryEnabled,
+            'gallery_images' => $galleryImages,
             ...$this->authorFields($request),
             ...$this->eventFields($validated),
         ]);
@@ -438,6 +453,7 @@ class AnnouncementController extends Controller
             'attachments.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,odt,ods,odp', 'max:10240'],
             'remove_attachments' => ['sometimes', 'array'],
             'remove_attachments.*' => ['string', Rule::in(array_column($announcement->attachments ?? [], 'path'))],
+            'gallery_enabled' => ['sometimes', 'boolean'],
             'event_date' => ['nullable', Rule::requiredIf(! $isDraft && $request->input('category') === 'Event'), 'date'],
             'event_end_date' => $isDraft ? ['nullable', 'date'] : ['nullable', 'date', 'after_or_equal:event_date'],
             'start_time' => $isDraft ? ['nullable', 'date_format:H:i'] : ['nullable', 'required_with:end_time', 'date_format:H:i'],
@@ -451,6 +467,16 @@ class AnnouncementController extends Controller
         $validated['posted_by'] = $staffDepartment ?? $postedByFallback;
         $validated['body'] = $validated['body'] ?? '';
         $validated['status'] = $request->input('status', $announcement->status ?? 'Published');
+        $galleryEnabled = $validated['category'] === 'Event' && $request->boolean(
+            'gallery_enabled',
+            (bool) $announcement->gallery_enabled,
+        );
+        if ($request->boolean('gallery_enabled') && $validated['category'] !== 'Event') {
+            throw ValidationException::withMessages([
+                'gallery_enabled' => 'The event gallery can only be enabled for event announcements.',
+            ]);
+        }
+        unset($validated['gallery_enabled']);
         $previousTargetDepartment = $announcement->target_department;
         if (
             $announcement->status !== 'Draft'
@@ -502,6 +528,7 @@ class AnnouncementController extends Controller
             ...$attachments,
             ...$this->storeAttachments($validated['attachments'] ?? []),
         ];
+        $galleryImages = $announcement->gallery_images ?? [];
 
         $wasDraft = $announcement->status === 'Draft';
         $announcement->update([
@@ -512,6 +539,8 @@ class AnnouncementController extends Controller
                 : $announcement->date->toDateString(),
             'image' => $imagePath,
             'attachments' => $attachments,
+            'gallery_enabled' => $galleryEnabled,
+            'gallery_images' => $galleryImages,
             ...$this->eventFields($validated),
         ]);
 
@@ -541,12 +570,44 @@ class AnnouncementController extends Controller
         return back();
     }
 
+    public function uploadGalleryImages(Request $request, Announcement $announcement): RedirectResponse
+    {
+        $this->ensureStaffOwnsAnnouncement($request, $announcement);
+
+        if ($announcement->category !== 'Event' || ! $announcement->gallery_enabled) {
+            throw ValidationException::withMessages([
+                'gallery_images' => 'Enable the event gallery before uploading photos.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'gallery_images' => ['required', 'array', 'min:1', 'max:30'],
+            'gallery_images.*' => ['image', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        if (count($announcement->gallery_images ?? []) + count($validated['gallery_images']) > 30) {
+            throw ValidationException::withMessages([
+                'gallery_images' => 'An event gallery can contain at most 30 photos.',
+            ]);
+        }
+
+        $announcement->update([
+            'gallery_images' => [
+                ...($announcement->gallery_images ?? []),
+                ...$this->storeGalleryImages($validated['gallery_images']),
+            ],
+        ]);
+
+        return back();
+    }
+
     public function destroy(Request $request, Announcement $announcement): RedirectResponse
     {
         $this->ensureStaffOwnsAnnouncement($request, $announcement);
 
         $image = $announcement->image;
         $attachments = array_column($announcement->attachments ?? [], 'path');
+        $galleryImages = array_column($announcement->gallery_images ?? [], 'path');
         DB::transaction(function () use ($announcement): void {
             $announcement->notifications()->delete();
             $announcement->delete();
@@ -559,6 +620,11 @@ class AnnouncementController extends Controller
         foreach ($attachments as $path) {
             if (! Storage::disk('public')->delete($path)) {
                 throw new RuntimeException('Failed to remove a deleted announcement attachment.');
+            }
+        }
+        foreach ($galleryImages as $path) {
+            if (! Storage::disk('public')->delete($path)) {
+                throw new RuntimeException('Failed to remove a deleted event gallery photo.');
             }
         }
 
@@ -678,6 +744,8 @@ class AnnouncementController extends Controller
                 ? Storage::disk('public')->url($announcement->image)
                 : null,
             'attachments' => $this->attachmentData($announcement),
+            'gallery_enabled' => $announcement->gallery_enabled,
+            'gallery_images' => $this->galleryImageData($announcement),
             'event_date' => $announcement->event_date?->toDateString(),
             'event_end_date' => $announcement->event_end_date?->toDateString(),
             'start_time' => $announcement->start_time,
@@ -729,6 +797,40 @@ class AnnouncementController extends Controller
                 'name' => $file->getClientOriginalName(),
             ];
         }, $files);
+    }
+
+    private function storeGalleryImages(array $files): array
+    {
+        $images = [];
+
+        foreach ($files as $file) {
+            $path = $file->store('announcements/event-galleries', 'public');
+
+            if ($path === false) {
+                foreach ($images as $image) {
+                    if (! Storage::disk('public')->delete($image['path'])) {
+                        throw new RuntimeException('Failed to clean up a partially stored event gallery.');
+                    }
+                }
+
+                throw new RuntimeException('Failed to store an event gallery photo.');
+            }
+
+            $images[] = [
+                'path' => $path,
+                'name' => $file->getClientOriginalName(),
+            ];
+        }
+
+        return $images;
+    }
+
+    private function galleryImageData(Announcement $announcement): array
+    {
+        return array_map(fn (array $image): array => [
+            ...$image,
+            'url' => Storage::disk('public')->url($image['path']),
+        ], $announcement->gallery_images ?? []);
     }
 
     private function attachmentData(Announcement $announcement): array

@@ -256,7 +256,8 @@ test('the client can open an announcement in the read more page', function () {
             ->where('announcement.title', 'Campus event')
             ->where('announcement.content', 'Full announcement details.')
             ->where('announcement.image', '/storage/announcements/event.jpg')
-            ->where('announcement.location', 'Main Hall'));
+            ->where('announcement.location', 'Main Hall')
+            ->where('announcement.albums', []));
 });
 
 test('opening an announcement increments views but message polling does not', function () {

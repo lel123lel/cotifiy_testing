@@ -127,6 +127,87 @@ test('an admin can publish an announcement', function () {
             ->where('announcements.0.date', now()->toDateString()));
 });
 
+test('an enabled event gallery is stored and shown to clients', function () {
+    Storage::fake('public');
+    Notification::fake();
+
+    $admin = AdminUser::create([
+        'name' => 'Gallery Admin',
+        'email' => 'gallery-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $client = User::factory()->create();
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.announcements.store'), [
+            'title' => 'Campus celebration',
+            'category' => 'Event',
+            'posted_by' => 'Student Affairs',
+            'body' => 'Photos from the event.',
+            'event_date' => now()->toDateString(),
+            'event_end_date' => now()->toDateString(),
+            'location' => 'Main Hall',
+            'gallery_enabled' => '1',
+        ])
+        ->assertRedirect();
+
+    $announcement = Announcement::query()->where('title', 'Campus celebration')->firstOrFail();
+    expect($announcement->gallery_enabled)->toBeTrue()
+        ->and($announcement->gallery_images)->toBe([]);
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.announcements.gallery.store', $announcement), [
+            'gallery_images' => [
+                UploadedFile::fake()->image('opening.jpg'),
+                UploadedFile::fake()->image('crowd.png'),
+            ],
+        ])
+        ->assertRedirect();
+
+    $announcement->refresh();
+    expect($announcement->gallery_enabled)->toBeTrue()
+        ->and($announcement->gallery_images)->toHaveCount(2)
+        ->and($announcement->gallery_images[0]['name'])->toBe('opening.jpg');
+    foreach ($announcement->gallery_images as $image) {
+        Storage::disk('public')->assertExists($image['path']);
+    }
+
+    $this->actingAs($client, 'web')
+        ->get(route('client.announcements.show', $announcement))
+        ->assertInertia(fn ($page) => $page
+            ->where('announcement.albums.0.name', 'Event Gallery')
+            ->has('announcement.albums.0.images', 2)
+            ->where('announcement.albums.0.images.0', '/storage/'.$announcement->gallery_images[0]['path']));
+});
+
+test('gallery photos cannot be uploaded until the event gallery is enabled', function () {
+    Storage::fake('public');
+    $admin = AdminUser::create([
+        'name' => 'Gallery Admin',
+        'email' => 'disabled-gallery-admin@example.com',
+        'password' => 'secret-password',
+    ]);
+    $announcement = Announcement::create([
+        'title' => 'Gallery disabled event',
+        'category' => 'Event',
+        'posted_by' => 'Student Affairs',
+        'date' => now()->toDateString(),
+        'event_date' => now()->toDateString(),
+        'body' => 'An event without an enabled gallery.',
+        'gallery_enabled' => false,
+        'gallery_images' => [],
+    ]);
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.announcements.gallery.store', $announcement), [
+            'gallery_images' => [UploadedFile::fake()->image('not-accepted.jpg')],
+        ])
+        ->assertSessionHasErrors('gallery_images');
+
+    expect($announcement->refresh()->gallery_images)->toBe([]);
+    Storage::disk('public')->assertDirectoryEmpty('announcements/event-galleries');
+});
+
 test('admin announcement pages include all announcements and expose ownership', function () {
     Notification::fake();
     $admin = AdminUser::create([
@@ -179,6 +260,7 @@ test('admin announcement pages include all announcements and expose ownership', 
 });
 
 test('staff can manage announcements and events through the staff panel', function () {
+    Storage::fake('public');
     Notification::fake();
     $staff = StaffUser::create([
         'name' => 'Campus Staff',
@@ -216,10 +298,20 @@ test('staff can manage announcements and events through the staff panel', functi
         'start_time' => '09:00',
         'end_time' => '10:00',
         'location' => 'Main Hall',
+        'gallery_enabled' => '1',
     ]);
     $eventResponse->assertRedirect();
 
     $event = Announcement::query()->where('title', 'Staff event')->firstOrFail();
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.announcements.gallery.store', $event), [
+            'gallery_images' => [UploadedFile::fake()->image('staff-event.jpg')],
+        ])
+        ->assertRedirect();
+    $event->refresh();
+    expect($event->gallery_enabled)->toBeTrue()
+        ->and($event->gallery_images)->toHaveCount(1);
+    Storage::disk('public')->assertExists($event->gallery_images[0]['path']);
     $admin = AdminUser::create([
         'name' => 'Fixture Admin',
         'email' => 'fixture-admin@example.com',
@@ -243,7 +335,9 @@ test('staff can manage announcements and events through the staff panel', functi
             ->where('staffMode', true)
             ->where('staffName', 'Campus Staff')
             ->where('events.0.title', 'Staff event')
-            ->where('events.0.is_mine', true));
+            ->where('events.0.is_mine', true)
+            ->where('events.0.gallery_enabled', true)
+            ->where('events.0.gallery_images.0.name', 'staff-event.jpg'));
 
     $this->delete(route('staff.announcements.destroy', $announcement))
         ->assertRedirect();

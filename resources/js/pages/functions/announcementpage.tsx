@@ -28,6 +28,8 @@ export type Announcement = {
     start_time: string | null;
     end_time: string | null;
     location: string | null;
+    gallery_enabled?: boolean;
+    gallery_images?: { path: string; name: string; url: string }[];
 };
 
 export type AnnouncementPageProps = {
@@ -36,7 +38,7 @@ export type AnnouncementPageProps = {
     announcementComments?: DiscussionMessage[];
     staffMode?: boolean;
     canSendReminder?: boolean;
-    initialTab?: 'announcement' | 'comments' | 'analytics';
+    initialTab?: 'announcement' | 'comments' | 'analytics' | 'gallery';
     onClose?: () => void;
 };
 
@@ -91,10 +93,15 @@ export default function AnnouncementPage({
     const panelBase = staffMode ? '/staff' : '/admin';
     const isModal = Boolean(onClose);
     const reminderForm = useForm({});
-    const { flash } = usePage<{ flash: { status?: string } }>().props;
+    const galleryUploadForm = useForm<{ gallery_images: File[] }>({ gallery_images: [] });
+    const { flash, announcements: pageAnnouncements } = usePage<{
+        flash: { status?: string };
+        announcements?: Announcement[];
+    }>().props;
     const [showReminderStatus, setShowReminderStatus] = useState(false);
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const articleRef = useRef<HTMLElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
     
     // Image Zoom State
     const [isImageZoomed, setIsImageZoomed] = useState(false);
@@ -132,7 +139,7 @@ export default function AnnouncementPage({
         };
     }, [isImageZoomed]);
 
-    const [activeTab, setActiveTab] = useState<'announcement' | 'comments' | 'analytics'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'announcement' | 'comments' | 'analytics' | 'gallery'>(initialTab);
 
     const totalCommentCount =
         discussions.reduce((count, discussion) => count + discussion.messages.length, 0) +
@@ -149,6 +156,22 @@ export default function AnnouncementPage({
             </div>
         );
     }
+
+    const galleryAnnouncement = pageAnnouncements?.find(({ id }) => id === announcement.id) ?? announcement;
+
+    const uploadGalleryImages = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (galleryUploadForm.data.gallery_images.length === 0 || galleryUploadForm.processing) return;
+
+        galleryUploadForm.post(`${panelBase}/announcements/${announcement.id}/gallery`, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                galleryUploadForm.reset();
+                if (galleryInputRef.current) galleryInputRef.current.value = '';
+            },
+        });
+    };
 
     const analyticsSlices = [
         { label: 'Views', value: announcement.view_count ?? 0, color: '#3b82f6' },
@@ -242,6 +265,18 @@ export default function AnnouncementPage({
                                     >
                                         Comments <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600">{totalCommentCount}</span>
                                     </button>
+                                    {isEvent && (
+                                        <button
+                                            role="tab"
+                                            onClick={() => setActiveTab('gallery')}
+                                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${activeTab === 'gallery' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+                                        >
+                                            Gallery
+                                            <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600">
+                                                {galleryAnnouncement.gallery_images?.length ?? 0}
+                                            </span>
+                                        </button>
+                                    )}
                                     <button
                                         role="tab"
                                         onClick={() => setActiveTab('analytics')}
@@ -482,6 +517,93 @@ export default function AnnouncementPage({
                                     )}
                                 </div>
                             </div>
+                        )}
+
+                        {isModal && isEvent && activeTab === 'gallery' && (
+                            <section className="mx-auto max-w-5xl animate-slide-up">
+                                <div className="mb-5">
+                                    <h2 className="text-xl font-extrabold text-slate-900">Event gallery</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {galleryAnnouncement.gallery_enabled
+                                            ? 'Photos uploaded for this event.'
+                                            : 'This gallery is currently hidden from clients.'}
+                                    </p>
+                                </div>
+                                {galleryAnnouncement.gallery_enabled ? (
+                                    <form onSubmit={uploadGalleryImages} className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                                        <label htmlFor={`gallery-upload-${announcement.id}`} className="mb-2 block text-sm font-bold text-slate-800">
+                                            Add event photos
+                                        </label>
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                            <input
+                                                ref={galleryInputRef}
+                                                id={`gallery-upload-${announcement.id}`}
+                                                type="file"
+                                                multiple
+                                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                                disabled={(galleryAnnouncement.gallery_images?.length ?? 0) >= 30 || galleryUploadForm.processing}
+                                                onChange={(event) => galleryUploadForm.setData('gallery_images', Array.from(event.currentTarget.files ?? []))}
+                                                className="block min-w-0 flex-1 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-bold file:text-blue-700 disabled:opacity-50"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={galleryUploadForm.data.gallery_images.length === 0 || galleryUploadForm.processing}
+                                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-ctu-dark px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <i className={`fa-solid ${galleryUploadForm.processing ? 'fa-spinner fa-spin' : 'fa-upload'}`} aria-hidden="true"></i>
+                                                {galleryUploadForm.processing ? 'Uploading...' : 'Upload photos'}
+                                            </button>
+                                        </div>
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            JPG, PNG, GIF or WebP · 5 MB each · {galleryAnnouncement.gallery_images?.length ?? 0}/30 photos uploaded
+                                        </p>
+                                        {galleryUploadForm.data.gallery_images.length > 0 && (
+                                            <p className="mt-1 break-words text-xs font-medium text-slate-600">
+                                                {galleryUploadForm.data.gallery_images.map((file) => file.name).join(', ')}
+                                            </p>
+                                        )}
+                                        {galleryUploadForm.errors.gallery_images && (
+                                            <p className="mt-2 text-xs font-semibold text-red-600">{galleryUploadForm.errors.gallery_images}</p>
+                                        )}
+                                        {Object.entries(galleryUploadForm.errors)
+                                            .filter(([key]) => key.startsWith('gallery_images.'))
+                                            .map(([key, error]) => (
+                                                <p key={key} className="mt-1 text-xs font-semibold text-red-600">{error}</p>
+                                            ))}
+                                    </form>
+                                ) : (
+                                    <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="status">
+                                        Enable the event gallery in the announcement editor before uploading photos.
+                                    </p>
+                                )}
+                                {galleryAnnouncement.gallery_images && galleryAnnouncement.gallery_images.length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 lg:grid-cols-4">
+                                        {galleryAnnouncement.gallery_images.map((image) => (
+                                            <a
+                                                key={image.path}
+                                                href={image.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="group overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                                            >
+                                                <img
+                                                    src={image.url}
+                                                    alt={image.name}
+                                                    className="aspect-square w-full object-cover transition-transform group-hover:scale-105"
+                                                />
+                                                <span className="block truncate px-2 py-1.5 text-xs font-semibold text-slate-600">
+                                                    {image.name}
+                                                </span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                                        <i className="fa-regular fa-images mb-3 text-3xl text-slate-300" aria-hidden="true"></i>
+                                        <p className="font-semibold text-slate-700">No event photos uploaded yet.</p>
+                                    </div>
+                                )}
+                            </section>
                         )}
 
                         {/* COMMENTS TAB */}

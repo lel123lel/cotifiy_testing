@@ -110,6 +110,9 @@ Route::post('/staff/announcements', [AnnouncementController::class, 'store'])
 Route::put('/staff/announcements/{announcement}', [AnnouncementController::class, 'update'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.update');
+Route::post('/staff/announcements/{announcement}/gallery', [AnnouncementController::class, 'uploadGalleryImages'])
+    ->middleware(['auth:staff', 'private-cache'])
+    ->name('staff.announcements.gallery.store');
 Route::patch('/staff/announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])
     ->middleware(['auth:staff', 'private-cache'])
     ->name('staff.announcements.archive');
@@ -188,6 +191,9 @@ Route::post('/admin/announcements', [AnnouncementController::class, 'store'])
 Route::put('/admin/announcements/{announcement}', [AnnouncementController::class, 'update'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.update');
+Route::post('/admin/announcements/{announcement}/gallery', [AnnouncementController::class, 'uploadGalleryImages'])
+    ->middleware(['auth:admin', 'private-cache'])
+    ->name('admin.announcements.gallery.store');
 Route::patch('/admin/announcements/{announcement}/archive', [AnnouncementController::class, 'archive'])
     ->middleware(['auth:admin', 'private-cache'])
     ->name('admin.announcements.archive');

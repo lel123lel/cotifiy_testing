@@ -65,6 +65,7 @@ export default function AdminAnnouncements({
     const [selectedImageName, setSelectedImageName] = useState('');
     const [selectedAttachmentNames, setSelectedAttachmentNames] = useState<string[]>([]);
     const [removedAttachmentPaths, setRemovedAttachmentPaths] = useState<string[]>([]);
+    const [galleryEnabled, setGalleryEnabled] = useState(false);
     const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Editor State
@@ -202,6 +203,7 @@ export default function AdminAnnouncements({
         setSelectedImageName('');
         setSelectedAttachmentNames([]);
         setRemovedAttachmentPaths([]);
+        setGalleryEnabled(announcement?.gallery_enabled ?? false);
         setIsEditorOpen(true);
     };
 
@@ -661,7 +663,12 @@ export default function AdminAnnouncements({
                                                     name="category"
                                                     required
                                                     value={selectedCategory}
-                                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                                    onChange={(e) => {
+                                                        setSelectedCategory(e.target.value);
+                                                        if (e.target.value !== 'Event') {
+                                                            setGalleryEnabled(false);
+                                                        }
+                                                    }}
                                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium mb-4 focus:outline-none focus:border-ctu-lightblue"
                                                 >
                                                     <option value="Academic">Academic</option>
@@ -836,6 +843,26 @@ export default function AdminAnnouncements({
                                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                                                         />
                                                         {errors.location && <p className="mt-1 text-xs font-bold text-red-600">{errors.location}</p>}
+                                                    </div>
+                                                    <div className="border-t border-slate-100 pt-3">
+                                                        <input type="hidden" name="gallery_enabled" value="0" />
+                                                        <label className="flex items-start gap-2 text-sm font-bold text-slate-800">
+                                                            <input
+                                                                type="checkbox"
+                                                                name="gallery_enabled"
+                                                                value="1"
+                                                                checked={galleryEnabled}
+                                                                onChange={(event) => {
+                                                                    setGalleryEnabled(event.currentTarget.checked);
+                                                                }}
+                                                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                            <span>Enable event gallery</span>
+                                                        </label>
+                                                        <p className="mt-1 text-xs text-slate-500">
+                                                            Let clients view photos from this event on the announcement page.
+                                                        </p>
+                                                        {errors.gallery_enabled && <p className="mt-1 text-xs font-bold text-red-600">{errors.gallery_enabled}</p>}
                                                     </div>
                                                 </div>
                                             )}

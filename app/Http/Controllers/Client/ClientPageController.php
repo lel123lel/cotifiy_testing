@@ -344,6 +344,16 @@ class ClientPageController extends Controller
                         : number_format($size / 1024, 0).' KB',
                 ];
             }, $announcement->attachments ?? []),
+            'albums' => $announcement->gallery_enabled
+                ? [[
+                    'id' => $announcement->id,
+                    'name' => 'Event Gallery',
+                    'images' => array_map(
+                        fn (array $image): string => Storage::disk('public')->url($image['path']),
+                        $announcement->gallery_images ?? [],
+                    ),
+                ]]
+                : [],
             'event_date' => $announcement->event_date?->toDateString(),
             'event_end_date' => $announcement->event_end_date?->toDateString(),
             'start_time' => $announcement->start_time,

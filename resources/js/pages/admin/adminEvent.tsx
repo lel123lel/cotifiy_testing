@@ -24,6 +24,7 @@ type AdminEvent = {
     target_department: string | null;
     image_url: string | null;
     attachments: EventAttachment[];
+    gallery_enabled: boolean;
 };
 
 type EventAttachment = {
@@ -46,6 +47,7 @@ type EventFormData = {
     image: File | null;
     attachments: File[];
     remove_attachments: string[];
+    gallery_enabled: boolean;
     department_only?: boolean;
     _method?: 'put';
 };
@@ -185,6 +187,7 @@ export default function AdminEvents({
         image: null,
         attachments: [],
         remove_attachments: [],
+        gallery_enabled: false,
         ...(staffMode && canRestrictDepartment ? { department_only: false } : {}),
     });
 
@@ -205,6 +208,7 @@ export default function AdminEvents({
             image: null,
             attachments: [],
             remove_attachments: [],
+            gallery_enabled: event?.gallery_enabled ?? false,
             ...(!event && staffMode && canRestrictDepartment ? { department_only: false } : {}),
         });
         setSelectedImageName('');
@@ -686,6 +690,27 @@ export default function AdminEvents({
                                         {selectedImageName && <p className="mt-1 text-xs text-slate-500">{selectedImageName}</p>}
                                         <p className="mt-1 text-[11px] text-slate-500">JPG, PNG, GIF or WebP · up to 5 MB</p>
                                         {eventForm.errors.image && <p className="mt-1 text-xs font-semibold text-rose-600">{eventForm.errors.image}</p>}
+                                    </div>
+                                    <div className="border-t border-slate-100 pt-4">
+                                        <label className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={eventForm.data.gallery_enabled}
+                                                onChange={(event) => {
+                                                    const enabled = event.currentTarget.checked;
+                                                    eventForm.setData((data) => ({
+                                                        ...data,
+                                                        gallery_enabled: enabled,
+                                                    }));
+                                                }}
+                                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span>Enable event gallery</span>
+                                        </label>
+                                        <p className="mt-1 pl-7 text-xs text-slate-500">
+                                            Let clients view photos from this event on the announcement page.
+                                        </p>
+                                        {eventForm.errors.gallery_enabled && <p className="mt-1 text-xs font-semibold text-rose-600">{eventForm.errors.gallery_enabled}</p>}
                                     </div>
                                     <div>
                                         <label htmlFor="calendar-event-attachments" className="mb-1 block text-xs font-bold text-slate-700">Downloadable documents</label>

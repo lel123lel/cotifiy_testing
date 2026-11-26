@@ -750,71 +750,6 @@ export default function ClientReadMore({
                                                     </div>
                                                 </div>
 
-                                                {/* ============ EVENT GALLERY ============ */}
-                                                {isEvent && ((announcement.albums && announcement.albums.length > 0) || announcement.start_time || announcement.end_time) && (
-                                                    <div className="mt-12 border-t border-slate-200 pt-10">
-                                                        <div className="mb-6">
-                                                            <h3 className="text-2xl font-extrabold text-slate-900">
-                                                                Event Gallery
-                                                            </h3>
-                                                            <p className="mt-2 text-base font-medium text-slate-500">
-                                                                Relive the moments and schedule from this event.
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                                            {/* Limit to 3 albums */}
-                                                            {(announcement.albums && announcement.albums.length > 0
-                                                                ? announcement.albums
-                                                                : [
-                                                                      {
-                                                                          id: -1,
-                                                                          name: 'Event Schedule',
-                                                                          images: [],
-                                                                          schedule: [
-                                                                              {
-                                                                                  time: `${formatTime(announcement.start_time)}${announcement.end_time ? ` - ${formatTime(announcement.end_time)}` : ''}`,
-                                                                                  title: announcement.title,
-                                                                                  description: announcement.location
-                                                                                      ? `Held at ${announcement.location}`
-                                                                                      : undefined,
-                                                                              },
-                                                                          ],
-                                                                      },
-                                                                  ]
-                                                            ).slice(0, 3).map((album) => (
-                                                                <div 
-                                                                    key={album.id}
-                                                                    onClick={() => setActiveAlbum(album)}
-                                                                    className="group relative flex aspect-[4/3] cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm transition-all hover:shadow-md"
-                                                                >
-                                                                    {album.images && album.images.length > 0 ? (
-                                                                        <img 
-                                                                            src={album.images[0]} 
-                                                                            alt={album.name} 
-                                                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="flex h-full w-full items-center justify-center text-slate-400">
-                                                                            <i className="fa-regular fa-images text-4xl"></i>
-                                                                        </div>
-                                                                    )}
-                                                                    
-                                                                    {/* Overlay */}
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90 transition-opacity group-hover:opacity-100" />
-                                                                    
-                                                                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                                                                        <p className="text-lg font-bold text-white truncate drop-shadow-sm">{album.name}</p>
-                                                                        <p className="text-xs font-semibold text-white/80">
-                                                                            {album.images ? album.images.length : 0} photos
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
                                             </div>
                                         </div>
                                     </article>
@@ -855,6 +790,47 @@ export default function ClientReadMore({
                                             </div>
 
                                         </div>
+                                        {announcement.albums && announcement.albums.length > 0 && (
+                                            <section className="mt-6 border-t border-slate-200 pt-6">
+                                                <div className="mb-5">
+                                                    <h3 className="text-xl font-extrabold text-slate-900">Event Gallery</h3>
+                                                    <p className="mt-1 text-sm font-medium text-slate-500">
+                                                        Relive the moments from this event.
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                    {announcement.albums.slice(0, 3).map((album) => (
+                                                        <div
+                                                            key={album.id}
+                                                            onClick={() => setActiveAlbum(album)}
+                                                            className="group relative flex aspect-[4/3] cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm transition-all hover:shadow-md"
+                                                        >
+                                                            {album.images.length > 0 ? (
+                                                                <img
+                                                                    src={album.images[0]}
+                                                                    alt={album.name}
+                                                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full w-full items-center justify-center text-slate-400">
+                                                                    <i className="fa-regular fa-images text-4xl"></i>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90 transition-opacity group-hover:opacity-100" />
+
+                                                            <div className="absolute bottom-0 left-0 right-0 p-4">
+                                                                <p className="truncate text-lg font-bold text-white drop-shadow-sm">{album.name}</p>
+                                                                <p className="text-xs font-semibold text-white/80">
+                                                                    {album.images.length} photos
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
                                     </aside>
                                 )}
                             </div>
@@ -877,7 +853,7 @@ export default function ClientReadMore({
                 {/* ============ ALBUM VIEW MODAL ============ */}
                 {activeAlbum && (
                     <div 
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 p-4 backdrop-blur-md animate-fade-in"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm animate-fade-in"
                         onClick={() => { setActiveAlbum(null); setActiveAlbumImage(null); }}
                     >
                         <div 
@@ -900,8 +876,7 @@ export default function ClientReadMore({
                             <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-8">
                                 {activeAlbum.images && activeAlbum.images.length > 0 ? (
                                     <div className="relative ml-4 space-y-8 border-l border-slate-300 pb-8 sm:ml-6">
-                                        {/* Limit to 10 images */}
-                                        {activeAlbum.images.slice(0, 10).map((img, idx) => (
+                                        {activeAlbum.images.map((img, idx) => (
                                             <div key={idx} className="relative pl-8 sm:pl-10">
                                                 {/* Timeline Dot */}
                                                 <span className="absolute left-0 top-2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border-2 border-ctu-lightblue bg-white text-[10px] font-bold text-ctu-lightblue shadow-sm">
@@ -945,7 +920,7 @@ export default function ClientReadMore({
                 {/* ============ ALBUM IMAGE ZOOM MODAL ============ */}
                 {activeAlbumImage && (
                     <div
-                        className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md animate-fade-in cursor-zoom-out"
+                        className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-fade-in cursor-zoom-out"
                         onClick={() => setActiveAlbumImage(null)}
                     >
                         <button

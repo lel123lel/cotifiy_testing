@@ -18,7 +18,7 @@ use Spatie\LaravelMarkdown\MarkdownRenderer;
  * @property Carbon|null $event_date
  * @property Carbon|null $event_end_date
  */
-#[Fillable(['image', 'title', 'category', 'posted_by', 'target_department', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'author_staff_id', 'author_admin_id', 'status', 'is_urgent', 'urgent_days', 'urgent_until'])]
+#[Fillable(['image', 'title', 'category', 'posted_by', 'target_department', 'date', 'body', 'event_date', 'event_end_date', 'start_time', 'end_time', 'location', 'attachments', 'gallery_enabled', 'gallery_images', 'author_staff_id', 'author_admin_id', 'status', 'is_urgent', 'urgent_days', 'urgent_until'])]
 class Announcement extends Model
 {
     protected $table = 'announcement';
@@ -121,6 +121,8 @@ class Announcement extends Model
             'event_date' => 'date',
             'event_end_date' => 'date',
             'attachments' => 'array',
+            'gallery_enabled' => 'boolean',
+            'gallery_images' => 'array',
             'is_urgent' => 'boolean',
             'urgent_days' => 'integer',
             'urgent_until' => 'datetime',
